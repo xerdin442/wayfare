@@ -3,12 +3,7 @@ load('ext://restart_process', 'docker_build_with_restart')
 
 ### K8s Config ###
 
-local_resource(
-  'gen-secrets',
-  'kubectl create secret generic app-secrets --from-env-file=.env --dry-run=client -o yaml > ./infra/development/k8s/secrets.yaml',
-  deps=['.env']
-  labels='k8s-secrets'
-)
+local('kubectl create secret generic app-secrets --from-env-file=.env --dry-run=client -o yaml > ./infra/development/k8s/secrets.yaml')
 
 k8s_yaml('./infra/development/k8s/secrets.yaml')
 k8s_yaml('./infra/development/k8s/redis.yaml')
@@ -16,27 +11,18 @@ k8s_yaml('./infra/development/k8s/redis.yaml')
 ### End of K8s Config ###
 ### API Gateway ###
 
-gateway_compile_cmd = 'CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/api-gateway ./services/api-gateway/cmd/main.go'
-
-local_resource(
-  'api-gateway-compile',
-  gateway_compile_cmd,
-  deps=['./services/api-gateway', './shared'],
-  labels="compiles"
-)
-
 docker_build_with_restart(
   'wayfare/api-gateway',
   '.',
   entrypoint=['/app/build/api-gateway'],
   dockerfile='./infra/development/docker/api-gateway.Dockerfile',
-  only=[
-    './build/api-gateway',
-    './shared',
-  ],
   live_update=[
-    sync('./build', '/app/build'),
+    sync('./services/api-gateway', '/app/services/api-gateway'),
     sync('./shared', '/app/shared'),
+    run(
+      'go build -o /app/build/api-gateway ./services/api-gateway/cmd/main.go',
+      trigger=['./services/api-gateway', './shared']
+    )
   ],
 )
 
@@ -44,7 +30,7 @@ k8s_yaml('./infra/development/k8s/api-gateway-deployment.yaml')
 k8s_resource(
   'api-gateway',
   port_forwards=8080,
-  resource_deps=['api-gateway-compile'],
+  resource_deps=['redis'],
   labels="services",
 )
 

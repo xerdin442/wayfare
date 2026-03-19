@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/api-gateway ./services/api-gateway/cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/build/api-gateway ./services/api-gateway/cmd/main.go
 
 # --- Stage 2: Final Runtime ---
 FROM alpine:latest
@@ -19,7 +19,7 @@ RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 
-COPY --from=builder /app/build/api-gateway ./build/api-gateway
+COPY --from=builder /app/build ./build
 COPY --from=builder /app/shared ./shared
 
 CMD ["/app/build/api-gateway"]
