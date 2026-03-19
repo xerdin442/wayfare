@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/xerdin442/wayfare/services/api-gateway/middleware"
+	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/middleware"
 )
 
 func (app *application) routes() http.Handler {
