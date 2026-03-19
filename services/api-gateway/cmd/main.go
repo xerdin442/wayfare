@@ -1,7 +1,7 @@
 package main
 
 import (
-	"os"
+	"context"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,18 +29,29 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// Improve readability of logs in development
-	if env.Environment == "development" {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
-	}
-
-	// Initialize cache
+	// Parse Redis connection URI
 	cacheOpts, err := redis.ParseURL(env.RedisUri)
 	if err != nil {
-		log.Fatal().Msg("Invalid Redis connection URL")
+		log.Fatal().Msg("Invalid Redis connection URI")
 	}
 
+	// Initialize cache and test connection
 	cache := redis.NewClient(cacheOpts)
+	var pingErr error
+
+	for range 3 {
+		pingErr = cache.Ping(context.Background()).Err()
+		if pingErr == nil {
+			break
+		}
+
+		log.Warn().Msg("Waiting for Redis...")
+		time.Sleep(time.Second * 2)
+	}
+
+	if pingErr != nil {
+		log.Fatal().Err(pingErr).Msg("Could not connect to Redis after 3 attempts. Exiting...")
+	}
 
 	app := &application{
 		port: env.Port,
