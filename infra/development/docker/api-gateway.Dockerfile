@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/build/api-gateway ./services/api-gateway/cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/build/api-gateway ./services/api-gateway/cmd/.
 
 # --- Stage 2: Final Runtime ---
 FROM alpine:latest

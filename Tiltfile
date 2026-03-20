@@ -16,11 +16,12 @@ docker_build_with_restart(
   '.',
   entrypoint=['/app/build/api-gateway'],
   dockerfile='./infra/development/docker/api-gateway.Dockerfile',
+  ignore=['./infra'],
   live_update=[
     sync('./services/api-gateway', '/app/services/api-gateway'),
     sync('./shared', '/app/shared'),
     run(
-      'go build -o /app/build/api-gateway ./services/api-gateway/cmd/main.go',
+      'go build -o /app/build/api-gateway ./services/api-gateway/cmd/.',
       trigger=['./services/api-gateway', './shared']
     )
   ],
