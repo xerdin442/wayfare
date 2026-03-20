@@ -7,6 +7,7 @@ local('kubectl create secret generic app-secrets --from-env-file=.env --dry-run=
 
 k8s_yaml('./infra/development/k8s/secrets.yaml')
 k8s_yaml('./infra/development/k8s/redis.yaml')
+k8s_yaml('./infra/development/k8s/mongo.yaml')
 
 ### End of K8s Config ###
 ### API Gateway ###

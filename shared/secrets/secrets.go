@@ -12,6 +12,8 @@ type Secrets struct {
 	Port        int
 	Environment string
 	RedisUri    string
+	MongoUri    string
+	JwtSecret   string
 }
 
 func Load() *Secrets {
@@ -19,6 +21,8 @@ func Load() *Secrets {
 		Port:        GetInt("PORT"),
 		Environment: GetStr("ENVIRONMENT"),
 		RedisUri:    GetStr("REDIS_URI"),
+		MongoUri:    GetStr("MONGO_URI"),
+		JwtSecret:   GetStr("JWT_SECRET"),
 	}
 }
 

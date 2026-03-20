@@ -25,7 +25,7 @@ func main() {
 		"internal/infra/events",
 		"internal/infra/grpc",
 		"internal/infra/repository",
-		"pkg/types",
+		"pkg",
 	}
 
 	for _, dir := range dirs {
@@ -37,20 +37,4 @@ func main() {
 	}
 
 	fmt.Printf("Successfully created %s service structure in %s\n", *serviceName, basePath)
-	fmt.Println("\nDirectory structure created:")
-	fmt.Printf(`
-services/%s/
-├── cmd/                  # Application entry points
-├── internal/             # Private application code
-│   ├── models/           # Business domain models and interfaces
-│   │   └── %s.go         # Core domain interfaces
-│   ├── service/          # Business logic implementation
-│   │   └── service.go    # Service implementations
-│   └── infra/   					# External dependencies implementations (abstractions)
-│       ├── events/       # Event handling (RabbitMQ)
-│       ├── grpc/         # gRPC server handlers
-│       └── repository/   # Data persistence
-└── pkg/                  # Public packages
-    └── types/           	# Shared types and models
-`, *serviceName, *serviceName)
 }
