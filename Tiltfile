@@ -16,7 +16,7 @@ docker_build_with_restart(
   '.',
   entrypoint=['/app/build/api-gateway'],
   dockerfile='./infra/development/docker/api-gateway.Dockerfile',
-  ignore=['./infra'],
+  ignore=['./infra', './tools'],
   live_update=[
     sync('./services/api-gateway', '/app/services/api-gateway'),
     sync('./shared', '/app/shared'),
