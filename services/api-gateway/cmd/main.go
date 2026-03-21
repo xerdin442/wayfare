@@ -8,13 +8,14 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/xerdin442/wayfare/shared/contracts"
+	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/base"
+	"github.com/xerdin442/wayfare/services/api-gateway/internal/client"
 	"github.com/xerdin442/wayfare/shared/secrets"
 )
 
 type application struct {
-	port int
-	contracts.Base
+	port   int
+	config base.Config
 }
 
 func main() {
@@ -53,11 +54,16 @@ func main() {
 		log.Fatal().Err(pingErr).Msg("Could not connect to Redis after 3 attempts. Exiting...")
 	}
 
+	// Initialize gRPC clients
+	clients := client.NewRegistry(env)
+	defer clients.Close()
+
 	app := &application{
 		port: env.Port,
-		Base: contracts.Base{
-			Env:   env,
-			Cache: cache,
+		config: base.Config{
+			Env:     env,
+			Cache:   cache,
+			Clients: clients,
 		},
 	}
 

@@ -10,8 +10,8 @@ import (
 
 func (app *application) routes() http.Handler {
 	r := gin.New()
-	m := middleware.New(app.Base)
-	h := handlers.New(app.Base)
+	m := middleware.New(app.config)
+	h := handlers.New(app.config)
 
 	r.Use(m.CustomRequestLogger())
 	r.Use(m.RateLimiters()...)

@@ -5,28 +5,28 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/xerdin442/wayfare/shared/contracts"
+	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/base"
 )
 
 type RouteHandler struct {
 	ws    websocket.Upgrader
 	conns sync.Map
-	contracts.Base
+	cfg   base.Config
 }
 
-func New(b contracts.Base) *RouteHandler {
+func New(c base.Config) *RouteHandler {
 	return &RouteHandler{
-		Base: b,
+		cfg: c,
 		ws: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
 			CheckOrigin: func(r *http.Request) bool {
-				if b.Env.Environment == "development" {
+				if c.Env.Environment == "development" {
 					return true
 				}
 
 				origin := r.Header.Get("Origin")
-				return origin == b.Env.FrontendUrl
+				return origin == c.Env.FrontendUrl
 			},
 		},
 	}

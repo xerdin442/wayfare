@@ -12,7 +12,7 @@ import (
 )
 
 func (m *Middleware) RateLimiters() []gin.HandlerFunc {
-	store, err := redis.NewStore(m.Cache)
+	store, err := redis.NewStore(m.cfg.Cache)
 	if err != nil {
 		log.Fatal().Msg("Failed to create Redis store for rate limiter")
 	}

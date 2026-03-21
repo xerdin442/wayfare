@@ -8,10 +8,12 @@ import (
 	"net/http"
 
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
+	rpc "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/types"
 )
 
 type TripService struct {
+	rpc.UnimplementedTripServiceServer
 	repo *repo.TripRepository
 }
 

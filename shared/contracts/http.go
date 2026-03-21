@@ -1,15 +1,8 @@
 package contracts
 
 import (
-	"github.com/redis/go-redis/v9"
-	"github.com/xerdin442/wayfare/shared/secrets"
 	"github.com/xerdin442/wayfare/shared/types"
 )
-
-type Base struct {
-	Env   *secrets.Secrets
-	Cache *redis.Client
-}
 
 type APIResponse struct {
 	Data  any       `json:"data,omitempty"`

@@ -39,11 +39,11 @@ func (m *Middleware) JwtGuard() gin.HandlerFunc {
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		token, err := jwt.ParseWithClaims(tokenString, &AllClaims{}, func(token *jwt.Token) (any, error) {
-			return m.Env.JwtSecret, nil
+			return m.cfg.Env.JwtSecret, nil
 		})
 
 		// Check if token is blacklisted
-		n, err := m.Cache.Exists(c.Request.Context(), tokenString).Result()
+		n, err := m.cfg.Cache.Exists(c.Request.Context(), tokenString).Result()
 		if err != nil {
 			log.Fatal().Err(err).Msg("Error fetching blacklisted tokens from cache")
 		}
