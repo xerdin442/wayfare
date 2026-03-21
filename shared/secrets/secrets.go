@@ -14,6 +14,7 @@ type Secrets struct {
 	RedisUri    string
 	MongoUri    string
 	JwtSecret   string
+	FrontendUrl string
 }
 
 func Load() *Secrets {
@@ -23,6 +24,7 @@ func Load() *Secrets {
 		RedisUri:    GetStr("REDIS_URI"),
 		MongoUri:    GetStr("MONGO_URI"),
 		JwtSecret:   GetStr("JWT_SECRET"),
+		FrontendUrl: GetStr("FRONTEND_URL"),
 	}
 }
 

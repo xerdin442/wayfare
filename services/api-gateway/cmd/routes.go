@@ -22,10 +22,17 @@ func (app *application) routes() http.Handler {
 		c.Status(http.StatusOK)
 	})
 
+	// Websocket handlers
+	r.Group("/ws")
+	{
+		r.GET("/drivers", h.HandleDriversConnection)
+		r.GET("/riders", h.HandleRidersConnection)
+	}
+
 	v1 := r.Group("/api/v1")
 
-	v1.GET("/", func(ctx *gin.Context) {
-		ctx.String(http.StatusOK, "Hello from the API Gateway!")
+	v1.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "Hello from the API Gateway!")
 	})
 
 	trip := v1.Group("/trip", m.JwtGuard())
