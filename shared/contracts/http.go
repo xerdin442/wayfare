@@ -27,8 +27,8 @@ type PreviewTripRequest struct {
 }
 
 type PreviewTripResponse struct {
-	Route     types.Route       `json:"route"`
-	RideFares []types.RouteFare `json:"rideFares"`
+	Route     types.Route      `json:"route"`
+	RideFares []types.RideFare `json:"rideFares"`
 }
 
 type StartTripRequest struct {

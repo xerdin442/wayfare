@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package wayfare;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/xerdin442/wayfare/shared/pkg/rpc";
+
+message Coordinate {
+  double latitude  = 1;
+  double longitude = 2;
+}
+
+message Geometry {
+  repeated Coordinate coordinates = 1;
+}
+
+message Route {
+  double            distance = 1;
+  double            duration = 2;
+  repeated Geometry geometry = 3;
+}
+
+message OsrmApiResponse {
+  repeated Route routes = 1;
+}
+
+message RideFare {
+  string                    id                  = 1;
+  string                    package_slug        = 2;
+  double                    base_price          = 3;
+  optional double           total_price_in_kobo = 4;
+  google.protobuf.Timestamp expires_at          = 5;
+  Route                     route               = 6;
+}
+
+message Driver {
+  string     id              = 1;
+  Coordinate location        = 2;
+  string     geohash         = 3;
+  string     name            = 4;
+  string     profile_picture = 5;
+  string     car_plate       = 6;
+}
+
+message Trip {
+  string          id            = 1;
+  string          user_id       = 2;
+  string          status        = 3;
+  RideFare        selected_fare = 4;
+  Route           route         = 5;
+  optional Driver driver        = 6;
+}

@@ -12,7 +12,7 @@ type RouteModel struct {
 	Distance float64 `bson:"distance"`
 }
 
-type RouteFareModel struct {
+type RideFareModel struct {
 	ID               bson.ObjectID `bson:"_id,omitempty"`
 	PackageSlug      string        `bson:"package_slug"`
 	BasePrice        float64       `bson:"base_price"`
@@ -24,13 +24,13 @@ type RouteFareModel struct {
 }
 
 type TripModel struct {
-	ID        bson.ObjectID  `bson:"_id,omitempty"`
-	DriverID  bson.ObjectID  `bson:"driver_id"`
-	UserID    bson.ObjectID  `bson:"user_id"`
-	Status    string         `bson:"status"`
-	Fare      RouteFareModel `bson:"fare"`
-	CreatedAt time.Time      `bson:"created_at"`
-	UpdatedAt time.Time      `bson:"updated_at"`
+	ID        bson.ObjectID `bson:"_id,omitempty"`
+	DriverID  bson.ObjectID `bson:"driver_id"`
+	UserID    bson.ObjectID `bson:"user_id"`
+	Status    string        `bson:"status"`
+	Fare      RideFareModel `bson:"fare"`
+	CreatedAt time.Time     `bson:"created_at"`
+	UpdatedAt time.Time     `bson:"updated_at"`
 }
 
 type GeoJSON struct {

@@ -21,7 +21,7 @@ type OsrmApiResponse struct {
 	Routes []*Route `json:"routes"`
 }
 
-type RouteFare struct {
+type RideFare struct {
 	ID               string    `json:"id"`
 	PackageSlug      string    `json:"packageSlug"`
 	BasePrice        float64   `json:"basePrice"`
@@ -31,12 +31,12 @@ type RouteFare struct {
 }
 
 type Trip struct {
-	ID           string    `json:"id"`
-	UserID       string    `json:"userID"`
-	Status       string    `json:"status"`
-	SelectedFare RouteFare `json:"selectedFare"`
-	Route        Route     `json:"route"`
-	Driver       *Driver   `json:"driver,omitempty"`
+	ID           string   `json:"id"`
+	UserID       string   `json:"userID"`
+	Status       string   `json:"status"`
+	SelectedFare RideFare `json:"selectedFare"`
+	Route        Route    `json:"route"`
+	Driver       *Driver  `json:"driver,omitempty"`
 }
 
 type Driver struct {
