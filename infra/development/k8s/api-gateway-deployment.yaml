@@ -48,6 +48,16 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: REDIS_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JWT_SECRET
+            - name: FRONTEND_URL
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: FRONTEND_URL
 ---
 apiVersion: v1
 kind: Service
