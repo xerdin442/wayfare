@@ -17,6 +17,11 @@ func (app *application) routes() http.Handler {
 	r.Use(m.RateLimiters()...)
 	r.Use(gin.Recovery())
 
+	// Liveness check
+	r.GET("/livez", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
 	v1 := r.Group("/api/v1")
 
 	v1.GET("/", func(ctx *gin.Context) {
