@@ -21,10 +21,6 @@ message Route {
   repeated Geometry geometry = 3;
 }
 
-message OsrmApiResponse {
-  repeated Route routes = 1;
-}
-
 message RideFare {
   string                    id                  = 1;
   string                    package_slug        = 2;

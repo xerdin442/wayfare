@@ -178,50 +178,6 @@ func (x *Route) GetGeometry() []*Geometry {
 	return nil
 }
 
-type OsrmApiResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Routes        []*Route               `protobuf:"bytes,1,rep,name=routes,proto3" json:"routes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *OsrmApiResponse) Reset() {
-	*x = OsrmApiResponse{}
-	mi := &file_schema_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *OsrmApiResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*OsrmApiResponse) ProtoMessage() {}
-
-func (x *OsrmApiResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_schema_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use OsrmApiResponse.ProtoReflect.Descriptor instead.
-func (*OsrmApiResponse) Descriptor() ([]byte, []int) {
-	return file_schema_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *OsrmApiResponse) GetRoutes() []*Route {
-	if x != nil {
-		return x.Routes
-	}
-	return nil
-}
-
 type RideFare struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -236,7 +192,7 @@ type RideFare struct {
 
 func (x *RideFare) Reset() {
 	*x = RideFare{}
-	mi := &file_schema_proto_msgTypes[4]
+	mi := &file_schema_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -248,7 +204,7 @@ func (x *RideFare) String() string {
 func (*RideFare) ProtoMessage() {}
 
 func (x *RideFare) ProtoReflect() protoreflect.Message {
-	mi := &file_schema_proto_msgTypes[4]
+	mi := &file_schema_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -261,7 +217,7 @@ func (x *RideFare) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RideFare.ProtoReflect.Descriptor instead.
 func (*RideFare) Descriptor() ([]byte, []int) {
-	return file_schema_proto_rawDescGZIP(), []int{4}
+	return file_schema_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RideFare) GetId() string {
@@ -320,7 +276,7 @@ type Driver struct {
 
 func (x *Driver) Reset() {
 	*x = Driver{}
-	mi := &file_schema_proto_msgTypes[5]
+	mi := &file_schema_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -332,7 +288,7 @@ func (x *Driver) String() string {
 func (*Driver) ProtoMessage() {}
 
 func (x *Driver) ProtoReflect() protoreflect.Message {
-	mi := &file_schema_proto_msgTypes[5]
+	mi := &file_schema_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -345,7 +301,7 @@ func (x *Driver) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Driver.ProtoReflect.Descriptor instead.
 func (*Driver) Descriptor() ([]byte, []int) {
-	return file_schema_proto_rawDescGZIP(), []int{5}
+	return file_schema_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Driver) GetId() string {
@@ -404,7 +360,7 @@ type Trip struct {
 
 func (x *Trip) Reset() {
 	*x = Trip{}
-	mi := &file_schema_proto_msgTypes[6]
+	mi := &file_schema_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -416,7 +372,7 @@ func (x *Trip) String() string {
 func (*Trip) ProtoMessage() {}
 
 func (x *Trip) ProtoReflect() protoreflect.Message {
-	mi := &file_schema_proto_msgTypes[6]
+	mi := &file_schema_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -429,7 +385,7 @@ func (x *Trip) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Trip.ProtoReflect.Descriptor instead.
 func (*Trip) Descriptor() ([]byte, []int) {
-	return file_schema_proto_rawDescGZIP(), []int{6}
+	return file_schema_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Trip) GetId() string {
@@ -488,9 +444,7 @@ const file_schema_proto_rawDesc = "" +
 	"\x05Route\x12\x1a\n" +
 	"\bdistance\x18\x01 \x01(\x01R\bdistance\x12\x1a\n" +
 	"\bduration\x18\x02 \x01(\x01R\bduration\x12-\n" +
-	"\bgeometry\x18\x03 \x03(\v2\x11.wayfare.GeometryR\bgeometry\"9\n" +
-	"\x0fOsrmApiResponse\x12&\n" +
-	"\x06routes\x18\x01 \x03(\v2\x0e.wayfare.RouteR\x06routes\"\x89\x02\n" +
+	"\bgeometry\x18\x03 \x03(\v2\x11.wayfare.GeometryR\bgeometry\"\x89\x02\n" +
 	"\bRideFare\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fpackage_slug\x18\x02 \x01(\tR\vpackageSlug\x12\x1d\n" +
@@ -529,32 +483,30 @@ func file_schema_proto_rawDescGZIP() []byte {
 	return file_schema_proto_rawDescData
 }
 
-var file_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_schema_proto_goTypes = []any{
 	(*Coordinate)(nil),            // 0: wayfare.Coordinate
 	(*Geometry)(nil),              // 1: wayfare.Geometry
 	(*Route)(nil),                 // 2: wayfare.Route
-	(*OsrmApiResponse)(nil),       // 3: wayfare.OsrmApiResponse
-	(*RideFare)(nil),              // 4: wayfare.RideFare
-	(*Driver)(nil),                // 5: wayfare.Driver
-	(*Trip)(nil),                  // 6: wayfare.Trip
-	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
+	(*RideFare)(nil),              // 3: wayfare.RideFare
+	(*Driver)(nil),                // 4: wayfare.Driver
+	(*Trip)(nil),                  // 5: wayfare.Trip
+	(*timestamppb.Timestamp)(nil), // 6: google.protobuf.Timestamp
 }
 var file_schema_proto_depIdxs = []int32{
 	0, // 0: wayfare.Geometry.coordinates:type_name -> wayfare.Coordinate
 	1, // 1: wayfare.Route.geometry:type_name -> wayfare.Geometry
-	2, // 2: wayfare.OsrmApiResponse.routes:type_name -> wayfare.Route
-	7, // 3: wayfare.RideFare.expires_at:type_name -> google.protobuf.Timestamp
-	2, // 4: wayfare.RideFare.route:type_name -> wayfare.Route
-	0, // 5: wayfare.Driver.location:type_name -> wayfare.Coordinate
-	4, // 6: wayfare.Trip.selected_fare:type_name -> wayfare.RideFare
-	2, // 7: wayfare.Trip.route:type_name -> wayfare.Route
-	5, // 8: wayfare.Trip.driver:type_name -> wayfare.Driver
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	6, // 2: wayfare.RideFare.expires_at:type_name -> google.protobuf.Timestamp
+	2, // 3: wayfare.RideFare.route:type_name -> wayfare.Route
+	0, // 4: wayfare.Driver.location:type_name -> wayfare.Coordinate
+	3, // 5: wayfare.Trip.selected_fare:type_name -> wayfare.RideFare
+	2, // 6: wayfare.Trip.route:type_name -> wayfare.Route
+	4, // 7: wayfare.Trip.driver:type_name -> wayfare.Driver
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_schema_proto_init() }
@@ -562,15 +514,15 @@ func file_schema_proto_init() {
 	if File_schema_proto != nil {
 		return
 	}
-	file_schema_proto_msgTypes[4].OneofWrappers = []any{}
-	file_schema_proto_msgTypes[6].OneofWrappers = []any{}
+	file_schema_proto_msgTypes[3].OneofWrappers = []any{}
+	file_schema_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_schema_proto_rawDesc), len(file_schema_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

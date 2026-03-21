@@ -15,8 +15,9 @@ service TripService {
 }
 
 message PreviewTripRequest {
-  Coordinate pickup      = 1;
-  Coordinate destination = 2;
+  string     user_id     = 1;
+  Coordinate pickup      = 2;
+  Coordinate destination = 3;
 }
 
 message PreviewTripResponse {
@@ -25,7 +26,8 @@ message PreviewTripResponse {
 }
 
 message StartTripRequest {
-  string ride_fare_id = 1;
+  string user_id      = 1;
+  string ride_fare_id = 2;
 }
 
 message StartTripResponse {

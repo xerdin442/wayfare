@@ -23,8 +23,9 @@ const (
 
 type PreviewTripRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Pickup        *Coordinate            `protobuf:"bytes,1,opt,name=pickup,proto3" json:"pickup,omitempty"`
-	Destination   *Coordinate            `protobuf:"bytes,2,opt,name=destination,proto3" json:"destination,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Pickup        *Coordinate            `protobuf:"bytes,2,opt,name=pickup,proto3" json:"pickup,omitempty"`
+	Destination   *Coordinate            `protobuf:"bytes,3,opt,name=destination,proto3" json:"destination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -57,6 +58,13 @@ func (x *PreviewTripRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use PreviewTripRequest.ProtoReflect.Descriptor instead.
 func (*PreviewTripRequest) Descriptor() ([]byte, []int) {
 	return file_transport_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *PreviewTripRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
 }
 
 func (x *PreviewTripRequest) GetPickup() *Coordinate {
@@ -127,7 +135,8 @@ func (x *PreviewTripResponse) GetRideFares() []*RideFare {
 
 type StartTripRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RideFareId    string                 `protobuf:"bytes,1,opt,name=ride_fare_id,json=rideFareId,proto3" json:"ride_fare_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	RideFareId    string                 `protobuf:"bytes,2,opt,name=ride_fare_id,json=rideFareId,proto3" json:"ride_fare_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -160,6 +169,13 @@ func (x *StartTripRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use StartTripRequest.ProtoReflect.Descriptor instead.
 func (*StartTripRequest) Descriptor() ([]byte, []int) {
 	return file_transport_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *StartTripRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
 }
 
 func (x *StartTripRequest) GetRideFareId() string {
@@ -217,16 +233,18 @@ var File_transport_proto protoreflect.FileDescriptor
 
 const file_transport_proto_rawDesc = "" +
 	"\n" +
-	"\x0ftransport.proto\x12\awayfare\x1a\fschema.proto\"x\n" +
-	"\x12PreviewTripRequest\x12+\n" +
-	"\x06pickup\x18\x01 \x01(\v2\x13.wayfare.CoordinateR\x06pickup\x125\n" +
-	"\vdestination\x18\x02 \x01(\v2\x13.wayfare.CoordinateR\vdestination\"m\n" +
+	"\x0ftransport.proto\x12\awayfare\x1a\fschema.proto\"\x91\x01\n" +
+	"\x12PreviewTripRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12+\n" +
+	"\x06pickup\x18\x02 \x01(\v2\x13.wayfare.CoordinateR\x06pickup\x125\n" +
+	"\vdestination\x18\x03 \x01(\v2\x13.wayfare.CoordinateR\vdestination\"m\n" +
 	"\x13PreviewTripResponse\x12$\n" +
 	"\x05route\x18\x01 \x01(\v2\x0e.wayfare.RouteR\x05route\x120\n" +
 	"\n" +
-	"ride_fares\x18\x02 \x03(\v2\x11.wayfare.RideFareR\trideFares\"4\n" +
-	"\x10StartTripRequest\x12 \n" +
-	"\fride_fare_id\x18\x01 \x01(\tR\n" +
+	"ride_fares\x18\x02 \x03(\v2\x11.wayfare.RideFareR\trideFares\"M\n" +
+	"\x10StartTripRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12 \n" +
+	"\fride_fare_id\x18\x02 \x01(\tR\n" +
 	"rideFareId\",\n" +
 	"\x11StartTripResponse\x12\x17\n" +
 	"\atrip_id\x18\x01 \x01(\tR\x06tripId2\x9b\x01\n" +
