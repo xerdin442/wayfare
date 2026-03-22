@@ -17,10 +17,6 @@ type Coordinate struct {
 	Longitude float64 `json:"longitude"`
 }
 
-type OsrmApiResponse struct {
-	Routes []*Route `json:"routes"`
-}
-
 type RideFare struct {
 	ID               string    `json:"id"`
 	PackageSlug      string    `json:"packageSlug"`
