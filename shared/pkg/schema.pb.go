@@ -9,7 +9,6 @@ package rpc
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -182,9 +181,8 @@ type RideFare struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	PackageSlug      string                 `protobuf:"bytes,2,opt,name=package_slug,json=packageSlug,proto3" json:"package_slug,omitempty"`
-	BasePrice        float64                `protobuf:"fixed64,3,opt,name=base_price,json=basePrice,proto3" json:"base_price,omitempty"`
-	TotalPriceInKobo *float64               `protobuf:"fixed64,4,opt,name=total_price_in_kobo,json=totalPriceInKobo,proto3,oneof" json:"total_price_in_kobo,omitempty"`
-	ExpiresAt        *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	BasePrice        int64                  `protobuf:"varint,3,opt,name=base_price,json=basePrice,proto3" json:"base_price,omitempty"`
+	TotalPriceInKobo int64                  `protobuf:"varint,4,opt,name=total_price_in_kobo,json=totalPriceInKobo,proto3" json:"total_price_in_kobo,omitempty"`
 	Route            *Route                 `protobuf:"bytes,6,opt,name=route,proto3" json:"route,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
@@ -234,25 +232,18 @@ func (x *RideFare) GetPackageSlug() string {
 	return ""
 }
 
-func (x *RideFare) GetBasePrice() float64 {
+func (x *RideFare) GetBasePrice() int64 {
 	if x != nil {
 		return x.BasePrice
 	}
 	return 0
 }
 
-func (x *RideFare) GetTotalPriceInKobo() float64 {
-	if x != nil && x.TotalPriceInKobo != nil {
-		return *x.TotalPriceInKobo
+func (x *RideFare) GetTotalPriceInKobo() int64 {
+	if x != nil {
+		return x.TotalPriceInKobo
 	}
 	return 0
-}
-
-func (x *RideFare) GetExpiresAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ExpiresAt
-	}
-	return nil
 }
 
 func (x *RideFare) GetRoute() *Route {
@@ -434,7 +425,7 @@ var File_schema_proto protoreflect.FileDescriptor
 
 const file_schema_proto_rawDesc = "" +
 	"\n" +
-	"\fschema.proto\x12\awayfare\x1a\x1fgoogle/protobuf/timestamp.proto\"F\n" +
+	"\fschema.proto\x12\awayfare\"F\n" +
 	"\n" +
 	"Coordinate\x12\x1a\n" +
 	"\blatitude\x18\x01 \x01(\x01R\blatitude\x12\x1c\n" +
@@ -444,17 +435,14 @@ const file_schema_proto_rawDesc = "" +
 	"\x05Route\x12\x1a\n" +
 	"\bdistance\x18\x01 \x01(\x01R\bdistance\x12\x1a\n" +
 	"\bduration\x18\x02 \x01(\x01R\bduration\x12-\n" +
-	"\bgeometry\x18\x03 \x03(\v2\x11.wayfare.GeometryR\bgeometry\"\x89\x02\n" +
+	"\bgeometry\x18\x03 \x03(\v2\x11.wayfare.GeometryR\bgeometry\"\xb1\x01\n" +
 	"\bRideFare\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fpackage_slug\x18\x02 \x01(\tR\vpackageSlug\x12\x1d\n" +
 	"\n" +
-	"base_price\x18\x03 \x01(\x01R\tbasePrice\x122\n" +
-	"\x13total_price_in_kobo\x18\x04 \x01(\x01H\x00R\x10totalPriceInKobo\x88\x01\x01\x129\n" +
-	"\n" +
-	"expires_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12$\n" +
-	"\x05route\x18\x06 \x01(\v2\x0e.wayfare.RouteR\x05routeB\x16\n" +
-	"\x14_total_price_in_kobo\"\xbd\x01\n" +
+	"base_price\x18\x03 \x01(\x03R\tbasePrice\x12-\n" +
+	"\x13total_price_in_kobo\x18\x04 \x01(\x03R\x10totalPriceInKobo\x12$\n" +
+	"\x05route\x18\x06 \x01(\v2\x0e.wayfare.RouteR\x05route\"\xbd\x01\n" +
 	"\x06Driver\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12/\n" +
 	"\blocation\x18\x02 \x01(\v2\x13.wayfare.CoordinateR\blocation\x12\x18\n" +
@@ -485,28 +473,26 @@ func file_schema_proto_rawDescGZIP() []byte {
 
 var file_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_schema_proto_goTypes = []any{
-	(*Coordinate)(nil),            // 0: wayfare.Coordinate
-	(*Geometry)(nil),              // 1: wayfare.Geometry
-	(*Route)(nil),                 // 2: wayfare.Route
-	(*RideFare)(nil),              // 3: wayfare.RideFare
-	(*Driver)(nil),                // 4: wayfare.Driver
-	(*Trip)(nil),                  // 5: wayfare.Trip
-	(*timestamppb.Timestamp)(nil), // 6: google.protobuf.Timestamp
+	(*Coordinate)(nil), // 0: wayfare.Coordinate
+	(*Geometry)(nil),   // 1: wayfare.Geometry
+	(*Route)(nil),      // 2: wayfare.Route
+	(*RideFare)(nil),   // 3: wayfare.RideFare
+	(*Driver)(nil),     // 4: wayfare.Driver
+	(*Trip)(nil),       // 5: wayfare.Trip
 }
 var file_schema_proto_depIdxs = []int32{
 	0, // 0: wayfare.Geometry.coordinates:type_name -> wayfare.Coordinate
 	1, // 1: wayfare.Route.geometry:type_name -> wayfare.Geometry
-	6, // 2: wayfare.RideFare.expires_at:type_name -> google.protobuf.Timestamp
-	2, // 3: wayfare.RideFare.route:type_name -> wayfare.Route
-	0, // 4: wayfare.Driver.location:type_name -> wayfare.Coordinate
-	3, // 5: wayfare.Trip.selected_fare:type_name -> wayfare.RideFare
-	2, // 6: wayfare.Trip.route:type_name -> wayfare.Route
-	4, // 7: wayfare.Trip.driver:type_name -> wayfare.Driver
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	2, // 2: wayfare.RideFare.route:type_name -> wayfare.Route
+	0, // 3: wayfare.Driver.location:type_name -> wayfare.Coordinate
+	3, // 4: wayfare.Trip.selected_fare:type_name -> wayfare.RideFare
+	2, // 5: wayfare.Trip.route:type_name -> wayfare.Route
+	4, // 6: wayfare.Trip.driver:type_name -> wayfare.Driver
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_schema_proto_init() }
@@ -514,7 +500,6 @@ func file_schema_proto_init() {
 	if File_schema_proto != nil {
 		return
 	}
-	file_schema_proto_msgTypes[3].OneofWrappers = []any{}
 	file_schema_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

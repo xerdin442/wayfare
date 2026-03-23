@@ -6,12 +6,20 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
+type CarPackage string
+
+const (
+	PackageLuxury CarPackage = "luxury"
+	PackageSedan  CarPackage = "sedan"
+	PackageSUV    CarPackage = "suv"
+)
+
 type GeoJSON struct {
-	Type        string    `bson:"type"`        // Must be "Point"
-	Coordinates []float64 `bson:"coordinates"` // [longitude, latitude]
+	Type        string    `bson:"type"` // Must be either "Point" or "Polygon"
+	Coordinates []float64 `bson:"coordinates"`
 }
 
-type RouteModel struct {
+type RouteDetails struct {
 	Pickup      GeoJSON `bson:"pickup"`
 	Destination GeoJSON `bson:"destination"`
 	Duration    float64 `bson:"duration"`
@@ -19,23 +27,47 @@ type RouteModel struct {
 	Polyline    string  `bson:"polyline,omitempty"`
 }
 
+type RideFareSummary struct {
+	CarPackage       CarPackage `bson:"car_package"`
+	BasePrice        int64      `bson:"base_price"`
+	TotalPriceInKobo int64      `bson:"total_price_in_kobo"`
+}
+
+type RegionModel struct {
+	ID       bson.ObjectID `bson:"_id,omitempty"`
+	Name     string        `bson:"name"`
+	Boundary GeoJSON       `bson:"boundary"`
+}
+
+type PricingModel struct {
+	ID            bson.ObjectID `bson:"_id,omitempty"`
+	RegionID      bson.ObjectID `bson:"region_id"`
+	CarPackage    CarPackage    `bson:"car_package"`
+	BaseFeeKobo   int64         `bson:"base_fee_kobo"`
+	PerKmKobo     int64         `bson:"per_km_kobo"`
+	PerMinuteKobo int64         `bson:"per_minute_kobo"`
+	MinFareKobo   int64         `bson:"min_fare_kobo"`
+}
+
 type RideFareModel struct {
 	ID               bson.ObjectID `bson:"_id,omitempty"`
-	PackageSlug      string        `bson:"package_slug"`
-	BasePrice        float64       `bson:"base_price"`
+	UserID           bson.ObjectID `bson:"user_id"`
+	CarPackage       CarPackage    `bson:"car_package"`
+	BasePrice        int64         `bson:"base_price"`
 	TotalPriceInKobo int64         `bson:"total_price_in_kobo"`
 	ExpiresAt        time.Time     `bson:"expires_at"`
-	Route            RouteModel    `bson:"route"`
+	Route            RouteDetails  `bson:"route"`
 	CreatedAt        time.Time     `bson:"created_at"`
 	UpdatedAt        time.Time     `bson:"updated_at"`
 }
 
 type TripModel struct {
-	ID        bson.ObjectID `bson:"_id,omitempty"`
-	DriverID  bson.ObjectID `bson:"driver_id"`
-	UserID    bson.ObjectID `bson:"user_id"`
-	Status    string        `bson:"status"`
-	Fare      RideFareModel `bson:"fare"`
-	CreatedAt time.Time     `bson:"created_at"`
-	UpdatedAt time.Time     `bson:"updated_at"`
+	ID        bson.ObjectID   `bson:"_id,omitempty"`
+	DriverID  bson.ObjectID   `bson:"driver_id"`
+	UserID    bson.ObjectID   `bson:"user_id"`
+	Status    string          `bson:"status"`
+	Fare      RideFareSummary `bson:"fare"`
+	Route     RouteDetails    `bson:"route"`
+	CreatedAt time.Time       `bson:"created_at"`
+	UpdatedAt time.Time       `bson:"updated_at"`
 }

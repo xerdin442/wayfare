@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package wayfare;
 
-import "google/protobuf/timestamp.proto";
-
 option go_package = "github.com/xerdin442/wayfare/shared/pkg/rpc";
 
 message Coordinate {
@@ -22,12 +20,11 @@ message Route {
 }
 
 message RideFare {
-  string                    id                  = 1;
-  string                    package_slug        = 2;
-  double                    base_price          = 3;
-  optional double           total_price_in_kobo = 4;
-  google.protobuf.Timestamp expires_at          = 5;
-  Route                     route               = 6;
+  string id                  = 1;
+  string package_slug        = 2;
+  int64  base_price          = 3;
+  int64  total_price_in_kobo = 4;
+  Route  route               = 6;
 }
 
 message Driver {

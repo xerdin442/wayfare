@@ -1,7 +1,5 @@
 package types
 
-import "time"
-
 type Route struct {
 	Distance float64     `json:"distance"`
 	Duration float64     `json:"duration"`
@@ -18,12 +16,11 @@ type Coordinate struct {
 }
 
 type RideFare struct {
-	ID               string    `json:"id"`
-	PackageSlug      string    `json:"packageSlug"`
-	BasePrice        float64   `json:"basePrice"`
-	TotalPriceInKobo *float64  `json:"totalPriceInKobo,omitempty"`
-	ExpiresAt        time.Time `json:"expiresAt"`
-	Route            Route     `json:"route"`
+	ID               string `json:"id"`
+	PackageSlug      string `json:"packageSlug"`
+	BasePrice        int64  `json:"basePrice"`
+	TotalPriceInKobo *int64 `json:"totalPriceInKobo,omitempty"`
+	Route            Route  `json:"route"`
 }
 
 type Trip struct {
