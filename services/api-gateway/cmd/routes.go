@@ -37,7 +37,7 @@ func (app *application) routes() http.Handler {
 
 	trip := v1.Group("/trip", m.JwtGuard())
 	{
-		trip.POST("/start")
+		trip.POST("/start", h.HandleStartTrip)
 		trip.POST("/preview", h.HandleTripPreview)
 	}
 

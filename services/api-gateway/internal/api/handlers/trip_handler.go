@@ -12,11 +12,11 @@ import (
 func (h *RouteHandler) HandleTripPreview(c *gin.Context) {
 	logger := log.Ctx(c.Request.Context())
 
-	userID := c.MustGet("userID").(string)
+	userID := c.MustGet("user_id").(string)
 
 	var req contracts.PreviewTripRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.Error().Err(err).Msg("Error requesting trip preview")
+		logger.Error().Err(err).Msg("Error parsing preview trip request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -30,6 +30,32 @@ func (h *RouteHandler) HandleTripPreview(c *gin.Context) {
 	if err != nil {
 		logger.Error().Err(err).Msg("Error requesting trip preview")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to request trip preview"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, contracts.APIResponse{Data: response})
+}
+
+func (h *RouteHandler) HandleStartTrip(c *gin.Context) {
+	logger := log.Ctx(c.Request.Context())
+
+	userID := c.MustGet("user_id").(string)
+
+	var req contracts.StartTripRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error().Err(err).Msg("Error parsing start trip request")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	response, err := h.cfg.Clients.Trip.StartTrip(c.Request.Context(), &rpc.StartTripRequest{
+		UserId:     userID,
+		RideFareId: req.RideFareID,
+	})
+
+	if err != nil {
+		logger.Error().Err(err).Msg("Start trip request failed")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not start trip"})
 		return
 	}
 

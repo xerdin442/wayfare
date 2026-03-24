@@ -14,6 +14,15 @@ const (
 	PackageSUV    CarPackage = "suv"
 )
 
+type TripStatus string
+
+const (
+	StatusSearching TripStatus = "searching"
+	StatusActive    TripStatus = "active"
+	StatusCompleted TripStatus = "completed"
+	StatusCancelled TripStatus = "cancelled"
+)
+
 type GeoPoint struct {
 	Type        string    `bson:"type"`
 	Coordinates []float64 `bson:"coordinates"`
@@ -68,9 +77,9 @@ type RideFareModel struct {
 
 type TripModel struct {
 	ID        bson.ObjectID   `bson:"_id,omitempty"`
-	DriverID  bson.ObjectID   `bson:"driver_id"`
+	DriverID  bson.ObjectID   `bson:"driver_id,omitempty"`
 	UserID    bson.ObjectID   `bson:"user_id"`
-	Status    string          `bson:"status"`
+	Status    TripStatus      `bson:"status"`
 	Fare      RideFareSummary `bson:"fare"`
 	Route     RouteDetails    `bson:"route"`
 	CreatedAt time.Time       `bson:"created_at"`

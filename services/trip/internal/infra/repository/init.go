@@ -193,12 +193,15 @@ func CreateTripsColelction(db *mongo.Database, name string) (*mongo.Collection, 
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"user_id", "dirver_id", "route", "status", "fare"},
+		"required": []string{"user_id", "route", "status", "fare"},
 		"properties": bson.M{
 			"user_id":   bson.M{"bsonType": "objectId"},
 			"driver_id": bson.M{"bsonType": "objectId"},
 			"route":     routeSchema,
-			"status":    bson.M{"bsonType": "string"},
+			"status": bson.M{
+				"enum":        []string{"searching", "active", "completed", "cancelled"},
+				"description": "must be a valid trip status value",
+			},
 			"fare": bson.M{
 				"bsonType": "object",
 				"required": []string{"car_package", "base_price", "total_price_in_kobo"},

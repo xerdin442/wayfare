@@ -48,10 +48,6 @@ func NewTripRepository(db *mongo.Database) *TripRepository {
 	}
 }
 
-func (r *TripRepository) CreateTrip(ctx context.Context) error {
-	return nil
-}
-
 func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*rpc.RideFare, route RouteDetails, userID string) error {
 	userIDHex, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
@@ -76,7 +72,7 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*rpc.Ri
 
 	_, insertErr := r.rideFareColl.InsertMany(ctx, docs)
 	if insertErr != nil {
-		return fmt.Errorf("Failed to insert ride fares in database: %v", err)
+		return fmt.Errorf("Failed to insert ride fares documents: %v", err)
 	}
 
 	return nil
@@ -113,4 +109,53 @@ func (r *TripRepository) GetPricingPerRegion(ctx context.Context, pickupCoords [
 	}
 
 	return pricingModels, nil
+}
+
+func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) (string, error) {
+	userIDHex, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return "", fmt.Errorf("Invalid user ID: %v", err)
+	}
+
+	fareIDHex, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return "", fmt.Errorf("Invalid ride fare ID: %v", err)
+	}
+
+	cursor, err := r.rideFareColl.Find(ctx, bson.M{
+		"_id":     fareIDHex,
+		"user_id": userIDHex,
+	})
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return "", fmt.Errorf("Invalid or expired ride fare")
+	}
+
+	var rideFare RideFareModel
+	if err := cursor.All(ctx, &rideFare); err != nil {
+		return "", fmt.Errorf("Error parsing ridefare model document: %v", err)
+	}
+
+	result, insertErr := r.tripColl.InsertOne(ctx, TripModel{
+		ID:     bson.NewObjectID(),
+		UserID: userIDHex,
+		Status: StatusSearching,
+		Fare: RideFareSummary{
+			CarPackage:       rideFare.CarPackage,
+			BasePrice:        rideFare.BasePrice,
+			TotalPriceInKobo: rideFare.TotalPriceInKobo,
+		},
+		Route:     rideFare.Route,
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	})
+	if insertErr != nil {
+		return "", fmt.Errorf("Failed to insert trip document: %v", err)
+	}
+
+	tripID, ok := result.InsertedID.(bson.ObjectID)
+	if !ok {
+		return "", fmt.Errorf("Mongo error: Invalid ID type from inserted document")
+	}
+
+	return tripID.Hex(), nil
 }

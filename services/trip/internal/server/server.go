@@ -65,10 +65,10 @@ func (s *Server) Start() error {
 	}
 
 	// Initialize repository
-	userRepo := repo.NewTripRepository(mongoClient.Database("wayfare"))
+	tripRepo := repo.NewTripRepository(mongoClient.Database("wayfare"))
 
 	// Register service
-	rpc.RegisterTripServiceServer(s.grpcServer, service.NewTripService(userRepo))
+	rpc.RegisterTripServiceServer(s.grpcServer, service.NewTripService(tripRepo))
 
 	log.Info().Int("port", s.env.Port).Msg("Starting gRPC server...")
 
