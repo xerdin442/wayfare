@@ -71,6 +71,7 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *rpc
 
 	rideFares := make([]*rpc.RideFare, len(priceConfig))
 
+	// Estimate ride fare per package
 	for _, cfg := range priceConfig {
 		distanceCost := int64(distKm * float64(cfg.PerKmKobo))
 		timeCost := int64(durMin * float64(cfg.PerMinuteKobo))
@@ -111,11 +112,11 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *rpc.PreviewTripReque
 
 	// Generate route details
 	routeDetails := repo.RouteDetails{
-		Pickup: repo.GeoJSON{
+		Pickup: repo.GeoPoint{
 			Type:        "Point",
 			Coordinates: pickupCoords,
 		},
-		Destination: repo.GeoJSON{
+		Destination: repo.GeoPoint{
 			Type:        "Point",
 			Coordinates: destinationCoords,
 		},

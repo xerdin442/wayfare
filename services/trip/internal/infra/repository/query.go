@@ -10,7 +10,6 @@ import (
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type TripRepository struct {
@@ -21,37 +20,29 @@ type TripRepository struct {
 }
 
 func NewTripRepository(db *mongo.Database) *TripRepository {
-	ctx := context.Background()
-
-	// Create collections in the database
-	rideFareCollection := db.Collection("ride_fares")
-	tripCollection := db.Collection("trips")
-
-	// Create expiration index for ride fares
-	fareExpirationIndex := mongo.IndexModel{
-		Keys:    bson.D{{Key: "expires_at", Value: 1}},
-		Options: options.Index().SetExpireAfterSeconds(0),
-	}
-	_, rideIndexErr := rideFareCollection.Indexes().CreateOne(ctx, fareExpirationIndex)
-	if rideIndexErr != nil {
-		log.Fatal().Err(rideIndexErr).Msg("Failed to create expiration index in ride_fares collection")
-		return nil
+	regionCollection, err := CreateRegionsCollection(db, "regions")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create regions collection")
 	}
 
-	// Create 2dsphere index for trip routes
-	routeIndex := mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "route.pickup.coordinates", Value: "2dsphere"},
-			{Key: "route.destination.coordinates", Value: "2dsphere"},
-		},
+	pricingCollection, err := CreatePricingColelction(db, "pricing")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create pricing collection")
 	}
-	_, tripIndexErr := tripCollection.Indexes().CreateOne(ctx, routeIndex)
-	if tripIndexErr != nil {
-		log.Fatal().Err(tripIndexErr).Msg("Failed to create location index in trips collection")
-		return nil
+
+	rideFareCollection, err := CreateRideFaresColelction(db, "ride_fares")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create ride_fares collection")
+	}
+
+	tripCollection, err := CreateTripsColelction(db, "trips")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create trips collection")
 	}
 
 	return &TripRepository{
+		regionColl:   regionCollection,
+		pricingColl:  pricingCollection,
 		rideFareColl: rideFareCollection,
 		tripColl:     tripCollection,
 	}

@@ -14,17 +14,22 @@ const (
 	PackageSUV    CarPackage = "suv"
 )
 
-type GeoJSON struct {
-	Type        string    `bson:"type"` // Must be either "Point" or "Polygon"
+type GeoPoint struct {
+	Type        string    `bson:"type"`
 	Coordinates []float64 `bson:"coordinates"`
 }
 
+type GeoPolygon struct {
+	Type        string        `bson:"type"`
+	Coordinates [][][]float64 `bson:"coordinates"`
+}
+
 type RouteDetails struct {
-	Pickup      GeoJSON `bson:"pickup"`
-	Destination GeoJSON `bson:"destination"`
-	Duration    float64 `bson:"duration"`
-	Distance    float64 `bson:"distance"`
-	Polyline    string  `bson:"polyline,omitempty"`
+	Pickup      GeoPoint `bson:"pickup"`
+	Destination GeoPoint `bson:"destination"`
+	Duration    float64  `bson:"duration"`
+	Distance    float64  `bson:"distance"`
+	Polyline    string   `bson:"polyline,omitempty"`
 }
 
 type RideFareSummary struct {
@@ -36,7 +41,7 @@ type RideFareSummary struct {
 type RegionModel struct {
 	ID       bson.ObjectID `bson:"_id,omitempty"`
 	Name     string        `bson:"name"`
-	Boundary GeoJSON       `bson:"boundary"`
+	Boundary GeoPolygon    `bson:"boundary"`
 }
 
 type PricingModel struct {
