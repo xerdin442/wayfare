@@ -31,12 +31,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: app-secrets
-                  key: MONGO_INITDB_ROOT_USERNAME
+                  key: ROOT_USERNAME
             - name: MONGO_INITDB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: app-secrets
-                  key: MONGO_INITDB_ROOT_PASSWORD
+                  key: ROOT_PASSWORD
           ports:
             - containerPort: 27107
           resources:

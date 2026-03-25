@@ -14,6 +14,7 @@ type Secrets struct {
 	Environment string
 	RedisUri    string
 	MongoUri    string
+	AmqpUri     string
 	JwtSecret   string
 	FrontendUrl string
 }
@@ -25,6 +26,7 @@ func Load() *Secrets {
 		Environment: GetStr("ENVIRONMENT"),
 		RedisUri:    GetStr("REDIS_URI"),
 		MongoUri:    GetStr("MONGO_URI"),
+		AmqpUri:     GetStr("AMQP_URI"),
 		JwtSecret:   GetStr("JWT_SECRET"),
 		FrontendUrl: GetStr("FRONTEND_URL"),
 	}

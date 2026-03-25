@@ -8,6 +8,7 @@ local('kubectl create secret generic app-secrets --from-env-file=.env --dry-run=
 k8s_yaml('./infra/development/k8s/secrets.yaml')
 k8s_yaml('./infra/development/k8s/redis.yaml')
 k8s_yaml('./infra/development/k8s/mongo.yaml')
+k8s_yaml('./infra/development/k8s/rabbitmq.yaml')
 
 ### End of K8s Config ###
 ### API Gateway ###
@@ -32,7 +33,7 @@ k8s_yaml('./infra/development/k8s/api-gateway-deployment.yaml')
 k8s_resource(
   'api-gateway',
   port_forwards=8080,
-  resource_deps=['redis'],
+  resource_deps=['redis', 'rabbitmq'],
   labels="services",
 )
 
@@ -58,7 +59,7 @@ docker_build_with_restart(
 k8s_yaml('./infra/development/k8s/trip-service-deployment.yaml')
 k8s_resource(
   'trip-service',
-  resource_deps=['mongodb'],
+  resource_deps=['mongodb', 'rabbitmq'],
   labels="services",
 )
 
@@ -84,7 +85,7 @@ docker_build_with_restart(
 k8s_yaml('./infra/development/k8s/driver-service-deployment.yaml')
 k8s_resource(
   'driver-service',
-  resource_deps=['mongodb'],
+  resource_deps=['mongodb', 'rabbitmq'],
   labels="services",
 )
 

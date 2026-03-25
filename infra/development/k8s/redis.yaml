@@ -38,7 +38,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: app-secrets
-                  key: REDIS_PASSWORD
+                  key: ROOT_PASSWORD
           ports:
             - containerPort: 6379
           resources:

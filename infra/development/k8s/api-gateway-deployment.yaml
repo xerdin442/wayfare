@@ -48,6 +48,11 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: REDIS_URI
+            - name: AMQP_URI
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: AMQP_URI
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
