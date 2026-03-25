@@ -55,11 +55,11 @@ func main() {
 	}
 
 	// Initialize gRPC clients
-	clients := client.NewRegistry(env)
+	clients := client.NewRegistry()
 	defer clients.Close()
 
 	app := &application{
-		port: env.Port,
+		port: env.GatewayPort,
 		config: base.Config{
 			Env:     env,
 			Cache:   cache,

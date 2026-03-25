@@ -3,7 +3,6 @@ package client
 import (
 	"github.com/rs/zerolog/log"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
-	"github.com/xerdin442/wayfare/shared/secrets"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -13,10 +12,10 @@ type Registry struct {
 	conns []*grpc.ClientConn
 }
 
-func NewRegistry(env *secrets.Secrets) *Registry {
+func NewRegistry() *Registry {
 	credentials := grpc.WithTransportCredentials(insecure.NewCredentials())
 
-	tripConn, err := grpc.NewClient(env.TripServiceAddr, credentials)
+	tripConn, err := grpc.NewClient("trip-service:80", credentials)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to Trip service")
 		return nil

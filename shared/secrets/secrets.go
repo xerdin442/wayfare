@@ -9,24 +9,24 @@ import (
 )
 
 type Secrets struct {
-	Port            int
-	Environment     string
-	RedisUri        string
-	MongoUri        string
-	JwtSecret       string
-	FrontendUrl     string
-	TripServiceAddr string
+	GatewayPort int
+	ServicePort int
+	Environment string
+	RedisUri    string
+	MongoUri    string
+	JwtSecret   string
+	FrontendUrl string
 }
 
 func Load() *Secrets {
 	return &Secrets{
-		Port:            GetInt("PORT"),
-		Environment:     GetStr("ENVIRONMENT"),
-		RedisUri:        GetStr("REDIS_URI"),
-		MongoUri:        GetStr("MONGO_URI"),
-		JwtSecret:       GetStr("JWT_SECRET"),
-		FrontendUrl:     GetStr("FRONTEND_URL"),
-		TripServiceAddr: GetStr("TRIP_SERVICE_ADDR"),
+		GatewayPort: GetInt("GATEWAY_PORT"),
+		ServicePort: GetInt("SERVICE_PORT"),
+		Environment: GetStr("ENVIRONMENT"),
+		RedisUri:    GetStr("REDIS_URI"),
+		MongoUri:    GetStr("MONGO_URI"),
+		JwtSecret:   GetStr("JWT_SECRET"),
+		FrontendUrl: GetStr("FRONTEND_URL"),
 	}
 }
 

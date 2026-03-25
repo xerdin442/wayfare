@@ -33,11 +33,11 @@ spec:
               memory: "128Mi"
               cpu: "125m"
           env:
-            - name: PORT
+            - name: GATEWAY_PORT
               valueFrom:
                 secretKeyRef:
                   name: app-secrets
-                  key: PORT
+                  key: GATEWAY_PORT
             - name: ENVIRONMENT
               valueFrom:
                 secretKeyRef:

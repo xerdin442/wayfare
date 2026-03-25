@@ -32,7 +32,7 @@ func New(s *secrets.Secrets) *Server {
 
 func (s *Server) Start() error {
 	// Create listener
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.env.Port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.env.ServicePort))
 	if err != nil {
 		return fmt.Errorf("Failed to listen: %w", err)
 	}
@@ -70,7 +70,7 @@ func (s *Server) Start() error {
 	// Register service
 	rpc.RegisterTripServiceServer(s.grpcServer, service.NewTripService(tripRepo))
 
-	log.Info().Int("port", s.env.Port).Msg("Starting gRPC server...")
+	log.Info().Int("port", s.env.ServicePort).Msg("Starting gRPC server...")
 
 	// Start server
 	errChan := make(chan error, 1)
