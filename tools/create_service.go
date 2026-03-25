@@ -20,12 +20,10 @@ func main() {
 	basePath := filepath.Join("services", *serviceName)
 	dirs := []string{
 		"cmd",
-		"internal/models",
+		"internal/server",
 		"internal/service",
 		"internal/infra/events",
-		"internal/infra/grpc",
 		"internal/infra/repository",
-		"pkg",
 	}
 
 	for _, dir := range dirs {

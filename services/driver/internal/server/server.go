@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
-	"github.com/xerdin442/wayfare/services/trip/internal/service"
+	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
+	"github.com/xerdin442/wayfare/services/driver/internal/service"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/secrets"
 	"github.com/xerdin442/wayfare/shared/util"
@@ -43,10 +43,10 @@ func (s *Server) Start() error {
 	db := util.InitializeDatabase(context.Background(), s.env.MongoUri)
 
 	// Initialize repository
-	tripRepo := repo.NewTripRepository(db)
+	tripRepo := repo.NewDriverRepository(db)
 
 	// Register service
-	rpc.RegisterTripServiceServer(s.grpcServer, service.NewTripService(tripRepo))
+	rpc.RegisterDriverServiceServer(s.grpcServer, service.NewDriverService(tripRepo))
 
 	log.Info().Int("port", s.env.ServicePort).Msg("Starting gRPC server...")
 

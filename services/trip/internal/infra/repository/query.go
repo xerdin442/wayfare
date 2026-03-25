@@ -8,6 +8,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/types"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -60,7 +61,7 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*rpc.Ri
 		docs = append(docs, &RideFareModel{
 			ID:               bson.NewObjectID(),
 			UserID:           userIDHex,
-			CarPackage:       CarPackage(fare.PackageSlug),
+			CarPackage:       types.CarPackage(fare.PackageSlug),
 			BasePrice:        fare.BasePrice,
 			TotalPriceInKobo: fare.TotalPriceInKobo,
 			ExpiresAt:        time.Now().UTC().Add(15 * time.Minute), // Documents are dropped after 15mins

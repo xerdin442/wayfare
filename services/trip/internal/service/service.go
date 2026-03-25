@@ -75,12 +75,10 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *rpc
 	for _, cfg := range priceConfig {
 		distanceCost := int64(distKm * float64(cfg.PerKmKobo))
 		timeCost := int64(durMin * float64(cfg.PerMinuteKobo))
-		estimatedPrice := cfg.BaseFeeKobo + distanceCost + timeCost
+		totalCost := cfg.BaseFeeKobo + distanceCost + timeCost
 
-		// Apply minimum fare if estimated price is below fare threshold
-		if estimatedPrice < cfg.MinFareKobo {
-			estimatedPrice = cfg.MinFareKobo
-		}
+		// Apply minimum fare if total cost is below fare threshold
+		estimatedPrice := max(totalCost, cfg.MinFareKobo)
 
 		rideFares = append(rideFares, &rpc.RideFare{
 			PackageSlug:      string(cfg.CarPackage),

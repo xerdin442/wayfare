@@ -1,5 +1,13 @@
 package types
 
+type CarPackage string
+
+const (
+	PackageLuxury CarPackage = "luxury"
+	PackageSedan  CarPackage = "sedan"
+	PackageSUV    CarPackage = "suv"
+)
+
 type Route struct {
 	Distance float64     `json:"distance"`
 	Duration float64     `json:"duration"`

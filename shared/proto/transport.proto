@@ -6,12 +6,26 @@ import "schema.proto";
 
 option go_package = "github.com/xerdin442/wayfare/shared/pkg/rpc";
 
-// Handles the preview, creation and management of trips
+// TripService handles the preview, creation and management of trips
 service TripService {
   // PreviewTrip returns the route coordinates and calculated ride fares
   rpc PreviewTrip(PreviewTripRequest) returns (PreviewTripResponse);
   // StartTrip returns the generated trip ID
   rpc StartTrip(StartTripRequest) returns (StartTripResponse);
+}
+
+// DriverService handles drivers' response to trip requests
+service DriverService {
+  // GetDriverByID returns the driver details by ID
+  rpc GetDriverByID(GetDriverRequest) returns (GetDriverResponse);
+}
+
+message GetDriverRequest {
+  string driver_id = 1;
+}
+
+message GetDriverResponse {
+  Driver driver = 1;
 }
 
 message PreviewTripRequest {

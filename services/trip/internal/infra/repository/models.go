@@ -3,15 +3,8 @@ package repo
 import (
 	"time"
 
+	"github.com/xerdin442/wayfare/shared/types"
 	"go.mongodb.org/mongo-driver/v2/bson"
-)
-
-type CarPackage string
-
-const (
-	PackageLuxury CarPackage = "luxury"
-	PackageSedan  CarPackage = "sedan"
-	PackageSUV    CarPackage = "suv"
 )
 
 type TripStatus string
@@ -42,9 +35,9 @@ type RouteDetails struct {
 }
 
 type RideFareSummary struct {
-	CarPackage       CarPackage `bson:"car_package"`
-	BasePrice        int64      `bson:"base_price"`
-	TotalPriceInKobo int64      `bson:"total_price_in_kobo"`
+	CarPackage       types.CarPackage `bson:"car_package"`
+	BasePrice        int64            `bson:"base_price"`
+	TotalPriceInKobo int64            `bson:"total_price_in_kobo"`
 }
 
 type RegionModel struct {
@@ -54,25 +47,25 @@ type RegionModel struct {
 }
 
 type PricingModel struct {
-	ID            bson.ObjectID `bson:"_id,omitempty"`
-	RegionID      bson.ObjectID `bson:"region_id"`
-	CarPackage    CarPackage    `bson:"car_package"`
-	BaseFeeKobo   int64         `bson:"base_fee_kobo"`
-	PerKmKobo     int64         `bson:"per_km_kobo"`
-	PerMinuteKobo int64         `bson:"per_minute_kobo"`
-	MinFareKobo   int64         `bson:"min_fare_kobo"`
+	ID            bson.ObjectID    `bson:"_id,omitempty"`
+	RegionID      bson.ObjectID    `bson:"region_id"`
+	CarPackage    types.CarPackage `bson:"car_package"`
+	BaseFeeKobo   int64            `bson:"base_fee_kobo"`
+	PerKmKobo     int64            `bson:"per_km_kobo"`
+	PerMinuteKobo int64            `bson:"per_minute_kobo"`
+	MinFareKobo   int64            `bson:"min_fare_kobo"`
 }
 
 type RideFareModel struct {
-	ID               bson.ObjectID `bson:"_id,omitempty"`
-	UserID           bson.ObjectID `bson:"user_id"`
-	CarPackage       CarPackage    `bson:"car_package"`
-	BasePrice        int64         `bson:"base_price"`
-	TotalPriceInKobo int64         `bson:"total_price_in_kobo"`
-	ExpiresAt        time.Time     `bson:"expires_at"`
-	Route            RouteDetails  `bson:"route"`
-	CreatedAt        time.Time     `bson:"created_at"`
-	UpdatedAt        time.Time     `bson:"updated_at"`
+	ID               bson.ObjectID    `bson:"_id,omitempty"`
+	UserID           bson.ObjectID    `bson:"user_id"`
+	CarPackage       types.CarPackage `bson:"car_package"`
+	BasePrice        int64            `bson:"base_price"`
+	TotalPriceInKobo int64            `bson:"total_price_in_kobo"`
+	ExpiresAt        time.Time        `bson:"expires_at"`
+	Route            RouteDetails     `bson:"route"`
+	CreatedAt        time.Time        `bson:"created_at"`
+	UpdatedAt        time.Time        `bson:"updated_at"`
 }
 
 type TripModel struct {

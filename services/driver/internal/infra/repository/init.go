@@ -1,0 +1,39 @@
+package repo
+
+import (
+	"context"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+)
+
+func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection, error) {
+	ctx := context.Background()
+
+	jsonSchema := bson.M{
+		"bsonType": "object",
+		"required": []string{"name", "profile_picture", "car_plate"},
+		"properties": bson.M{
+			"name": bson.M{"bsonType": "string"},
+			"car_package": bson.M{
+				"enum":        []string{"luxury", "sedan", "suv"},
+				"description": "must be one of the approved car packages",
+			},
+			"profile_picture": bson.M{"bsonType": "string"},
+			"car_plate":       bson.M{"bsonType": "string"},
+		},
+	}
+
+	// Set schema validator
+	validator := bson.M{"$jsonSchema": jsonSchema}
+	opts := options.CreateCollection().SetValidator(validator)
+
+	if err := db.CreateCollection(ctx, name, opts); err != nil {
+		return nil, err
+	}
+
+	collection := db.Collection(name)
+
+	return collection, nil
+}

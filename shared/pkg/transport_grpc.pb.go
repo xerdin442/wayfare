@@ -27,7 +27,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Handles the preview, creation and management of trips
+// TripService handles the preview, creation and management of trips
 type TripServiceClient interface {
 	// PreviewTrip returns the route coordinates and calculated ride fares
 	PreviewTrip(ctx context.Context, in *PreviewTripRequest, opts ...grpc.CallOption) (*PreviewTripResponse, error)
@@ -67,7 +67,7 @@ func (c *tripServiceClient) StartTrip(ctx context.Context, in *StartTripRequest,
 // All implementations must embed UnimplementedTripServiceServer
 // for forward compatibility.
 //
-// Handles the preview, creation and management of trips
+// TripService handles the preview, creation and management of trips
 type TripServiceServer interface {
 	// PreviewTrip returns the route coordinates and calculated ride fares
 	PreviewTrip(context.Context, *PreviewTripRequest) (*PreviewTripResponse, error)
@@ -160,6 +160,114 @@ var TripService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StartTrip",
 			Handler:    _TripService_StartTrip_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "transport.proto",
+}
+
+const (
+	DriverService_GetDriverByID_FullMethodName = "/wayfare.DriverService/GetDriverByID"
+)
+
+// DriverServiceClient is the client API for DriverService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// DriverService handles drivers' response to trip requests
+type DriverServiceClient interface {
+	// GetDriverByID returns the driver details by ID
+	GetDriverByID(ctx context.Context, in *GetDriverRequest, opts ...grpc.CallOption) (*GetDriverResponse, error)
+}
+
+type driverServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewDriverServiceClient(cc grpc.ClientConnInterface) DriverServiceClient {
+	return &driverServiceClient{cc}
+}
+
+func (c *driverServiceClient) GetDriverByID(ctx context.Context, in *GetDriverRequest, opts ...grpc.CallOption) (*GetDriverResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetDriverResponse)
+	err := c.cc.Invoke(ctx, DriverService_GetDriverByID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// DriverServiceServer is the server API for DriverService service.
+// All implementations must embed UnimplementedDriverServiceServer
+// for forward compatibility.
+//
+// DriverService handles drivers' response to trip requests
+type DriverServiceServer interface {
+	// GetDriverByID returns the driver details by ID
+	GetDriverByID(context.Context, *GetDriverRequest) (*GetDriverResponse, error)
+	mustEmbedUnimplementedDriverServiceServer()
+}
+
+// UnimplementedDriverServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedDriverServiceServer struct{}
+
+func (UnimplementedDriverServiceServer) GetDriverByID(context.Context, *GetDriverRequest) (*GetDriverResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetDriverByID not implemented")
+}
+func (UnimplementedDriverServiceServer) mustEmbedUnimplementedDriverServiceServer() {}
+func (UnimplementedDriverServiceServer) testEmbeddedByValue()                       {}
+
+// UnsafeDriverServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to DriverServiceServer will
+// result in compilation errors.
+type UnsafeDriverServiceServer interface {
+	mustEmbedUnimplementedDriverServiceServer()
+}
+
+func RegisterDriverServiceServer(s grpc.ServiceRegistrar, srv DriverServiceServer) {
+	// If the following call panics, it indicates UnimplementedDriverServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&DriverService_ServiceDesc, srv)
+}
+
+func _DriverService_GetDriverByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDriverRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DriverServiceServer).GetDriverByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DriverService_GetDriverByID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DriverServiceServer).GetDriverByID(ctx, req.(*GetDriverRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// DriverService_ServiceDesc is the grpc.ServiceDesc for DriverService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var DriverService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "wayfare.DriverService",
+	HandlerType: (*DriverServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetDriverByID",
+			Handler:    _DriverService_GetDriverByID_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
