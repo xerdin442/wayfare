@@ -42,14 +42,14 @@ k8s_resource(
 docker_build_with_restart(
   'wayfare/trip-service',
   '.',
-  entrypoint=['/app/build/trip'],
+  entrypoint=['/app/build/trip-service'],
   dockerfile='./infra/development/docker/trip-service.Dockerfile',
   ignore=['./infra', './tools'],
   live_update=[
     sync('./services/trip', '/app/services/trip'),
     sync('./shared', '/app/shared'),
     run(
-      'go build -o /app/build/trip ./services/trip/cmd/main.go',
+      'go build -o /app/build/trip-service ./services/trip/cmd/main.go',
       trigger=['./services/trip', './shared']
     )
   ],
@@ -63,3 +63,29 @@ k8s_resource(
 )
 
 ### End of Trip Service ###
+### Driver Service ###
+
+docker_build_with_restart(
+  'wayfare/driver-service',
+  '.',
+  entrypoint=['/app/build/driver-service'],
+  dockerfile='./infra/development/docker/driver-service.Dockerfile',
+  ignore=['./infra', './tools'],
+  live_update=[
+    sync('./services/driver', '/app/services/driver'),
+    sync('./shared', '/app/shared'),
+    run(
+      'go build -o /app/build/driver-service ./services/driver/cmd/main.go',
+      trigger=['./services/driver', './shared']
+    )
+  ],
+)
+
+k8s_yaml('./infra/development/k8s/driver-service-deployment.yaml')
+k8s_resource(
+  'driver-service',
+  resource_deps=['mongodb'],
+  labels="services",
+)
+
+### End of Driver Service ###

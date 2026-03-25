@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/build/trip-service ./services/trip/cmd/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/build/driver-service ./services/driver/cmd/main.go
 
 # --- Stage 2: Final Runtime ---
 FROM alpine:latest
@@ -22,4 +22,4 @@ WORKDIR /app
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/shared ./shared
 
-CMD ["/app/build/trip-service"]
+CMD ["/app/build/driver-service"]

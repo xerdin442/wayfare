@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: driver-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: driver-service
+  template:
+    metadata:
+      labels:
+        app: driver-service
+    spec:
+      containers:
+        - name: driver-service
+          image: wayfare/driver-service
+          imagePullPolicy: IfNotPresent
+          workingDir: /app
+          ports:
+            - containerPort: 50051
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          env:
+            - name: SERVICE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: SERVICE_PORT
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MONGO_URI
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: driver-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 50051
+  selector:
+    app: driver-service
