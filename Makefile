@@ -1,4 +1,4 @@
-PROTO_DIR := shared/proto
+PROTO_DIR := proto
 PROTO_SRC := $(wildcard $(PROTO_DIR)/*.proto)
 GO_OUT := shared/pkg
 

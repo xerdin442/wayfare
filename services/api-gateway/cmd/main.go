@@ -33,7 +33,7 @@ func main() {
 	// Parse Redis connection URI
 	cacheOpts, err := redis.ParseURL(env.RedisUri)
 	if err != nil {
-		log.Fatal().Msg("Invalid Redis connection URI")
+		log.Fatal().Err(err).Msg("Invalid Redis connection URI")
 	}
 
 	// Initialize cache and test connection

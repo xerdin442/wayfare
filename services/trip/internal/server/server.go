@@ -12,9 +12,9 @@ import (
 	"github.com/rs/zerolog/log"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
 	"github.com/xerdin442/wayfare/services/trip/internal/service"
+	db "github.com/xerdin442/wayfare/shared/database"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/secrets"
-	"github.com/xerdin442/wayfare/shared/util"
 	"google.golang.org/grpc"
 )
 
@@ -40,10 +40,10 @@ func (s *Server) Start() error {
 	s.grpcServer = grpc.NewServer()
 
 	// Initialize database
-	db := util.InitializeDatabase(context.Background(), s.env.MongoUri)
+	database := db.InitializeDatabase(context.Background(), s.env.MongoUri)
 
 	// Initialize repository
-	tripRepo := repo.NewTripRepository(db)
+	tripRepo := repo.NewTripRepository(database)
 
 	// Register service
 	rpc.RegisterTripServiceServer(s.grpcServer, service.NewTripService(tripRepo))

@@ -11,6 +11,7 @@ type TripStatus string
 
 const (
 	StatusSearching TripStatus = "searching"
+	StatusMatched   TripStatus = "matched"
 	StatusActive    TripStatus = "active"
 	StatusCompleted TripStatus = "completed"
 	StatusCancelled TripStatus = "cancelled"

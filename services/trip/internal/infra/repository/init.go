@@ -199,7 +199,7 @@ func CreateTripsColelction(db *mongo.Database, name string) (*mongo.Collection, 
 			"driver_id": bson.M{"bsonType": "objectId"},
 			"route":     routeSchema,
 			"status": bson.M{
-				"enum":        []string{"searching", "active", "completed", "cancelled"},
+				"enum":        []string{"searching", "matched", "active", "completed", "cancelled"},
 				"description": "must be a valid trip status value",
 			},
 			"fare": bson.M{
