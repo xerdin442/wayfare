@@ -2,15 +2,14 @@ package main
 
 import (
 	"context"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/base"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/client"
 	"github.com/xerdin442/wayfare/shared/secrets"
+	"github.com/xerdin442/wayfare/shared/storage"
 )
 
 type application struct {
@@ -30,29 +29,8 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// Parse Redis connection URI
-	cacheOpts, err := redis.ParseURL(env.RedisUri)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Invalid Redis connection URI")
-	}
-
-	// Initialize cache and test connection
-	cache := redis.NewClient(cacheOpts)
-	var pingErr error
-
-	for range 3 {
-		pingErr = cache.Ping(context.Background()).Err()
-		if pingErr == nil {
-			break
-		}
-
-		log.Warn().Msg("Waiting for Redis...")
-		time.Sleep(time.Second * 2)
-	}
-
-	if pingErr != nil {
-		log.Fatal().Err(pingErr).Msg("Could not connect to Redis after 3 attempts. Exiting...")
-	}
+	// Initialize Redis cache
+	cache := storage.InitializeCache(context.Background(), env.RedisUri)
 
 	// Initialize gRPC clients
 	clients := client.NewRegistry()

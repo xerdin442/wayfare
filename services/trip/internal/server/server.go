@@ -10,45 +10,32 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
 	"github.com/xerdin442/wayfare/services/trip/internal/service"
-	db "github.com/xerdin442/wayfare/shared/database"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
-	"github.com/xerdin442/wayfare/shared/secrets"
 	"google.golang.org/grpc"
 )
 
 type Server struct {
 	grpcServer *grpc.Server
-	env        *secrets.Secrets
 }
 
-func New(s *secrets.Secrets) *Server {
+func New() *Server {
 	return &Server{
-		env: s,
+		grpcServer: grpc.NewServer(),
 	}
 }
 
-func (s *Server) Start() error {
+func (s *Server) Start(svc *service.TripService, port int) error {
 	// Create listener
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.env.ServicePort))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return fmt.Errorf("Failed to listen: %w", err)
 	}
 
-	// Create gRPC server
-	s.grpcServer = grpc.NewServer()
-
-	// Initialize database
-	database := db.InitializeDatabase(context.Background(), s.env.MongoUri)
-
-	// Initialize repository
-	tripRepo := repo.NewTripRepository(database)
-
 	// Register service
-	rpc.RegisterTripServiceServer(s.grpcServer, service.NewTripService(tripRepo))
+	rpc.RegisterTripServiceServer(s.grpcServer, svc)
 
-	log.Info().Int("port", s.env.ServicePort).Msg("Starting gRPC server...")
+	log.Info().Int("port", port).Msg("Starting gRPC server...")
 
 	// Start server
 	errChan := make(chan error, 1)

@@ -10,6 +10,7 @@ import (
 	"github.com/twpayne/go-polyline"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
 	"github.com/xerdin442/wayfare/shared/contracts"
+	"github.com/xerdin442/wayfare/shared/messaging"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,12 +18,14 @@ import (
 
 type TripService struct {
 	rpc.UnimplementedTripServiceServer
-	repo *repo.TripRepository
+	repo  *repo.TripRepository
+	queue messaging.MessageBus
 }
 
-func NewTripService(r *repo.TripRepository) *TripService {
+func NewTripService(r *repo.TripRepository, q messaging.MessageBus) *TripService {
 	return &TripService{
-		repo: r,
+		repo:  r,
+		queue: q,
 	}
 }
 

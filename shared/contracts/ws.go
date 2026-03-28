@@ -1,13 +1,31 @@
 package contracts
 
-import "encoding/json"
+import (
+	"encoding/json"
 
-type WSMessage struct {
+	"github.com/xerdin442/wayfare/shared/types"
+)
+
+type WSOutgoingMessage struct {
 	Type AmqpEvent `json:"type"`
-	Data any       `json:"data"`
+	Data *any      `json:"data,omitempty"`
 }
 
-type WSDriverMessage struct {
-	Type string          `json:"type"`
-	Data json.RawMessage `json:"data"`
+type WSIncomingMessage struct {
+	Type AmqpEvent        `json:"type"`
+	Data *json.RawMessage `json:"data,omitempty"`
+}
+
+type DriverTripActionRequest struct {
+	Trip   types.Trip    `json:"user_id"`
+	Driver *types.Driver `json:"driver,omitempty"`
+}
+
+type DriverLocationUpdateRequest struct {
+	Location types.Coordinate `json:"location"`
+	Geohash  string           `json:"geohash"`
+}
+
+type RiderTripUpdateRequest struct {
+	TripID string `json:"tripID"`
 }

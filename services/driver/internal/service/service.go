@@ -4,17 +4,20 @@ import (
 	"context"
 
 	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
+	"github.com/xerdin442/wayfare/shared/messaging"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
 )
 
 type DriverService struct {
 	rpc.UnimplementedDriverServiceServer
-	repo *repo.DriverRepository
+	repo  *repo.DriverRepository
+	queue messaging.MessageBus
 }
 
-func NewDriverService(r *repo.DriverRepository) *DriverService {
+func NewDriverService(r *repo.DriverRepository, q messaging.MessageBus) *DriverService {
 	return &DriverService{
-		repo: r,
+		repo:  r,
+		queue: q,
 	}
 }
 
