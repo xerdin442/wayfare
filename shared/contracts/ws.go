@@ -3,17 +3,18 @@ package contracts
 import (
 	"encoding/json"
 
+	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/types"
 )
 
 type WSOutgoingMessage struct {
-	Type AmqpEvent `json:"type"`
-	Data *any      `json:"data,omitempty"`
+	Type messaging.AmqpEvent `json:"type"`
+	Data any                 `json:"data,omitempty"`
 }
 
 type WSIncomingMessage struct {
-	Type AmqpEvent        `json:"type"`
-	Data *json.RawMessage `json:"data,omitempty"`
+	Type messaging.AmqpEvent `json:"type"`
+	Data *json.RawMessage    `json:"data,omitempty"`
 }
 
 type DriverTripActionRequest struct {

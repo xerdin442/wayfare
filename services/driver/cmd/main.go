@@ -12,7 +12,6 @@ import (
 	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
 	"github.com/xerdin442/wayfare/services/driver/internal/server"
 	"github.com/xerdin442/wayfare/services/driver/internal/service"
-	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/secrets"
 	"github.com/xerdin442/wayfare/shared/storage"
@@ -41,11 +40,11 @@ func main() {
 	svc := service.NewDriverService(repo, rmq)
 	h := events.NewDriverEventsHandler(repo, rmq, cache)
 
-	w := messaging.NewEventWorker(rmq, messaging.FindAndAssignDriverQueue)
+	w := messaging.NewEventWorker(rmq, messaging.AssignDriverQueue)
 	{
-		w.RegisterHandler(contracts.TripEventCreated, h.HandleTripCreated)
-		w.RegisterHandler(contracts.TripEventDriverNotInterested, h.HandleDriverNotInterested)
-		w.RegisterHandler(contracts.TripEventDriverNotAvailable, h.HandleDriverNotAvailable)
+		w.RegisterHandler(messaging.TripEventCreated, h.HandleTripCreated)
+		w.RegisterHandler(messaging.TripEventDriverNotInterested, h.HandleDriverNotInterested)
+		w.RegisterHandler(messaging.TripEventDriverNotAvailable, h.HandleDriverNotAvailable)
 	}
 
 	g.Go(func() error {

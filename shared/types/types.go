@@ -8,6 +8,16 @@ const (
 	PackageSUV    CarPackage = "suv"
 )
 
+type TripStatus string
+
+const (
+	TripStatusSearching TripStatus = "searching"
+	TripStatusAborted   TripStatus = "aborted"
+	TripStatusActive    TripStatus = "active"
+	TripStatusCompleted TripStatus = "completed"
+	TripStatusCancelled TripStatus = "cancelled"
+)
+
 type Route struct {
 	Distance float64     `json:"distance"`
 	Duration float64     `json:"duration"`
@@ -24,20 +34,20 @@ type Coordinate struct {
 }
 
 type RideFare struct {
-	ID               string `json:"id"`
-	PackageSlug      string `json:"packageSlug"`
-	BasePrice        int64  `json:"basePrice"`
-	TotalPriceInKobo *int64 `json:"totalPriceInKobo,omitempty"`
-	Route            Route  `json:"route"`
+	ID               string     `json:"id"`
+	PackageSlug      CarPackage `json:"packageSlug"`
+	BasePrice        int64      `json:"basePrice"`
+	TotalPriceInKobo int64      `json:"totalPriceInKobo,omitempty"`
+	Route            Route      `json:"route"`
 }
 
 type Trip struct {
-	ID           string   `json:"id"`
-	UserID       string   `json:"userID"`
-	Status       string   `json:"status"`
-	SelectedFare RideFare `json:"selectedFare"`
-	Route        Route    `json:"route"`
-	Driver       *Driver  `json:"driver,omitempty"`
+	ID           string     `json:"id"`
+	UserID       string     `json:"userID"`
+	Status       TripStatus `json:"status"`
+	SelectedFare RideFare   `json:"selectedFare"`
+	Route        Route      `json:"route"`
+	Driver       *Driver    `json:"driver,omitempty"`
 }
 
 type Driver struct {

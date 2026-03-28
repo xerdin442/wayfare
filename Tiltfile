@@ -85,7 +85,7 @@ docker_build_with_restart(
 k8s_yaml('./infra/development/k8s/driver-service-deployment.yaml')
 k8s_resource(
   'driver-service',
-  resource_deps=['mongodb', 'rabbitmq'],
+  resource_deps=['redis', 'mongodb', 'rabbitmq'],
   labels="services",
 )
 

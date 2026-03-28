@@ -7,7 +7,6 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog/log"
-	"github.com/xerdin442/wayfare/shared/contracts"
 )
 
 type RabbitMQ struct {
@@ -90,7 +89,7 @@ func (r *RabbitMQ) ConsumeMessages(queueName AmqpQueue, handler func(context.Con
 	return nil
 }
 
-func (r *RabbitMQ) PublishMessage(ctx context.Context, exchange AmqpExchange, routingKey contracts.AmqpEvent, msg contracts.AmqpMessage) error {
+func (r *RabbitMQ) PublishMessage(ctx context.Context, exchange AmqpExchange, routingKey AmqpEvent, msg AmqpMessage) error {
 	jsonMsg, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("Failed to marshal AMQP message: %v", err)
@@ -128,7 +127,7 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 
 	if err := r.declareAndBindQueue(
 		GatewayQueue,
-		[]contracts.AmqpEvent{contracts.GatewayEventWsResponse},
+		[]AmqpEvent{"user.*"},
 		GatewayExchange,
 	); err != nil {
 		return err
@@ -136,18 +135,31 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 
 	if err := r.declareAndBindQueue(
 		DeadLetterQueue,
-		[]contracts.AmqpEvent{"#"}, // Wildcard to catch all messages
+		[]AmqpEvent{"#"}, // Wildcard to catch all messages
 		DeadLetterExchange,
 	); err != nil {
 		return err
 	}
 
 	if err := r.declareAndBindQueue(
-		FindAndAssignDriverQueue,
-		[]contracts.AmqpEvent{
-			contracts.TripEventCreated,
-			contracts.TripEventDriverNotInterested,
-			contracts.TripEventDriverNotAvailable,
+		AssignDriverQueue,
+		[]AmqpEvent{
+			TripEventCreated,
+			TripEventDriverNotInterested,
+			TripEventDriverNotAvailable,
+		},
+		ServicesExchange,
+	); err != nil {
+		return err
+	}
+
+	if err := r.declareAndBindQueue(
+		TripUpdateQueue,
+		[]AmqpEvent{
+			TripEventDriverAssigned,
+			TripEventNoDriversFound,
+			TripCmdCancelled,
+			TripCmdCompleted,
 		},
 		ServicesExchange,
 	); err != nil {
@@ -157,7 +169,7 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 	return nil
 }
 
-func (r *RabbitMQ) declareAndBindQueue(queueName AmqpQueue, messageTypes []contracts.AmqpEvent, exchange AmqpExchange) error {
+func (r *RabbitMQ) declareAndBindQueue(queueName AmqpQueue, messageTypes []AmqpEvent, exchange AmqpExchange) error {
 	q, err := r.Channel.QueueDeclare(
 		string(queueName), // name
 		true,              // durable

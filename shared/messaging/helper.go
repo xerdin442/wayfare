@@ -4,13 +4,17 @@ import (
 	"context"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/xerdin442/wayfare/shared/contracts"
+	"github.com/xerdin442/wayfare/shared/types"
 )
+
+type AmqpMessage struct {
+	Data []byte `json:"data"`
+}
 
 type AmqpEventHandler func(ctx context.Context, body []byte) error
 
 type MessageBus interface {
-	PublishMessage(ctx context.Context, exchange AmqpExchange, routingKey contracts.AmqpEvent, msg contracts.AmqpMessage) error
+	PublishMessage(ctx context.Context, exchange AmqpExchange, routingKey AmqpEvent, msg AmqpMessage) error
 	ConsumeMessages(queueName AmqpQueue, handler func(context.Context, amqp.Delivery) error) error
 }
 
@@ -25,7 +29,54 @@ const (
 type AmqpQueue string
 
 const (
-	GatewayQueue             AmqpQueue = "gateway_queue"
-	FindAndAssignDriverQueue AmqpQueue = "find_and_assign_driver_queue"
-	DeadLetterQueue          AmqpQueue = "dead_letter_queue"
+	GatewayQueue      AmqpQueue = "gateway_queue"
+	AssignDriverQueue AmqpQueue = "assign_driver_queue"
+	TripUpdateQueue   AmqpQueue = "trip_update_queue"
+	DeadLetterQueue   AmqpQueue = "dead_letter_queue"
+)
+
+type AssignDriverQueuePayload struct {
+	Trip     types.Trip `json:"trip"`
+	DriverID string     `json:"driver_id,omitempty"`
+}
+
+type TripUpdateQueuePayload struct {
+	TripID string `json:"trip_id"`
+}
+
+type GatewayQueuePayload struct {
+	Type AmqpEvent `json:"type"`
+	Data any       `json:"data,omitempty"`
+}
+
+type AmqpEvent string
+
+const (
+	// Trip events
+	TripEventCreated             AmqpEvent = "trip.event.created"
+	TripEventDriverAssigned      AmqpEvent = "trip.event.driver_assigned"
+	TripEventNoDriversFound      AmqpEvent = "trip.event.no_drivers_found"
+	TripEventDriverNotInterested AmqpEvent = "trip.event.driver_not_interested"
+	TripEventDriverNotAvailable  AmqpEvent = "trip.event.driver_not_available"
+
+	// Trip commands
+	TripCmdCompleted AmqpEvent = "trip.cmd.completed"
+	TripCmdCancelled AmqpEvent = "trip.cmd.cancelled"
+
+	// Driver events
+	DriverEventTripRequest AmqpEvent = "driver.event.trip_request"
+
+	// Driver commands
+	DriverCmdTripAccept     AmqpEvent = "driver.cmd.trip_accept"
+	DriverCmdTripDecline    AmqpEvent = "driver.cmd.trip_decline"
+	DriverCmdLocationUpdate AmqpEvent = "driver.cmd.location_update"
+
+	// Payment events
+	PaymentEventSessionCreated AmqpEvent = "payment.event.session_created"
+	PaymentEventSuccess        AmqpEvent = "payment.event.success"
+	PaymentEventFailed         AmqpEvent = "payment.event.failed"
+	PaymentEventCancelled      AmqpEvent = "payment.event.cancelled"
+
+	// Payment commands
+	PaymentCmdCreateSession AmqpEvent = "payment.cmd.create_session"
 )

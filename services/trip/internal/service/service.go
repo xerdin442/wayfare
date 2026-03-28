@@ -12,6 +12,7 @@ import (
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -140,14 +141,53 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *rpc.PreviewTripReque
 
 func (s *TripService) StartTrip(ctx context.Context, req *rpc.StartTripRequest) (*rpc.StartTripResponse, error) {
 	// Create new trip
-	tripID, err := s.repo.CreateTrip(ctx, req.RideFareId, req.UserId)
+	trip, err := s.repo.CreateTrip(ctx, req.RideFareId, req.UserId)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	// Publish trip created event**
+	// Find and assign available driver
+	payload := messaging.AssignDriverQueuePayload{
+		Trip: types.Trip{
+			ID:     trip.ID.Hex(),
+			UserID: trip.UserID.Hex(),
+			Status: trip.Status,
+			SelectedFare: types.RideFare{
+				ID:               req.RideFareId,
+				PackageSlug:      trip.Fare.CarPackage,
+				BasePrice:        trip.Fare.BasePrice,
+				TotalPriceInKobo: trip.Fare.TotalPriceInKobo,
+			},
+			Route: types.Route{
+				Distance: trip.Route.Distance,
+				Duration: trip.Route.Duration,
+				Geometry: []*types.Geometry{
+					{Coordinates: []*types.Coordinate{
+						{
+							Longitude: trip.Route.Pickup.Coordinates[0],
+							Latitude:  trip.Route.Pickup.Coordinates[1],
+						},
+						{
+							Longitude: trip.Route.Destination.Coordinates[0],
+							Latitude:  trip.Route.Destination.Coordinates[1],
+						},
+					}},
+				},
+			},
+		},
+	}
+
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "Could not parse event queue payload")
+	}
+
+	msg := messaging.AmqpMessage{Data: data}
+	if err := s.queue.PublishMessage(ctx, messaging.ServicesExchange, messaging.TripEventCreated, msg); err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to publish %s event", messaging.TripEventCreated)
+	}
 
 	return &rpc.StartTripResponse{
-		TripId: tripID,
+		TripId: trip.ID.Hex(),
 	}, nil
 }

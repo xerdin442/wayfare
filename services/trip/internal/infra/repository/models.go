@@ -7,16 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-type TripStatus string
-
-const (
-	StatusSearching TripStatus = "searching"
-	StatusMatched   TripStatus = "matched"
-	StatusActive    TripStatus = "active"
-	StatusCompleted TripStatus = "completed"
-	StatusCancelled TripStatus = "cancelled"
-)
-
 type GeoPoint struct {
 	Type        string    `bson:"type"`
 	Coordinates []float64 `bson:"coordinates"`
@@ -70,12 +60,12 @@ type RideFareModel struct {
 }
 
 type TripModel struct {
-	ID        bson.ObjectID   `bson:"_id,omitempty"`
-	DriverID  bson.ObjectID   `bson:"driver_id,omitempty"`
-	UserID    bson.ObjectID   `bson:"user_id"`
-	Status    TripStatus      `bson:"status"`
-	Fare      RideFareSummary `bson:"fare"`
-	Route     RouteDetails    `bson:"route"`
-	CreatedAt time.Time       `bson:"created_at"`
-	UpdatedAt time.Time       `bson:"updated_at"`
+	ID        bson.ObjectID    `bson:"_id,omitempty"`
+	DriverID  bson.ObjectID    `bson:"driver_id,omitempty"`
+	UserID    bson.ObjectID    `bson:"user_id"`
+	Status    types.TripStatus `bson:"status"`
+	Fare      RideFareSummary  `bson:"fare"`
+	Route     RouteDetails     `bson:"route"`
+	CreatedAt time.Time        `bson:"created_at"`
+	UpdatedAt time.Time        `bson:"updated_at"`
 }
