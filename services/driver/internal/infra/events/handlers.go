@@ -8,6 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
+	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 )
 
@@ -40,15 +41,24 @@ func (h *DriverEventsHandler) findAvailableDrivers(ctx context.Context, lat, lng
 	return nearbyDrivers, nil
 }
 
-func (h *DriverEventsHandler) HandleTripCreated(ctx context.Context, body []byte) error {
+func (h *DriverEventsHandler) parseEventPayload(body []byte) (*messaging.AssignDriverQueuePayload, error) {
 	var msg messaging.AmqpMessage
 	if err := json.Unmarshal(body, &msg); err != nil {
-		return fmt.Errorf("Failed to unmarshal message from %s event: %v", messaging.TripEventCreated, err)
+		return nil, fmt.Errorf("Failed to unmarshal message from %s event: %v", messaging.TripEventCreated, err)
 	}
 
 	var payload messaging.AssignDriverQueuePayload
 	if err := json.Unmarshal(msg.Data, &payload); err != nil {
-		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", messaging.TripEventCreated, err)
+		return nil, fmt.Errorf("Failed to unmarshal payload from %s event: %v", messaging.TripEventCreated, err)
+	}
+
+	return &payload, nil
+}
+
+func (h *DriverEventsHandler) HandleTripCreated(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
+	payload, err := h.parseEventPayload(p.Body)
+	if err != nil {
+		return nil
 	}
 
 	// Find available drivers within 5km of the trip request
@@ -80,7 +90,7 @@ func (h *DriverEventsHandler) HandleTripCreated(ctx context.Context, body []byte
 		}
 
 		// Publish to gateway to notify user
-		gatewayData, err := json.Marshal(messaging.GatewayQueuePayload{
+		gatewayData, err := json.Marshal(contracts.WSOutgoingMessage{
 			Type: messaging.TripEventNoDriversFound,
 		})
 		if err != nil {
@@ -98,7 +108,7 @@ func (h *DriverEventsHandler) HandleTripCreated(ctx context.Context, body []byte
 	}
 
 	// Send trip request to first eligible driver
-	gatewayData, err := json.Marshal(messaging.GatewayQueuePayload{
+	data, err := json.Marshal(contracts.WSOutgoingMessage{
 		Type: messaging.DriverEventTripRequest,
 		Data: payload.Trip,
 	})
@@ -110,7 +120,7 @@ func (h *DriverEventsHandler) HandleTripCreated(ctx context.Context, body []byte
 		ctx,
 		messaging.GatewayExchange,
 		messaging.AmqpEvent(fmt.Sprintf("user.%s", targetDriverID)),
-		messaging.AmqpMessage{Data: gatewayData},
+		messaging.AmqpMessage{Data: data},
 	); err != nil {
 		return fmt.Errorf("Failed to publish %s event", messaging.DriverEventTripRequest)
 	}
@@ -118,6 +128,20 @@ func (h *DriverEventsHandler) HandleTripCreated(ctx context.Context, body []byte
 	return nil
 }
 
-func (h *DriverEventsHandler) HandleDriverNotInterested(ctx context.Context, body []byte) error
+func (h *DriverEventsHandler) HandleDriverNotInterested(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
+	payload, err := h.parseEventPayload(p.Body)
+	if err != nil {
+		return nil
+	}
 
-func (h *DriverEventsHandler) HandleDriverNotAvailable(ctx context.Context, body []byte) error
+	return nil
+}
+
+func (h *DriverEventsHandler) HandleDriverNotAvailable(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
+	payload, err := h.parseEventPayload(p.Body)
+	if err != nil {
+		return nil
+	}
+
+	return nil
+}

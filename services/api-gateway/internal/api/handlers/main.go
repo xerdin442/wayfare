@@ -2,19 +2,17 @@ package handlers
 
 import (
 	"net/http"
-	"sync"
 
 	"github.com/gorilla/websocket"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/base"
 )
 
 type RouteHandler struct {
-	ws    websocket.Upgrader
-	conns sync.Map
-	cfg   base.Config
+	ws  websocket.Upgrader
+	cfg *base.Config
 }
 
-func New(c base.Config) *RouteHandler {
+func New(c *base.Config) *RouteHandler {
 	return &RouteHandler{
 		cfg: c,
 		ws: websocket.Upgrader{

@@ -37,6 +37,9 @@ func (c *EventWorker) Start(ctx context.Context) error {
 			return fmt.Errorf("No handler registered for %s event", event)
 		}
 
-		return handler(ctx, msg.Body)
+		return handler(ctx, AmqpDeliveryPayload{
+			RoutingKey: msg.RoutingKey,
+			Body:       msg.Body,
+		})
 	})
 }

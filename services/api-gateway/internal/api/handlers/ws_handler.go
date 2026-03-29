@@ -25,10 +25,10 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 		return
 	}
 
-	h.conns.Store(userID, conn)
+	h.cfg.ConnManager.Store(userID, conn)
 
 	defer func() {
-		h.conns.Delete(userID)
+		h.cfg.ConnManager.Delete(userID)
 		conn.Close()
 	}()
 
@@ -75,10 +75,10 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 		return
 	}
 
-	h.conns.Store(userID, conn)
+	h.cfg.ConnManager.Store(userID, conn)
 
 	defer func() {
-		h.conns.Delete(userID)
+		h.cfg.ConnManager.Delete(userID)
 		conn.Close()
 	}()
 

@@ -5,9 +5,9 @@ import (
 )
 
 type Middleware struct {
-	cfg base.Config
+	cfg *base.Config
 }
 
-func New(c base.Config) *Middleware {
+func New(c *base.Config) *Middleware {
 	return &Middleware{cfg: c}
 }

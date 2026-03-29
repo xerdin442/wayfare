@@ -11,7 +11,12 @@ type AmqpMessage struct {
 	Data []byte `json:"data"`
 }
 
-type AmqpEventHandler func(ctx context.Context, body []byte) error
+type AmqpDeliveryPayload struct {
+	RoutingKey string `json:"routing_key"`
+	Body       []byte `json:"body"`
+}
+
+type AmqpEventHandler func(ctx context.Context, p AmqpDeliveryPayload) error
 
 type MessageBus interface {
 	PublishMessage(ctx context.Context, exchange AmqpExchange, routingKey AmqpEvent, msg AmqpMessage) error
@@ -42,11 +47,6 @@ type AssignDriverQueuePayload struct {
 
 type TripUpdateQueuePayload struct {
 	TripID string `json:"trip_id"`
-}
-
-type GatewayQueuePayload struct {
-	Type AmqpEvent `json:"type"`
-	Data any       `json:"data,omitempty"`
 }
 
 type AmqpEvent string
