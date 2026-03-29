@@ -256,8 +256,7 @@ func (x *RideFare) GetRoute() *Route {
 type Driver struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Location       *Coordinate            `protobuf:"bytes,2,opt,name=location,proto3,oneof" json:"location,omitempty"`
-	Geohash        *string                `protobuf:"bytes,3,opt,name=geohash,proto3,oneof" json:"geohash,omitempty"`
+	Location       *Coordinate            `protobuf:"bytes,2,opt,name=location,proto3" json:"location,omitempty"`
 	Name           string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
 	ProfilePicture string                 `protobuf:"bytes,5,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
 	CarPlate       string                 `protobuf:"bytes,6,opt,name=car_plate,json=carPlate,proto3" json:"car_plate,omitempty"`
@@ -307,13 +306,6 @@ func (x *Driver) GetLocation() *Coordinate {
 		return x.Location
 	}
 	return nil
-}
-
-func (x *Driver) GetGeohash() string {
-	if x != nil && x.Geohash != nil {
-		return *x.Geohash
-	}
-	return ""
 }
 
 func (x *Driver) GetName() string {
@@ -442,17 +434,13 @@ const file_schema_proto_rawDesc = "" +
 	"\n" +
 	"base_price\x18\x03 \x01(\x03R\tbasePrice\x12-\n" +
 	"\x13total_price_in_kobo\x18\x04 \x01(\x03R\x10totalPriceInKobo\x12$\n" +
-	"\x05route\x18\x05 \x01(\v2\x0e.wayfare.RouteR\x05route\"\xe0\x01\n" +
+	"\x05route\x18\x05 \x01(\v2\x0e.wayfare.RouteR\x05route\"\xa3\x01\n" +
 	"\x06Driver\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x124\n" +
-	"\blocation\x18\x02 \x01(\v2\x13.wayfare.CoordinateH\x00R\blocation\x88\x01\x01\x12\x1d\n" +
-	"\ageohash\x18\x03 \x01(\tH\x01R\ageohash\x88\x01\x01\x12\x12\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12/\n" +
+	"\blocation\x18\x02 \x01(\v2\x13.wayfare.CoordinateR\blocation\x12\x12\n" +
 	"\x04name\x18\x04 \x01(\tR\x04name\x12'\n" +
 	"\x0fprofile_picture\x18\x05 \x01(\tR\x0eprofilePicture\x12\x1b\n" +
-	"\tcar_plate\x18\x06 \x01(\tR\bcarPlateB\v\n" +
-	"\t_locationB\n" +
-	"\n" +
-	"\b_geohash\"\xde\x01\n" +
+	"\tcar_plate\x18\x06 \x01(\tR\bcarPlate\"\xde\x01\n" +
 	"\x04Trip\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x16\n" +
@@ -503,7 +491,6 @@ func file_schema_proto_init() {
 	if File_schema_proto != nil {
 		return
 	}
-	file_schema_proto_msgTypes[4].OneofWrappers = []any{}
 	file_schema_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

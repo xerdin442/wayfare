@@ -1,4 +1,4 @@
-package repo
+package models
 
 import (
 	"time"
@@ -68,4 +68,12 @@ type TripModel struct {
 	Route     RouteDetails     `bson:"route"`
 	CreatedAt time.Time        `bson:"created_at"`
 	UpdatedAt time.Time        `bson:"updated_at"`
+}
+
+type DriverModel struct {
+	ID             bson.ObjectID    `bson:"_id,omitempty"`
+	Name           string           `bson:"name"`
+	ProfilePicture string           `bson:"profile_picture"`
+	CarPackage     types.CarPackage `bson:"car_package,omitempty"`
+	CarPlate       string           `bson:"car_plate"`
 }

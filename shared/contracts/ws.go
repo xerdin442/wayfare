@@ -19,6 +19,6 @@ type DriverLocationUpdateRequest struct {
 	Coords types.Coordinate `json:"coords"`
 }
 
-type RiderTripUpdateRequest struct {
+type TripUpdateRequest struct {
 	TripID string `json:"tripID"`
 }

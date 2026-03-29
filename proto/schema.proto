@@ -28,12 +28,11 @@ message RideFare {
 }
 
 message Driver {
-  string              id              = 1;
-  optional Coordinate location        = 2;
-  optional string     geohash         = 3;
-  string              name            = 4;
-  string              profile_picture = 5;
-  string              car_plate       = 6;
+  string     id              = 1;
+  Coordinate location        = 2;
+  string     name            = 4;
+  string     profile_picture = 5;
+  string     car_plate       = 6;
 }
 
 message Trip {

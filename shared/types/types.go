@@ -13,6 +13,7 @@ type TripStatus string
 const (
 	TripStatusSearching TripStatus = "searching"
 	TripStatusAborted   TripStatus = "aborted"
+	TripStatusMatched   TripStatus = "matched"
 	TripStatusActive    TripStatus = "active"
 	TripStatusCompleted TripStatus = "completed"
 	TripStatusCancelled TripStatus = "cancelled"
@@ -53,7 +54,6 @@ type Trip struct {
 type Driver struct {
 	ID             string     `json:"id"`
 	Location       Coordinate `json:"location"`
-	Geohash        string     `json:"geohash"`
 	Name           string     `json:"name"`
 	ProfilePicture string     `json:"profilePicture"`
 	CarPlate       string     `json:"carPlate"`

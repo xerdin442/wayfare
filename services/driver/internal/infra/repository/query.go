@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/rs/zerolog/log"
+	"github.com/xerdin442/wayfare/shared/models"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -22,6 +23,6 @@ func NewDriverRepository(db *mongo.Database) *DriverRepository {
 	}
 }
 
-func (r *DriverRepository) GetDriverByID(ctx context.Context, driverId string) (*DriverModel, error) {
-	return &DriverModel{}, nil
+func (r *DriverRepository) GetDriverByID(ctx context.Context, driverId string) (*models.DriverModel, error) {
+	return &models.DriverModel{}, nil
 }

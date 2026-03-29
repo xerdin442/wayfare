@@ -11,6 +11,7 @@ import (
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
+	"github.com/xerdin442/wayfare/shared/models"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/types"
 	"google.golang.org/grpc/codes"
@@ -114,12 +115,12 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *rpc.PreviewTripReque
 
 	// Generate route details
 	fullPath := polyline.EncodeCoords(route.Routes[0].Geometry.Coordinates)
-	routeDetails := repo.RouteDetails{
-		Pickup: repo.GeoPoint{
+	routeDetails := models.RouteDetails{
+		Pickup: models.GeoPoint{
 			Type:        "Point",
 			Coordinates: pickupCoords,
 		},
-		Destination: repo.GeoPoint{
+		Destination: models.GeoPoint{
 			Type:        "Point",
 			Coordinates: destinationCoords,
 		},

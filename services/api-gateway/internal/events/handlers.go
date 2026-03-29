@@ -39,11 +39,9 @@ func (h *GatewayEventsHandler) HandleGatewayQueueEvents(ctx context.Context, p m
 		switch payload.Type {
 		case messaging.DriverEventTripRequest:
 			// Find another driver if the previously matched driver is offline
-			p := messaging.AssignDriverQueuePayload{
+			data, err := json.Marshal(messaging.AssignDriverQueuePayload{
 				Trip: payload.Data.(types.Trip),
-			}
-
-			data, err := json.Marshal(p)
+			})
 			if err != nil {
 				return fmt.Errorf("Could not marshal payload: %v", err)
 			}
@@ -58,6 +56,10 @@ func (h *GatewayEventsHandler) HandleGatewayQueueEvents(ctx context.Context, p m
 			}
 		case messaging.TripEventNoDriversFound:
 			return nil
+		case messaging.TripEventDriverAssigned:
+			// Abort trip if the rider is offline when a driver accepts the trip request
+
+			// Notify the driver that the trip has been aborted
 		default:
 			return fmt.Errorf("Unknown payload event type received by gateway queue: %s", payload.Type)
 		}

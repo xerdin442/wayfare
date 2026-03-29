@@ -45,6 +45,7 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 		Latitude:   pickup.Latitude,
 		Radius:     5,
 		RadiusUnit: "km",
+		Sort:       "ASC",
 	}).Result()
 	if err != nil {
 		return fmt.Errorf("Failed to find nearby drivers: %v", err)
@@ -93,7 +94,7 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 			return fmt.Errorf("Failed to publish %s event: %v", messaging.TripEventNoDriversFound, err)
 		}
 
-		// Publish to gateway to notify user
+		// Publish to gateway to notify the rider
 		gatewayData, err := json.Marshal(contracts.WebsocketMessage{
 			Type: messaging.TripEventNoDriversFound,
 		})

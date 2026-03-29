@@ -67,6 +67,7 @@ const (
 	DriverEventTripRequest AmqpEvent = "driver.event.trip_request"
 
 	// Driver commands
+	DriverCmdTripPickup     AmqpEvent = "driver.cmd.confirm_pickup"
 	DriverCmdTripAccept     AmqpEvent = "driver.cmd.trip_accept"
 	DriverCmdTripDecline    AmqpEvent = "driver.cmd.trip_decline"
 	DriverCmdLocationUpdate AmqpEvent = "driver.cmd.location_update"

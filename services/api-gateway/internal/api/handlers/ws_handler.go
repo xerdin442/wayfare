@@ -2,14 +2,35 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 )
+
+func (h *RouteHandler) monitorConnection(conn *websocket.Conn) {
+	conn.SetReadLimit(512)
+	conn.SetReadDeadline(time.Now().Add(30 * time.Second))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(30 * time.Second))
+		return nil
+	})
+
+	go func() {
+		ticker := time.NewTicker(20 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}()
+}
 
 func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 	logger := log.Ctx(c.Request.Context())
@@ -21,14 +42,13 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 	}
 
 	userID := c.Query("userID")
-	packageSlug := c.Query("packageSlug")
-
-	if userID == "" || packageSlug == "" {
-		logger.Warn().Msg("User ID or package slug not provided")
+	if userID == "" {
+		logger.Warn().Msg("User ID not provided")
 		return
 	}
 
 	h.cfg.ConnManager.Store(userID, conn)
+	h.monitorConnection(conn)
 
 	defer func() {
 		h.cfg.ConnManager.Delete(userID)
@@ -38,7 +58,6 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
-			logger.Error().Err(err).Msg("Failed to read incoming websocket message")
 			break
 		}
 
@@ -66,20 +85,18 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				return
 			}
 
-			if err := h.cfg.Cache.Expire(c.Request.Context(), cacheKey, 10*time.Second).Err(); err != nil {
+			if err := h.cfg.Cache.Expire(c.Request.Context(), cacheKey, 15*time.Second).Err(); err != nil {
 				logger.Error().Err(err).Msg("Failed to set expiry on location tracker")
 				return
 			}
 		case messaging.DriverCmdTripDecline:
-			msg := payload.Data.(contracts.DriverTripActionRequest)
+			data := payload.Data.(contracts.DriverTripActionRequest)
 
 			// Find another driver if the previously matched driver declines trip request
-			p := messaging.AssignDriverQueuePayload{
-				Trip:     msg.Trip,
-				DriverID: userID,
-			}
-
-			data, err := json.Marshal(p)
+			msg, err := json.Marshal(messaging.AssignDriverQueuePayload{
+				Trip:     data.Trip,
+				DriverID: data.Driver.ID,
+			})
 			if err != nil {
 				return
 			}
@@ -88,16 +105,66 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				c.Request.Context(),
 				messaging.ServicesExchange,
 				messaging.TripEventDriverNotInterested,
-				messaging.AmqpMessage{Data: data},
+				messaging.AmqpMessage{Data: msg},
 			); err != nil {
 				return
 			}
 		case messaging.DriverCmdTripAccept:
-			data := payload.Data.(contracts.DriverTripActionRequest)
-		case messaging.TripCmdCancelled:
-			data := payload.Data.(contracts.RiderTripUpdateRequest)
-		case messaging.TripCmdCompleted:
-			data := payload.Data.(contracts.RiderTripUpdateRequest)
+			payloadData := payload.Data.(contracts.DriverTripActionRequest)
+
+			// Publish to trip service to update trip status
+			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
+				TripID: payloadData.Trip.ID,
+			})
+			if err != nil {
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				c.Request.Context(),
+				messaging.ServicesExchange,
+				messaging.TripEventDriverAssigned,
+				messaging.AmqpMessage{Data: tripServiceData},
+			); err != nil {
+				return
+			}
+
+			// Notify rider that a driver has accepted the trip request
+			data, err := json.Marshal(contracts.WebsocketMessage{
+				Type: messaging.TripEventDriverAssigned,
+				Data: payloadData.Driver,
+			})
+			if err != nil {
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				c.Request.Context(),
+				messaging.GatewayExchange,
+				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.UserID)),
+				messaging.AmqpMessage{Data: data},
+			); err != nil {
+				return
+			}
+		case messaging.DriverCmdTripPickup:
+			data := payload.Data.(contracts.TripUpdateRequest)
+
+			// Publish to trip service to update trip status
+			msg, err := json.Marshal(messaging.TripUpdateQueuePayload{
+				TripID: data.TripID,
+			})
+			if err != nil {
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				c.Request.Context(),
+				messaging.ServicesExchange,
+				messaging.DriverCmdTripPickup,
+				messaging.AmqpMessage{Data: msg},
+			); err != nil {
+				return
+			}
 		default:
 			logger.Warn().Str("message_type", string(payload.Type)).Msg("Unknown websocket message type")
 			return
@@ -121,6 +188,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 	}
 
 	h.cfg.ConnManager.Store(userID, conn)
+	h.monitorConnection(conn)
 
 	defer func() {
 		h.cfg.ConnManager.Delete(userID)
@@ -130,10 +198,23 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
-			logger.Error().Err(err).Msg("Failed to read incoming message")
 			break
 		}
 
-		logger.Printf("Received message: %v", msg)
+		var payload contracts.WebsocketMessage
+		if err := json.Unmarshal(msg, &payload); err != nil {
+			logger.Error().Err(err).Msg("Failed to parse incoming websocket message")
+			break
+		}
+
+		switch payload.Type {
+		case messaging.TripCmdCancelled:
+			data := payload.Data.(contracts.TripUpdateRequest)
+		case messaging.TripCmdCompleted:
+			data := payload.Data.(contracts.TripUpdateRequest)
+		default:
+			logger.Warn().Str("message_type", string(payload.Type)).Msg("Unknown websocket message type")
+			return
+		}
 	}
 }
