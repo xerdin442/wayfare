@@ -23,10 +23,13 @@ func NewEventWorker(bus MessageBus, queue AmqpQueue) *EventWorker {
 	}
 }
 
-func (c *EventWorker) RegisterHandler(event AmqpEvent, h AmqpEventHandler) {
+func (c *EventWorker) RegisterHandler(h AmqpEventHandler, events ...AmqpEvent) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.handlers[event] = h
+
+	for _, e := range events {
+		c.handlers[e] = h
+	}
 }
 
 func (c *EventWorker) Start(ctx context.Context) error {

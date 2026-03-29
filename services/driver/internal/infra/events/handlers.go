@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
@@ -26,48 +27,51 @@ func NewDriverEventsHandler(r *repo.DriverRepository, b messaging.MessageBus, c 
 	}
 }
 
-func (h *DriverEventsHandler) findAvailableDrivers(ctx context.Context, lat, lng float64) ([]string, error) {
-	nearbyDrivers, err := h.cache.GeoSearch(ctx, "drivers_locations", &redis.GeoSearchQuery{
-		Longitude:  lng,
-		Latitude:   lat,
-		Radius:     5,
-		RadiusUnit: "km",
-	}).Result()
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to find nearby drivers: %v", err)
-	}
-
-	return nearbyDrivers, nil
-}
-
-func (h *DriverEventsHandler) parseEventPayload(body []byte) (*messaging.AssignDriverQueuePayload, error) {
+func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
 	var msg messaging.AmqpMessage
-	if err := json.Unmarshal(body, &msg); err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal message from %s event: %v", messaging.TripEventCreated, err)
+	if err := json.Unmarshal(p.Body, &msg); err != nil {
+		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
 	}
 
 	var payload messaging.AssignDriverQueuePayload
 	if err := json.Unmarshal(msg.Data, &payload); err != nil {
-		return nil, fmt.Errorf("Failed to unmarshal payload from %s event: %v", messaging.TripEventCreated, err)
-	}
-
-	return &payload, nil
-}
-
-func (h *DriverEventsHandler) HandleTripCreated(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
-	payload, err := h.parseEventPayload(p.Body)
-	if err != nil {
-		return nil
+		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
 
 	// Find available drivers within 5km of the trip request
 	pickup := payload.Trip.Route.Geometry[0].Coordinates[0]
-	drivers, err := h.findAvailableDrivers(ctx, pickup.Latitude, pickup.Longitude)
+	nearbyDrivers, err := h.cache.GeoSearch(ctx, "drivers_locations", &redis.GeoSearchQuery{
+		Longitude:  pickup.Longitude,
+		Latitude:   pickup.Latitude,
+		Radius:     5,
+		RadiusUnit: "km",
+	}).Result()
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to find nearby drivers: %v", err)
 	}
-	targetDriverID := drivers[0]
+
+	var targetDriverID string
+	targetDriverID = nearbyDrivers[0]
+
+	// Blacklist uninterested driver
+	if p.RoutingKey == string(messaging.TripEventDriverNotInterested) {
+		cacheKey := fmt.Sprintf("blacklisted_drivers:%s", payload.Trip.ID)
+
+		if err := h.cache.SAdd(ctx, cacheKey, payload.DriverID).Err(); err != nil {
+			return fmt.Errorf("Failed to blacklist uninterested driver: %v", err)
+		}
+
+		if err := h.cache.Expire(ctx, cacheKey, 15*time.Minute).Err(); err != nil {
+			return fmt.Errorf("Failed to set expiry on blacklisted drivers: %v", err)
+		}
+
+		for _, driverID := range nearbyDrivers {
+			if driverID != payload.DriverID {
+				targetDriverID = driverID
+				break
+			}
+		}
+	}
 
 	if targetDriverID == "" {
 		log.Warn().Str("trip_id", payload.Trip.ID).Msg("No drivers available for this trip")
@@ -77,7 +81,7 @@ func (h *DriverEventsHandler) HandleTripCreated(ctx context.Context, p messaging
 			TripID: payload.Trip.ID,
 		})
 		if err != nil {
-			return fmt.Errorf("Could not parse event queue payload")
+			return fmt.Errorf("Could not parse event queue payload: %v", err)
 		}
 
 		if err := h.bus.PublishMessage(
@@ -86,15 +90,15 @@ func (h *DriverEventsHandler) HandleTripCreated(ctx context.Context, p messaging
 			messaging.TripEventNoDriversFound,
 			messaging.AmqpMessage{Data: tripServiceData},
 		); err != nil {
-			return fmt.Errorf("Failed to publish %s event", messaging.TripEventNoDriversFound)
+			return fmt.Errorf("Failed to publish %s event: %v", messaging.TripEventNoDriversFound, err)
 		}
 
 		// Publish to gateway to notify user
-		gatewayData, err := json.Marshal(contracts.WSOutgoingMessage{
+		gatewayData, err := json.Marshal(contracts.WebsocketMessage{
 			Type: messaging.TripEventNoDriversFound,
 		})
 		if err != nil {
-			return fmt.Errorf("Could not parse event queue payload")
+			return fmt.Errorf("Could not parse event queue payload: %v", err)
 		}
 
 		if err := h.bus.PublishMessage(
@@ -103,17 +107,17 @@ func (h *DriverEventsHandler) HandleTripCreated(ctx context.Context, p messaging
 			messaging.AmqpEvent(fmt.Sprintf("user.%s", payload.Trip.UserID)),
 			messaging.AmqpMessage{Data: gatewayData},
 		); err != nil {
-			return fmt.Errorf("Failed to publish %s event", messaging.TripEventNoDriversFound)
+			return fmt.Errorf("Failed to publish %s event: %v", messaging.TripEventNoDriversFound, err)
 		}
 	}
 
-	// Send trip request to first eligible driver
-	data, err := json.Marshal(contracts.WSOutgoingMessage{
+	// Send trip request to eligible driver
+	data, err := json.Marshal(contracts.WebsocketMessage{
 		Type: messaging.DriverEventTripRequest,
 		Data: payload.Trip,
 	})
 	if err != nil {
-		return fmt.Errorf("Could not parse event queue payload")
+		return fmt.Errorf("Could not parse event queue payload: %v", err)
 	}
 
 	if err := h.bus.PublishMessage(
@@ -122,25 +126,7 @@ func (h *DriverEventsHandler) HandleTripCreated(ctx context.Context, p messaging
 		messaging.AmqpEvent(fmt.Sprintf("user.%s", targetDriverID)),
 		messaging.AmqpMessage{Data: data},
 	); err != nil {
-		return fmt.Errorf("Failed to publish %s event", messaging.DriverEventTripRequest)
-	}
-
-	return nil
-}
-
-func (h *DriverEventsHandler) HandleDriverNotInterested(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
-	payload, err := h.parseEventPayload(p.Body)
-	if err != nil {
-		return nil
-	}
-
-	return nil
-}
-
-func (h *DriverEventsHandler) HandleDriverNotAvailable(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
-	payload, err := h.parseEventPayload(p.Body)
-	if err != nil {
-		return nil
+		return fmt.Errorf("Failed to publish %s event: %v", messaging.DriverEventTripRequest, err)
 	}
 
 	return nil

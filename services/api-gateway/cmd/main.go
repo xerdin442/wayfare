@@ -59,7 +59,7 @@ func main() {
 
 	h := events.NewGatewayEventsHandler(baseCfg)
 	w := messaging.NewEventWorker(rmq, messaging.GatewayQueue)
-	w.RegisterHandler("user.*", h.HandleGatewayQueueEvents)
+	w.RegisterHandler(h.HandleGatewayQueueEvents, "user.*")
 
 	app := &application{
 		port:   env.GatewayPort,

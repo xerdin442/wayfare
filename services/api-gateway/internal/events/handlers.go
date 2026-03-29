@@ -27,7 +27,7 @@ func (h *GatewayEventsHandler) HandleGatewayQueueEvents(ctx context.Context, p m
 		return fmt.Errorf("Failed to unmarshal message from gateway queue: %v", err)
 	}
 
-	var payload contracts.WSOutgoingMessage
+	var payload contracts.WebsocketMessage
 	if err := json.Unmarshal(msg.Data, &payload); err != nil {
 		return fmt.Errorf("Failed to unmarshal payload from gateway queue: %v", err)
 	}
@@ -45,7 +45,7 @@ func (h *GatewayEventsHandler) HandleGatewayQueueEvents(ctx context.Context, p m
 
 			data, err := json.Marshal(p)
 			if err != nil {
-				return fmt.Errorf("Could not marshal payload")
+				return fmt.Errorf("Could not marshal payload: %v", err)
 			}
 
 			if err := h.cfg.Queue.PublishMessage(
@@ -54,7 +54,7 @@ func (h *GatewayEventsHandler) HandleGatewayQueueEvents(ctx context.Context, p m
 				messaging.TripEventDriverNotAvailable,
 				messaging.AmqpMessage{Data: data},
 			); err != nil {
-				return fmt.Errorf("Failed to publish %s event", messaging.TripEventDriverNotAvailable)
+				return fmt.Errorf("Failed to publish %s event: %v", messaging.TripEventDriverNotAvailable, err)
 			}
 		case messaging.TripEventNoDriversFound:
 			return nil
@@ -65,7 +65,7 @@ func (h *GatewayEventsHandler) HandleGatewayQueueEvents(ctx context.Context, p m
 
 	conn, _ := val.(*websocket.Conn)
 	if err := conn.WriteJSON(payload); err != nil {
-		return fmt.Errorf("Failed to send websocket message")
+		return fmt.Errorf("Failed to send websocket message: %v", err)
 	}
 
 	return nil

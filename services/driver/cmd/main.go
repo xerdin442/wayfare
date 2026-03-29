@@ -41,11 +41,12 @@ func main() {
 	h := events.NewDriverEventsHandler(repo, rmq, cache)
 
 	w := messaging.NewEventWorker(rmq, messaging.AssignDriverQueue)
-	{
-		w.RegisterHandler(messaging.TripEventCreated, h.HandleTripCreated)
-		w.RegisterHandler(messaging.TripEventDriverNotInterested, h.HandleDriverNotInterested)
-		w.RegisterHandler(messaging.TripEventDriverNotAvailable, h.HandleDriverNotAvailable)
-	}
+	w.RegisterHandler(
+		h.FindAndAssignDriver,
+		messaging.TripEventCreated,
+		messaging.TripEventDriverNotAvailable,
+		messaging.TripEventDriverNotInterested,
+	)
 
 	g.Go(func() error {
 		log.Info().Msg("Starting event worker...")
