@@ -333,10 +333,10 @@ type Trip struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
-	SelectedFare  *RideFare              `protobuf:"bytes,4,opt,name=selected_fare,json=selectedFare,proto3" json:"selected_fare,omitempty"`
-	Route         *Route                 `protobuf:"bytes,5,opt,name=route,proto3" json:"route,omitempty"`
-	Driver        *Driver                `protobuf:"bytes,6,opt,name=driver,proto3,oneof" json:"driver,omitempty"`
+	DriverId      string                 `protobuf:"bytes,3,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
+	Status        string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	SelectedFare  *RideFare              `protobuf:"bytes,5,opt,name=selected_fare,json=selectedFare,proto3" json:"selected_fare,omitempty"`
+	Route         *Route                 `protobuf:"bytes,6,opt,name=route,proto3" json:"route,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -385,6 +385,13 @@ func (x *Trip) GetUserId() string {
 	return ""
 }
 
+func (x *Trip) GetDriverId() string {
+	if x != nil {
+		return x.DriverId
+	}
+	return ""
+}
+
 func (x *Trip) GetStatus() string {
 	if x != nil {
 		return x.Status
@@ -402,13 +409,6 @@ func (x *Trip) GetSelectedFare() *RideFare {
 func (x *Trip) GetRoute() *Route {
 	if x != nil {
 		return x.Route
-	}
-	return nil
-}
-
-func (x *Trip) GetDriver() *Driver {
-	if x != nil {
-		return x.Driver
 	}
 	return nil
 }
@@ -440,15 +440,14 @@ const file_schema_proto_rawDesc = "" +
 	"\blocation\x18\x02 \x01(\v2\x13.wayfare.CoordinateR\blocation\x12\x12\n" +
 	"\x04name\x18\x04 \x01(\tR\x04name\x12'\n" +
 	"\x0fprofile_picture\x18\x05 \x01(\tR\x0eprofilePicture\x12\x1b\n" +
-	"\tcar_plate\x18\x06 \x01(\tR\bcarPlate\"\xde\x01\n" +
+	"\tcar_plate\x18\x06 \x01(\tR\bcarPlate\"\xc2\x01\n" +
 	"\x04Trip\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x16\n" +
-	"\x06status\x18\x03 \x01(\tR\x06status\x126\n" +
-	"\rselected_fare\x18\x04 \x01(\v2\x11.wayfare.RideFareR\fselectedFare\x12$\n" +
-	"\x05route\x18\x05 \x01(\v2\x0e.wayfare.RouteR\x05route\x12,\n" +
-	"\x06driver\x18\x06 \x01(\v2\x0f.wayfare.DriverH\x00R\x06driver\x88\x01\x01B\t\n" +
-	"\a_driverB-Z+github.com/xerdin442/wayfare/shared/pkg/rpcb\x06proto3"
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1b\n" +
+	"\tdriver_id\x18\x03 \x01(\tR\bdriverId\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x126\n" +
+	"\rselected_fare\x18\x05 \x01(\v2\x11.wayfare.RideFareR\fselectedFare\x12$\n" +
+	"\x05route\x18\x06 \x01(\v2\x0e.wayfare.RouteR\x05routeB-Z+github.com/xerdin442/wayfare/shared/pkg/rpcb\x06proto3"
 
 var (
 	file_schema_proto_rawDescOnce sync.Once
@@ -478,12 +477,11 @@ var file_schema_proto_depIdxs = []int32{
 	0, // 3: wayfare.Driver.location:type_name -> wayfare.Coordinate
 	3, // 4: wayfare.Trip.selected_fare:type_name -> wayfare.RideFare
 	2, // 5: wayfare.Trip.route:type_name -> wayfare.Route
-	4, // 6: wayfare.Trip.driver:type_name -> wayfare.Driver
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_schema_proto_init() }
@@ -491,7 +489,6 @@ func file_schema_proto_init() {
 	if File_schema_proto != nil {
 		return
 	}
-	file_schema_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
