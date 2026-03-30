@@ -46,7 +46,8 @@ type AssignDriverQueuePayload struct {
 }
 
 type TripUpdateQueuePayload struct {
-	TripID string `json:"trip_id"`
+	TripID   string `json:"trip_id"`
+	DriverID string `json:"driver_id,omitempty"`
 }
 
 type AmqpEvent string

@@ -22,7 +22,7 @@ func NewTripEventsHandler(r *repo.TripRepository, b messaging.MessageBus) *TripE
 	}
 }
 
-func (h *TripEventsHandler) HandleTripStatusUpdate(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
+func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
 	var msg messaging.AmqpMessage
 	if err := json.Unmarshal(p.Body, &msg); err != nil {
 		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
@@ -51,7 +51,7 @@ func (h *TripEventsHandler) HandleTripStatusUpdate(ctx context.Context, p messag
 		return fmt.Errorf("Unknown event type received in trip update queue: %s", p.RoutingKey)
 	}
 
-	if err := h.repo.UpdateTripStatus(ctx, payload.TripID, updatedStatus); err != nil {
+	if err := h.repo.UpdateTrip(ctx, payload.TripID, updatedStatus, &payload.DriverID); err != nil {
 		return err
 	}
 

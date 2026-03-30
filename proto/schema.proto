@@ -36,10 +36,10 @@ message Driver {
 }
 
 message Trip {
-  string          id            = 1;
-  string          user_id       = 2;
-  string          status        = 3;
-  RideFare        selected_fare = 4;
-  Route           route         = 5;
-  optional Driver driver        = 6;
+  string   id            = 1;
+  string   user_id       = 2;
+  string   driver_id     = 3;
+  string   status        = 4;
+  RideFare selected_fare = 5;
+  Route    route         = 6;
 }

@@ -114,7 +114,8 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 
 			// Publish to trip service to update trip status
 			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
-				TripID: payloadData.Trip.ID,
+				TripID:   payloadData.Trip.ID,
+				DriverID: payloadData.Driver.ID,
 			})
 			if err != nil {
 				return
@@ -259,7 +260,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 			if err := h.cfg.Queue.PublishMessage(
 				c.Request.Context(),
 				messaging.GatewayExchange,
-				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.Driver.ID)),
+				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.DriverID)),
 				messaging.AmqpMessage{Data: gatewayData},
 			); err != nil {
 				return
@@ -295,7 +296,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 			if err := h.cfg.Queue.PublishMessage(
 				c.Request.Context(),
 				messaging.GatewayExchange,
-				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.Driver.ID)),
+				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.DriverID)),
 				messaging.AmqpMessage{Data: gatewayData},
 			); err != nil {
 				return

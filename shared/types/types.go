@@ -45,10 +45,10 @@ type RideFare struct {
 type Trip struct {
 	ID           string     `json:"id"`
 	UserID       string     `json:"userID"`
+	DriverID     string     `json:"driverID,omitempty"`
 	Status       TripStatus `json:"status"`
 	SelectedFare RideFare   `json:"selectedFare"`
 	Route        Route      `json:"route"`
-	Driver       *Driver    `json:"driver,omitempty"`
 }
 
 type Driver struct {

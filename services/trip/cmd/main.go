@@ -41,7 +41,7 @@ func main() {
 
 	w := messaging.NewEventWorker(rmq, messaging.TripUpdateQueue)
 	w.RegisterHandler(
-		h.HandleTripStatusUpdate,
+		h.HandleTripUpdate,
 		messaging.TripEventDriverAssigned,
 		messaging.TripEventNoDriversFound,
 		messaging.DriverCmdTripPickup,
