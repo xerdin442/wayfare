@@ -55,6 +55,7 @@ const (
 	// Trip events
 	TripEventCreated             AmqpEvent = "trip.event.created"
 	TripEventDriverAssigned      AmqpEvent = "trip.event.driver_assigned"
+	TripEventDriverArrival       AmqpEvent = "trip.event.driver_arrival"
 	TripEventNoDriversFound      AmqpEvent = "trip.event.no_drivers_found"
 	TripEventDriverNotInterested AmqpEvent = "trip.event.driver_not_interested"
 	TripEventDriverNotAvailable  AmqpEvent = "trip.event.driver_not_available"

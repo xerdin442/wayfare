@@ -29,7 +29,7 @@ func (h *GatewayEventsHandler) HandleGatewayQueueEvents(ctx context.Context, p m
 
 	var payload contracts.WebsocketMessage
 	if err := json.Unmarshal(msg.Data, &payload); err != nil {
-		return fmt.Errorf("Failed to unmarshal payload from gateway queue: %v", err)
+		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
 
 	userID := strings.TrimPrefix(p.RoutingKey, "user.")

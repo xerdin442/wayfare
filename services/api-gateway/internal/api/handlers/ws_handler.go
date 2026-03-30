@@ -150,11 +150,11 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				return
 			}
 		case messaging.DriverCmdTripPickup:
-			data := payload.Data.(contracts.TripUpdateRequest)
+			payloadData := payload.Data.(contracts.TripUpdateRequest)
 
 			// Publish to trip service to update trip status
-			msg, err := json.Marshal(messaging.TripUpdateQueuePayload{
-				TripID: data.Trip.ID,
+			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
+				TripID: payloadData.Trip.ID,
 			})
 			if err != nil {
 				return
@@ -164,7 +164,24 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				c.Request.Context(),
 				messaging.ServicesExchange,
 				messaging.DriverCmdTripPickup,
-				messaging.AmqpMessage{Data: msg},
+				messaging.AmqpMessage{Data: tripServiceData},
+			); err != nil {
+				return
+			}
+
+			// Notify rider that the driver has arrived
+			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+				Type: messaging.TripEventDriverArrival,
+			})
+			if err != nil {
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				c.Request.Context(),
+				messaging.GatewayExchange,
+				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.UserID)),
+				messaging.AmqpMessage{Data: gatewayData},
 			); err != nil {
 				return
 			}

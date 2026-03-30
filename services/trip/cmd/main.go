@@ -8,6 +8,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/xerdin442/wayfare/services/trip/internal/infra/events"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
 	"github.com/xerdin442/wayfare/services/trip/internal/server"
 	"github.com/xerdin442/wayfare/services/trip/internal/service"
@@ -36,7 +37,23 @@ func main() {
 
 	repo := repo.NewTripRepository(database)
 	svc := service.NewTripService(repo, rmq)
-	// h := events.NewTripEventsHandler(repo, rmq)
+	h := events.NewTripEventsHandler(repo, rmq)
+
+	w := messaging.NewEventWorker(rmq, messaging.TripUpdateQueue)
+	w.RegisterHandler(
+		h.HandleTripStatusUpdate,
+		messaging.TripEventDriverAssigned,
+		messaging.TripEventNoDriversFound,
+		messaging.DriverCmdTripPickup,
+		messaging.TripCmdCancelled,
+		messaging.TripCmdCompleted,
+		messaging.TripCmdAborted,
+	)
+
+	g.Go(func() error {
+		log.Info().Msg("Starting event worker...")
+		return w.Start(ctx)
+	})
 
 	g.Go(func() error {
 		log.Info().Msg("Starting server...")

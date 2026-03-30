@@ -157,3 +157,25 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 
 	return trip, nil
 }
+
+func (r *TripRepository) UpdateTripStatus(ctx context.Context, tripID string, newStatus types.TripStatus) error {
+	tripIDHex, err := bson.ObjectIDFromHex(tripID)
+	if err != nil {
+		return fmt.Errorf("Invalid user ID: %v", err)
+	}
+
+	update := bson.M{
+		"$set": bson.M{"status": newStatus},
+	}
+
+	_, updateErr := r.tripColl.UpdateOne(
+		ctx,
+		bson.M{"_id": tripIDHex},
+		update,
+	)
+	if updateErr != nil {
+		return fmt.Errorf("Failed to update trip document: %v", err)
+	}
+
+	return nil
+}
