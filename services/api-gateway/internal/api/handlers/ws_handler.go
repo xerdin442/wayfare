@@ -132,7 +132,10 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 			// Notify rider that a driver has accepted the trip request
 			data, err := json.Marshal(contracts.WebsocketMessage{
 				Type: messaging.TripEventDriverAssigned,
-				Data: payloadData.Driver,
+				Data: contracts.DriverAssignedResponse{
+					Driver: payloadData.Driver,
+					TripID: payloadData.Trip.ID,
+				},
 			})
 			if err != nil {
 				return
@@ -151,7 +154,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 
 			// Publish to trip service to update trip status
 			msg, err := json.Marshal(messaging.TripUpdateQueuePayload{
-				TripID: data.TripID,
+				TripID: data.Trip.ID,
 			})
 			if err != nil {
 				return
@@ -209,9 +212,77 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 
 		switch payload.Type {
 		case messaging.TripCmdCancelled:
-			data := payload.Data.(contracts.TripUpdateRequest)
+			payloadData := payload.Data.(contracts.TripUpdateRequest)
+
+			// Update trip status
+			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
+				TripID: payloadData.Trip.ID,
+			})
+			if err != nil {
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				c.Request.Context(),
+				messaging.ServicesExchange,
+				messaging.TripCmdCancelled,
+				messaging.AmqpMessage{Data: tripServiceData},
+			); err != nil {
+				return
+			}
+
+			// Publish to gateway to update driver's trip preview
+			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+				Type: messaging.TripCmdCancelled,
+			})
+			if err != nil {
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				c.Request.Context(),
+				messaging.GatewayExchange,
+				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.Driver.ID)),
+				messaging.AmqpMessage{Data: gatewayData},
+			); err != nil {
+				return
+			}
 		case messaging.TripCmdCompleted:
-			data := payload.Data.(contracts.TripUpdateRequest)
+			payloadData := payload.Data.(contracts.TripUpdateRequest)
+
+			// Update trip status
+			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
+				TripID: payloadData.Trip.ID,
+			})
+			if err != nil {
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				c.Request.Context(),
+				messaging.ServicesExchange,
+				messaging.TripCmdCompleted,
+				messaging.AmqpMessage{Data: tripServiceData},
+			); err != nil {
+				return
+			}
+
+			// Publish to gateway to update driver's trip preview
+			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+				Type: messaging.TripCmdCompleted,
+			})
+			if err != nil {
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				c.Request.Context(),
+				messaging.GatewayExchange,
+				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.Driver.ID)),
+				messaging.AmqpMessage{Data: gatewayData},
+			); err != nil {
+				return
+			}
 		default:
 			logger.Warn().Str("message_type", string(payload.Type)).Msg("Unknown websocket message type")
 			return

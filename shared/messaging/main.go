@@ -161,6 +161,7 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 			DriverCmdTripPickup,
 			TripCmdCancelled,
 			TripCmdCompleted,
+			TripCmdAborted,
 		},
 		ServicesExchange,
 	); err != nil {

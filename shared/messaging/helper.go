@@ -62,6 +62,7 @@ const (
 	// Trip commands
 	TripCmdCompleted AmqpEvent = "trip.cmd.completed"
 	TripCmdCancelled AmqpEvent = "trip.cmd.cancelled"
+	TripCmdAborted   AmqpEvent = "trip.cmd.aborted"
 
 	// Driver events
 	DriverEventTripRequest AmqpEvent = "driver.event.trip_request"

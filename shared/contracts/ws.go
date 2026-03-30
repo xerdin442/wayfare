@@ -11,8 +11,8 @@ type WebsocketMessage struct {
 }
 
 type DriverTripActionRequest struct {
-	Trip   types.Trip    `json:"user_id"`
-	Driver *types.Driver `json:"driver,omitempty"`
+	Trip   types.Trip   `json:"trip"`
+	Driver types.Driver `json:"driver"`
 }
 
 type DriverLocationUpdateRequest struct {
@@ -20,5 +20,10 @@ type DriverLocationUpdateRequest struct {
 }
 
 type TripUpdateRequest struct {
-	TripID string `json:"tripID"`
+	Trip types.Trip `json:"trip"`
+}
+
+type DriverAssignedResponse struct {
+	Driver types.Driver `json:"driver"`
+	TripID string       `json:"tripID"`
 }

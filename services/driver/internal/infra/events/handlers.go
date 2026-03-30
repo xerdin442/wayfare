@@ -94,7 +94,7 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 			return fmt.Errorf("Failed to publish %s event: %v", messaging.TripEventNoDriversFound, err)
 		}
 
-		// Publish to gateway to notify the rider
+		// Notify the rider there are no available drivers
 		gatewayData, err := json.Marshal(contracts.WebsocketMessage{
 			Type: messaging.TripEventNoDriversFound,
 		})
