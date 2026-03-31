@@ -135,7 +135,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				Type: messaging.TripEventDriverAssigned,
 				Data: contracts.DriverAssignedResponse{
 					Driver: payloadData.Driver,
-					TripID: payloadData.Trip.ID,
+					Trip:   payloadData.Trip,
 				},
 			})
 			if err != nil {

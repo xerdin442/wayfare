@@ -25,5 +25,5 @@ type TripUpdateRequest struct {
 
 type DriverAssignedResponse struct {
 	Driver types.Driver `json:"driver"`
-	TripID string       `json:"tripID"`
+	Trip   types.Trip   `json:"trip"`
 }

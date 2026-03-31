@@ -61,7 +61,7 @@ func (h *GatewayEventsHandler) HandleGatewayQueueEvents(ctx context.Context, p m
 
 			// Abort trip if the rider is offline when a driver accepts the trip request
 			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
-				TripID: response.TripID,
+				TripID: response.Trip.ID,
 			})
 			if err != nil {
 				return fmt.Errorf("Could not marshal payload: %v", err)
