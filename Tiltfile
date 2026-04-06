@@ -6,9 +6,15 @@ load('ext://restart_process', 'docker_build_with_restart')
 local('kubectl create secret generic app-secrets --from-env-file=.env --dry-run=client -o yaml > ./infra/development/k8s/secrets.yaml')
 
 k8s_yaml('./infra/development/k8s/secrets.yaml')
+
 k8s_yaml('./infra/development/k8s/redis.yaml')
+k8s_resource('redis', labels="infra")
+
 k8s_yaml('./infra/development/k8s/mongo.yaml')
+k8s_resource('mongodb', port_forwards=['27017:27017'], labels="infra")
+
 k8s_yaml('./infra/development/k8s/rabbitmq.yaml')
+k8s_resource('rabbitmq', port_forwards=['15672:15672'], labels="infra")
 
 ### End of K8s Config ###
 ### API Gateway ###

@@ -10,10 +10,10 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/trip/internal/infra/events"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
+	"github.com/xerdin442/wayfare/services/trip/internal/secrets"
 	"github.com/xerdin442/wayfare/services/trip/internal/server"
 	"github.com/xerdin442/wayfare/services/trip/internal/service"
 	"github.com/xerdin442/wayfare/shared/messaging"
-	"github.com/xerdin442/wayfare/shared/secrets"
 	"github.com/xerdin442/wayfare/shared/storage"
 	"golang.org/x/sync/errgroup"
 )

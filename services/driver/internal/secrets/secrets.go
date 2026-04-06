@@ -9,30 +9,22 @@ import (
 )
 
 type Secrets struct {
-	GatewayPort int
 	ServicePort int
-	Environment string
 	RedisUri    string
 	MongoUri    string
 	AmqpUri     string
-	JwtSecret   string
-	FrontendUrl string
 }
 
 func Load() *Secrets {
 	return &Secrets{
-		GatewayPort: GetInt("GATEWAY_PORT"),
-		ServicePort: GetInt("SERVICE_PORT"),
-		Environment: GetStr("ENVIRONMENT"),
-		RedisUri:    GetStr("REDIS_URI"),
-		MongoUri:    GetStr("MONGO_URI"),
-		AmqpUri:     GetStr("AMQP_URI"),
-		JwtSecret:   GetStr("JWT_SECRET"),
-		FrontendUrl: GetStr("FRONTEND_URL"),
+		ServicePort: getInt("SERVICE_PORT"),
+		RedisUri:    getStr("REDIS_URI"),
+		MongoUri:    getStr("MONGO_URI"),
+		AmqpUri:     getStr("AMQP_URI"),
 	}
 }
 
-func GetStr(key string) string {
+func getStr(key string) string {
 	value, ok := os.LookupEnv(key)
 
 	if !ok {
@@ -42,8 +34,8 @@ func GetStr(key string) string {
 	return value
 }
 
-func GetInt(key string) int {
-	strValue := GetStr(key)
+func getInt(key string) int {
+	strValue := getStr(key)
 
 	intValue, err := strconv.Atoi(strValue)
 	if err != nil {

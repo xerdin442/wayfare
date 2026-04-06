@@ -12,8 +12,8 @@ import (
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/base"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/client"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/events"
+	"github.com/xerdin442/wayfare/services/api-gateway/internal/secrets"
 	"github.com/xerdin442/wayfare/shared/messaging"
-	"github.com/xerdin442/wayfare/shared/secrets"
 	"github.com/xerdin442/wayfare/shared/storage"
 	"golang.org/x/sync/errgroup"
 )

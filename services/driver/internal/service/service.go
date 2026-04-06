@@ -21,4 +21,6 @@ func NewDriverService(r *repo.DriverRepository, q messaging.MessageBus) *DriverS
 	}
 }
 
-func (s *DriverService) GetDriverByID(context.Context, *rpc.GetDriverRequest) (*rpc.GetDriverResponse, error)
+func (s *DriverService) GetDriverByID(ctx context.Context, req *rpc.GetDriverRequest) (*rpc.GetDriverResponse, error) {
+	return &rpc.GetDriverResponse{}, nil
+}

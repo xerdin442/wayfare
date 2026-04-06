@@ -32,6 +32,11 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: SERVICE_PORT
+            - name: REDIS_URI
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: REDIS_URI
             - name: MONGO_URI
               valueFrom:
                 secretKeyRef:
