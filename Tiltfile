@@ -96,3 +96,29 @@ k8s_resource(
 )
 
 ### End of Driver Service ###
+### Rider Service ###
+
+docker_build_with_restart(
+  'wayfare/rider-service',
+  '.',
+  entrypoint=['/app/build/rider-service'],
+  dockerfile='./infra/development/docker/rider-service.Dockerfile',
+  ignore=['./infra', './tools'],
+  live_update=[
+    sync('./services/rider', '/app/services/rider'),
+    sync('./shared', '/app/shared'),
+    run(
+      'go build -o /app/build/rider-service ./services/rider/cmd/main.go',
+      trigger=['./services/rider', './shared']
+    )
+  ],
+)
+
+k8s_yaml('./infra/development/k8s/rider-service-deployment.yaml')
+k8s_resource(
+  'rider-service',
+  resource_deps=['mongodb', 'rabbitmq'],
+  labels="services",
+)
+
+### End of Rider Service ###
