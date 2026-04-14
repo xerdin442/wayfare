@@ -109,6 +109,342 @@ func (x *GetDriverResponse) GetDriver() *Driver {
 	return nil
 }
 
+type GetRiderRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RiderId       string                 `protobuf:"bytes,1,opt,name=rider_id,json=riderId,proto3" json:"rider_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRiderRequest) Reset() {
+	*x = GetRiderRequest{}
+	mi := &file_transport_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRiderRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRiderRequest) ProtoMessage() {}
+
+func (x *GetRiderRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_transport_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRiderRequest.ProtoReflect.Descriptor instead.
+func (*GetRiderRequest) Descriptor() ([]byte, []int) {
+	return file_transport_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetRiderRequest) GetRiderId() string {
+	if x != nil {
+		return x.RiderId
+	}
+	return ""
+}
+
+type GetRiderResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rider         *Rider                 `protobuf:"bytes,1,opt,name=rider,proto3" json:"rider,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRiderResponse) Reset() {
+	*x = GetRiderResponse{}
+	mi := &file_transport_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRiderResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRiderResponse) ProtoMessage() {}
+
+func (x *GetRiderResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_transport_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRiderResponse.ProtoReflect.Descriptor instead.
+func (*GetRiderResponse) Descriptor() ([]byte, []int) {
+	return file_transport_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetRiderResponse) GetRider() *Rider {
+	if x != nil {
+		return x.Rider
+	}
+	return nil
+}
+
+type LoginRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoginRequest) Reset() {
+	*x = LoginRequest{}
+	mi := &file_transport_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoginRequest) ProtoMessage() {}
+
+func (x *LoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_transport_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
+func (*LoginRequest) Descriptor() ([]byte, []int) {
+	return file_transport_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *LoginRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *LoginRequest) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+type SignupRiderRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Email          string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Password       string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	ProfilePicture string                 `protobuf:"bytes,4,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *SignupRiderRequest) Reset() {
+	*x = SignupRiderRequest{}
+	mi := &file_transport_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignupRiderRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignupRiderRequest) ProtoMessage() {}
+
+func (x *SignupRiderRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_transport_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignupRiderRequest.ProtoReflect.Descriptor instead.
+func (*SignupRiderRequest) Descriptor() ([]byte, []int) {
+	return file_transport_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SignupRiderRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SignupRiderRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *SignupRiderRequest) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+func (x *SignupRiderRequest) GetProfilePicture() string {
+	if x != nil {
+		return x.ProfilePicture
+	}
+	return ""
+}
+
+type SignupDriverRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Email          string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Password       string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	ProfilePicture string                 `protobuf:"bytes,4,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
+	CarPackage     string                 `protobuf:"bytes,5,opt,name=car_package,json=carPackage,proto3" json:"car_package,omitempty"`
+	CarPlate       string                 `protobuf:"bytes,6,opt,name=car_plate,json=carPlate,proto3" json:"car_plate,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *SignupDriverRequest) Reset() {
+	*x = SignupDriverRequest{}
+	mi := &file_transport_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignupDriverRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignupDriverRequest) ProtoMessage() {}
+
+func (x *SignupDriverRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_transport_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignupDriverRequest.ProtoReflect.Descriptor instead.
+func (*SignupDriverRequest) Descriptor() ([]byte, []int) {
+	return file_transport_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *SignupDriverRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SignupDriverRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *SignupDriverRequest) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+func (x *SignupDriverRequest) GetProfilePicture() string {
+	if x != nil {
+		return x.ProfilePicture
+	}
+	return ""
+}
+
+func (x *SignupDriverRequest) GetCarPackage() string {
+	if x != nil {
+		return x.CarPackage
+	}
+	return ""
+}
+
+func (x *SignupDriverRequest) GetCarPlate() string {
+	if x != nil {
+		return x.CarPlate
+	}
+	return ""
+}
+
+type AuthResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthResponse) Reset() {
+	*x = AuthResponse{}
+	mi := &file_transport_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthResponse) ProtoMessage() {}
+
+func (x *AuthResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_transport_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthResponse.ProtoReflect.Descriptor instead.
+func (*AuthResponse) Descriptor() ([]byte, []int) {
+	return file_transport_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *AuthResponse) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
 type PreviewTripRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -120,7 +456,7 @@ type PreviewTripRequest struct {
 
 func (x *PreviewTripRequest) Reset() {
 	*x = PreviewTripRequest{}
-	mi := &file_transport_proto_msgTypes[2]
+	mi := &file_transport_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -132,7 +468,7 @@ func (x *PreviewTripRequest) String() string {
 func (*PreviewTripRequest) ProtoMessage() {}
 
 func (x *PreviewTripRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_transport_proto_msgTypes[2]
+	mi := &file_transport_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -145,7 +481,7 @@ func (x *PreviewTripRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreviewTripRequest.ProtoReflect.Descriptor instead.
 func (*PreviewTripRequest) Descriptor() ([]byte, []int) {
-	return file_transport_proto_rawDescGZIP(), []int{2}
+	return file_transport_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *PreviewTripRequest) GetUserId() string {
@@ -179,7 +515,7 @@ type PreviewTripResponse struct {
 
 func (x *PreviewTripResponse) Reset() {
 	*x = PreviewTripResponse{}
-	mi := &file_transport_proto_msgTypes[3]
+	mi := &file_transport_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -191,7 +527,7 @@ func (x *PreviewTripResponse) String() string {
 func (*PreviewTripResponse) ProtoMessage() {}
 
 func (x *PreviewTripResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_transport_proto_msgTypes[3]
+	mi := &file_transport_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -204,7 +540,7 @@ func (x *PreviewTripResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PreviewTripResponse.ProtoReflect.Descriptor instead.
 func (*PreviewTripResponse) Descriptor() ([]byte, []int) {
-	return file_transport_proto_rawDescGZIP(), []int{3}
+	return file_transport_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *PreviewTripResponse) GetRoute() *Route {
@@ -231,7 +567,7 @@ type StartTripRequest struct {
 
 func (x *StartTripRequest) Reset() {
 	*x = StartTripRequest{}
-	mi := &file_transport_proto_msgTypes[4]
+	mi := &file_transport_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -243,7 +579,7 @@ func (x *StartTripRequest) String() string {
 func (*StartTripRequest) ProtoMessage() {}
 
 func (x *StartTripRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_transport_proto_msgTypes[4]
+	mi := &file_transport_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -256,7 +592,7 @@ func (x *StartTripRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartTripRequest.ProtoReflect.Descriptor instead.
 func (*StartTripRequest) Descriptor() ([]byte, []int) {
-	return file_transport_proto_rawDescGZIP(), []int{4}
+	return file_transport_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *StartTripRequest) GetUserId() string {
@@ -282,7 +618,7 @@ type StartTripResponse struct {
 
 func (x *StartTripResponse) Reset() {
 	*x = StartTripResponse{}
-	mi := &file_transport_proto_msgTypes[5]
+	mi := &file_transport_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -294,7 +630,7 @@ func (x *StartTripResponse) String() string {
 func (*StartTripResponse) ProtoMessage() {}
 
 func (x *StartTripResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_transport_proto_msgTypes[5]
+	mi := &file_transport_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -307,7 +643,7 @@ func (x *StartTripResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartTripResponse.ProtoReflect.Descriptor instead.
 func (*StartTripResponse) Descriptor() ([]byte, []int) {
-	return file_transport_proto_rawDescGZIP(), []int{5}
+	return file_transport_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *StartTripResponse) GetTripId() string {
@@ -325,7 +661,29 @@ const file_transport_proto_rawDesc = "" +
 	"\x10GetDriverRequest\x12\x1b\n" +
 	"\tdriver_id\x18\x01 \x01(\tR\bdriverId\"<\n" +
 	"\x11GetDriverResponse\x12'\n" +
-	"\x06driver\x18\x01 \x01(\v2\x0f.wayfare.DriverR\x06driver\"\x91\x01\n" +
+	"\x06driver\x18\x01 \x01(\v2\x0f.wayfare.DriverR\x06driver\",\n" +
+	"\x0fGetRiderRequest\x12\x19\n" +
+	"\brider_id\x18\x01 \x01(\tR\ariderId\"8\n" +
+	"\x10GetRiderResponse\x12$\n" +
+	"\x05rider\x18\x01 \x01(\v2\x0e.wayfare.RiderR\x05rider\"@\n" +
+	"\fLoginRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"\x83\x01\n" +
+	"\x12SignupRiderRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\x12'\n" +
+	"\x0fprofile_picture\x18\x04 \x01(\tR\x0eprofilePicture\"\xc2\x01\n" +
+	"\x13SignupDriverRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\x12'\n" +
+	"\x0fprofile_picture\x18\x04 \x01(\tR\x0eprofilePicture\x12\x1f\n" +
+	"\vcar_package\x18\x05 \x01(\tR\n" +
+	"carPackage\x12\x1b\n" +
+	"\tcar_plate\x18\x06 \x01(\tR\bcarPlate\"$\n" +
+	"\fAuthResponse\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\x91\x01\n" +
 	"\x12PreviewTripRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12+\n" +
 	"\x06pickup\x18\x02 \x01(\v2\x13.wayfare.CoordinateR\x06pickup\x125\n" +
@@ -342,9 +700,15 @@ const file_transport_proto_rawDesc = "" +
 	"\atrip_id\x18\x01 \x01(\tR\x06tripId2\x9b\x01\n" +
 	"\vTripService\x12H\n" +
 	"\vPreviewTrip\x12\x1b.wayfare.PreviewTripRequest\x1a\x1c.wayfare.PreviewTripResponse\x12B\n" +
-	"\tStartTrip\x12\x19.wayfare.StartTripRequest\x1a\x1a.wayfare.StartTripResponse2W\n" +
+	"\tStartTrip\x12\x19.wayfare.StartTripRequest\x1a\x1a.wayfare.StartTripResponse2\xcd\x01\n" +
 	"\rDriverService\x12F\n" +
-	"\rGetDriverByID\x12\x19.wayfare.GetDriverRequest\x1a\x1a.wayfare.GetDriverResponseB-Z+github.com/xerdin442/wayfare/shared/pkg/rpcb\x06proto3"
+	"\rGetDriverByID\x12\x19.wayfare.GetDriverRequest\x1a\x1a.wayfare.GetDriverResponse\x125\n" +
+	"\x05Login\x12\x15.wayfare.LoginRequest\x1a\x15.wayfare.AuthResponse\x12=\n" +
+	"\x06Signup\x12\x1c.wayfare.SignupDriverRequest\x1a\x15.wayfare.AuthResponse2\xc8\x01\n" +
+	"\fRiderService\x12C\n" +
+	"\fGetRiderByID\x12\x18.wayfare.GetRiderRequest\x1a\x19.wayfare.GetRiderResponse\x125\n" +
+	"\x05Login\x12\x15.wayfare.LoginRequest\x1a\x15.wayfare.AuthResponse\x12<\n" +
+	"\x06Signup\x12\x1b.wayfare.SignupRiderRequest\x1a\x15.wayfare.AuthResponseB-Z+github.com/xerdin442/wayfare/shared/pkg/rpcb\x06proto3"
 
 var (
 	file_transport_proto_rawDescOnce sync.Once
@@ -358,36 +722,54 @@ func file_transport_proto_rawDescGZIP() []byte {
 	return file_transport_proto_rawDescData
 }
 
-var file_transport_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_transport_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_transport_proto_goTypes = []any{
 	(*GetDriverRequest)(nil),    // 0: wayfare.GetDriverRequest
 	(*GetDriverResponse)(nil),   // 1: wayfare.GetDriverResponse
-	(*PreviewTripRequest)(nil),  // 2: wayfare.PreviewTripRequest
-	(*PreviewTripResponse)(nil), // 3: wayfare.PreviewTripResponse
-	(*StartTripRequest)(nil),    // 4: wayfare.StartTripRequest
-	(*StartTripResponse)(nil),   // 5: wayfare.StartTripResponse
-	(*Driver)(nil),              // 6: wayfare.Driver
-	(*Coordinate)(nil),          // 7: wayfare.Coordinate
-	(*Route)(nil),               // 8: wayfare.Route
-	(*RideFare)(nil),            // 9: wayfare.RideFare
+	(*GetRiderRequest)(nil),     // 2: wayfare.GetRiderRequest
+	(*GetRiderResponse)(nil),    // 3: wayfare.GetRiderResponse
+	(*LoginRequest)(nil),        // 4: wayfare.LoginRequest
+	(*SignupRiderRequest)(nil),  // 5: wayfare.SignupRiderRequest
+	(*SignupDriverRequest)(nil), // 6: wayfare.SignupDriverRequest
+	(*AuthResponse)(nil),        // 7: wayfare.AuthResponse
+	(*PreviewTripRequest)(nil),  // 8: wayfare.PreviewTripRequest
+	(*PreviewTripResponse)(nil), // 9: wayfare.PreviewTripResponse
+	(*StartTripRequest)(nil),    // 10: wayfare.StartTripRequest
+	(*StartTripResponse)(nil),   // 11: wayfare.StartTripResponse
+	(*Driver)(nil),              // 12: wayfare.Driver
+	(*Rider)(nil),               // 13: wayfare.Rider
+	(*Coordinate)(nil),          // 14: wayfare.Coordinate
+	(*Route)(nil),               // 15: wayfare.Route
+	(*RideFare)(nil),            // 16: wayfare.RideFare
 }
 var file_transport_proto_depIdxs = []int32{
-	6, // 0: wayfare.GetDriverResponse.driver:type_name -> wayfare.Driver
-	7, // 1: wayfare.PreviewTripRequest.pickup:type_name -> wayfare.Coordinate
-	7, // 2: wayfare.PreviewTripRequest.destination:type_name -> wayfare.Coordinate
-	8, // 3: wayfare.PreviewTripResponse.route:type_name -> wayfare.Route
-	9, // 4: wayfare.PreviewTripResponse.ride_fares:type_name -> wayfare.RideFare
-	2, // 5: wayfare.TripService.PreviewTrip:input_type -> wayfare.PreviewTripRequest
-	4, // 6: wayfare.TripService.StartTrip:input_type -> wayfare.StartTripRequest
-	0, // 7: wayfare.DriverService.GetDriverByID:input_type -> wayfare.GetDriverRequest
-	3, // 8: wayfare.TripService.PreviewTrip:output_type -> wayfare.PreviewTripResponse
-	5, // 9: wayfare.TripService.StartTrip:output_type -> wayfare.StartTripResponse
-	1, // 10: wayfare.DriverService.GetDriverByID:output_type -> wayfare.GetDriverResponse
-	8, // [8:11] is the sub-list for method output_type
-	5, // [5:8] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	12, // 0: wayfare.GetDriverResponse.driver:type_name -> wayfare.Driver
+	13, // 1: wayfare.GetRiderResponse.rider:type_name -> wayfare.Rider
+	14, // 2: wayfare.PreviewTripRequest.pickup:type_name -> wayfare.Coordinate
+	14, // 3: wayfare.PreviewTripRequest.destination:type_name -> wayfare.Coordinate
+	15, // 4: wayfare.PreviewTripResponse.route:type_name -> wayfare.Route
+	16, // 5: wayfare.PreviewTripResponse.ride_fares:type_name -> wayfare.RideFare
+	8,  // 6: wayfare.TripService.PreviewTrip:input_type -> wayfare.PreviewTripRequest
+	10, // 7: wayfare.TripService.StartTrip:input_type -> wayfare.StartTripRequest
+	0,  // 8: wayfare.DriverService.GetDriverByID:input_type -> wayfare.GetDriverRequest
+	4,  // 9: wayfare.DriverService.Login:input_type -> wayfare.LoginRequest
+	6,  // 10: wayfare.DriverService.Signup:input_type -> wayfare.SignupDriverRequest
+	2,  // 11: wayfare.RiderService.GetRiderByID:input_type -> wayfare.GetRiderRequest
+	4,  // 12: wayfare.RiderService.Login:input_type -> wayfare.LoginRequest
+	5,  // 13: wayfare.RiderService.Signup:input_type -> wayfare.SignupRiderRequest
+	9,  // 14: wayfare.TripService.PreviewTrip:output_type -> wayfare.PreviewTripResponse
+	11, // 15: wayfare.TripService.StartTrip:output_type -> wayfare.StartTripResponse
+	1,  // 16: wayfare.DriverService.GetDriverByID:output_type -> wayfare.GetDriverResponse
+	7,  // 17: wayfare.DriverService.Login:output_type -> wayfare.AuthResponse
+	7,  // 18: wayfare.DriverService.Signup:output_type -> wayfare.AuthResponse
+	3,  // 19: wayfare.RiderService.GetRiderByID:output_type -> wayfare.GetRiderResponse
+	7,  // 20: wayfare.RiderService.Login:output_type -> wayfare.AuthResponse
+	7,  // 21: wayfare.RiderService.Signup:output_type -> wayfare.AuthResponse
+	14, // [14:22] is the sub-list for method output_type
+	6,  // [6:14] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_transport_proto_init() }
@@ -402,9 +784,9 @@ func file_transport_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_transport_proto_rawDesc), len(file_transport_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   12,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   3,
 		},
 		GoTypes:           file_transport_proto_goTypes,
 		DependencyIndexes: file_transport_proto_depIdxs,

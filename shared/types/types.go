@@ -59,6 +59,12 @@ type Driver struct {
 	CarPlate       string     `json:"carPlate"`
 }
 
+type Rider struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	ProfilePicture string `json:"profilePicture"`
+}
+
 type PaymentSession struct {
 	TripID    string `json:"tripID"`
 	SessionID string `json:"sessionID"`

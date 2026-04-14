@@ -35,6 +35,12 @@ message Driver {
   string     car_plate       = 6;
 }
 
+message Rider {
+  string id              = 1;
+  string name            = 2;
+  string profile_picture = 3;
+}
+
 message Trip {
   string   id            = 1;
   string   user_id       = 2;

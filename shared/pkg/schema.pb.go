@@ -329,6 +329,66 @@ func (x *Driver) GetCarPlate() string {
 	return ""
 }
 
+type Rider struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	ProfilePicture string                 `protobuf:"bytes,3,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *Rider) Reset() {
+	*x = Rider{}
+	mi := &file_schema_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Rider) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Rider) ProtoMessage() {}
+
+func (x *Rider) ProtoReflect() protoreflect.Message {
+	mi := &file_schema_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Rider.ProtoReflect.Descriptor instead.
+func (*Rider) Descriptor() ([]byte, []int) {
+	return file_schema_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Rider) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Rider) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Rider) GetProfilePicture() string {
+	if x != nil {
+		return x.ProfilePicture
+	}
+	return ""
+}
+
 type Trip struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -343,7 +403,7 @@ type Trip struct {
 
 func (x *Trip) Reset() {
 	*x = Trip{}
-	mi := &file_schema_proto_msgTypes[5]
+	mi := &file_schema_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -355,7 +415,7 @@ func (x *Trip) String() string {
 func (*Trip) ProtoMessage() {}
 
 func (x *Trip) ProtoReflect() protoreflect.Message {
-	mi := &file_schema_proto_msgTypes[5]
+	mi := &file_schema_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -368,7 +428,7 @@ func (x *Trip) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Trip.ProtoReflect.Descriptor instead.
 func (*Trip) Descriptor() ([]byte, []int) {
-	return file_schema_proto_rawDescGZIP(), []int{5}
+	return file_schema_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Trip) GetId() string {
@@ -440,7 +500,11 @@ const file_schema_proto_rawDesc = "" +
 	"\blocation\x18\x02 \x01(\v2\x13.wayfare.CoordinateR\blocation\x12\x12\n" +
 	"\x04name\x18\x04 \x01(\tR\x04name\x12'\n" +
 	"\x0fprofile_picture\x18\x05 \x01(\tR\x0eprofilePicture\x12\x1b\n" +
-	"\tcar_plate\x18\x06 \x01(\tR\bcarPlate\"\xc2\x01\n" +
+	"\tcar_plate\x18\x06 \x01(\tR\bcarPlate\"T\n" +
+	"\x05Rider\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
+	"\x0fprofile_picture\x18\x03 \x01(\tR\x0eprofilePicture\"\xc2\x01\n" +
 	"\x04Trip\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1b\n" +
@@ -461,14 +525,15 @@ func file_schema_proto_rawDescGZIP() []byte {
 	return file_schema_proto_rawDescData
 }
 
-var file_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_schema_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_schema_proto_goTypes = []any{
 	(*Coordinate)(nil), // 0: wayfare.Coordinate
 	(*Geometry)(nil),   // 1: wayfare.Geometry
 	(*Route)(nil),      // 2: wayfare.Route
 	(*RideFare)(nil),   // 3: wayfare.RideFare
 	(*Driver)(nil),     // 4: wayfare.Driver
-	(*Trip)(nil),       // 5: wayfare.Trip
+	(*Rider)(nil),      // 5: wayfare.Rider
+	(*Trip)(nil),       // 6: wayfare.Trip
 }
 var file_schema_proto_depIdxs = []int32{
 	0, // 0: wayfare.Geometry.coordinates:type_name -> wayfare.Coordinate
@@ -495,7 +560,7 @@ func file_schema_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_schema_proto_rawDesc), len(file_schema_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

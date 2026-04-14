@@ -73,7 +73,17 @@ type TripModel struct {
 type DriverModel struct {
 	ID             bson.ObjectID    `bson:"_id,omitempty"`
 	Name           string           `bson:"name"`
+	Email          string           `bson:"email"`
+	Password       string           `bson:"password"`
 	ProfilePicture string           `bson:"profile_picture"`
-	CarPackage     types.CarPackage `bson:"car_package,omitempty"`
+	CarPackage     types.CarPackage `bson:"car_package"`
 	CarPlate       string           `bson:"car_plate"`
+}
+
+type RiderModel struct {
+	ID             bson.ObjectID `bson:"_id,omitempty"`
+	Name           string        `bson:"name"`
+	Email          string        `bson:"email"`
+	Password       string        `bson:"password"`
+	ProfilePicture string        `bson:"profile_picture"`
 }

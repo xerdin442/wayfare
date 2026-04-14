@@ -8,22 +8,17 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection, error) {
+func CreateRidersCollection(db *mongo.Database, name string) (*mongo.Collection, error) {
 	ctx := context.Background()
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"name", "email", "password", "profile_picture", "car_package", "car_plate"},
+		"required": []string{"name", "email", "password", "profile_picture"},
 		"properties": bson.M{
-			"name":     bson.M{"bsonType": "string"},
-			"email":    bson.M{"bsonType": "string"},
-			"password": bson.M{"bsonType": "string"},
-			"car_package": bson.M{
-				"enum":        []string{"luxury", "sedan", "suv"},
-				"description": "must be one of the approved car packages",
-			},
+			"name":            bson.M{"bsonType": "string"},
+			"email":           bson.M{"bsonType": "string"},
+			"password":        bson.M{"bsonType": "string"},
 			"profile_picture": bson.M{"bsonType": "string"},
-			"car_plate":       bson.M{"bsonType": "string"},
 		},
 	}
 

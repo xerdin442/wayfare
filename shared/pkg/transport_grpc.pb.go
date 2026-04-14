@@ -168,6 +168,8 @@ var TripService_ServiceDesc = grpc.ServiceDesc{
 
 const (
 	DriverService_GetDriverByID_FullMethodName = "/wayfare.DriverService/GetDriverByID"
+	DriverService_Login_FullMethodName         = "/wayfare.DriverService/Login"
+	DriverService_Signup_FullMethodName        = "/wayfare.DriverService/Signup"
 )
 
 // DriverServiceClient is the client API for DriverService service.
@@ -178,6 +180,10 @@ const (
 type DriverServiceClient interface {
 	// GetDriverByID returns the driver details by ID
 	GetDriverByID(ctx context.Context, in *GetDriverRequest, opts ...grpc.CallOption) (*GetDriverResponse, error)
+	// Login authenticates a driver and returns a JWT token
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+	// Signup creates a new driver account
+	Signup(ctx context.Context, in *SignupDriverRequest, opts ...grpc.CallOption) (*AuthResponse, error)
 }
 
 type driverServiceClient struct {
@@ -198,6 +204,26 @@ func (c *driverServiceClient) GetDriverByID(ctx context.Context, in *GetDriverRe
 	return out, nil
 }
 
+func (c *driverServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthResponse)
+	err := c.cc.Invoke(ctx, DriverService_Login_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *driverServiceClient) Signup(ctx context.Context, in *SignupDriverRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthResponse)
+	err := c.cc.Invoke(ctx, DriverService_Signup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DriverServiceServer is the server API for DriverService service.
 // All implementations must embed UnimplementedDriverServiceServer
 // for forward compatibility.
@@ -206,6 +232,10 @@ func (c *driverServiceClient) GetDriverByID(ctx context.Context, in *GetDriverRe
 type DriverServiceServer interface {
 	// GetDriverByID returns the driver details by ID
 	GetDriverByID(context.Context, *GetDriverRequest) (*GetDriverResponse, error)
+	// Login authenticates a driver and returns a JWT token
+	Login(context.Context, *LoginRequest) (*AuthResponse, error)
+	// Signup creates a new driver account
+	Signup(context.Context, *SignupDriverRequest) (*AuthResponse, error)
 	mustEmbedUnimplementedDriverServiceServer()
 }
 
@@ -218,6 +248,12 @@ type UnimplementedDriverServiceServer struct{}
 
 func (UnimplementedDriverServiceServer) GetDriverByID(context.Context, *GetDriverRequest) (*GetDriverResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetDriverByID not implemented")
+}
+func (UnimplementedDriverServiceServer) Login(context.Context, *LoginRequest) (*AuthResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
+}
+func (UnimplementedDriverServiceServer) Signup(context.Context, *SignupDriverRequest) (*AuthResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Signup not implemented")
 }
 func (UnimplementedDriverServiceServer) mustEmbedUnimplementedDriverServiceServer() {}
 func (UnimplementedDriverServiceServer) testEmbeddedByValue()                       {}
@@ -258,6 +294,42 @@ func _DriverService_GetDriverByID_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DriverService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DriverServiceServer).Login(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DriverService_Login_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DriverServiceServer).Login(ctx, req.(*LoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DriverService_Signup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SignupDriverRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DriverServiceServer).Signup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DriverService_Signup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DriverServiceServer).Signup(ctx, req.(*SignupDriverRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DriverService_ServiceDesc is the grpc.ServiceDesc for DriverService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -268,6 +340,202 @@ var DriverService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDriverByID",
 			Handler:    _DriverService_GetDriverByID_Handler,
+		},
+		{
+			MethodName: "Login",
+			Handler:    _DriverService_Login_Handler,
+		},
+		{
+			MethodName: "Signup",
+			Handler:    _DriverService_Signup_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "transport.proto",
+}
+
+const (
+	RiderService_GetRiderByID_FullMethodName = "/wayfare.RiderService/GetRiderByID"
+	RiderService_Login_FullMethodName        = "/wayfare.RiderService/Login"
+	RiderService_Signup_FullMethodName       = "/wayfare.RiderService/Signup"
+)
+
+// RiderServiceClient is the client API for RiderService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// RiderService handles rider-related operations
+type RiderServiceClient interface {
+	// GetRiderByID returns the rider details by ID
+	GetRiderByID(ctx context.Context, in *GetRiderRequest, opts ...grpc.CallOption) (*GetRiderResponse, error)
+	// Login authenticates a rider and returns a JWT token
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+	// Signup creates a new rider account
+	Signup(ctx context.Context, in *SignupRiderRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+}
+
+type riderServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewRiderServiceClient(cc grpc.ClientConnInterface) RiderServiceClient {
+	return &riderServiceClient{cc}
+}
+
+func (c *riderServiceClient) GetRiderByID(ctx context.Context, in *GetRiderRequest, opts ...grpc.CallOption) (*GetRiderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRiderResponse)
+	err := c.cc.Invoke(ctx, RiderService_GetRiderByID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *riderServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthResponse)
+	err := c.cc.Invoke(ctx, RiderService_Login_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *riderServiceClient) Signup(ctx context.Context, in *SignupRiderRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthResponse)
+	err := c.cc.Invoke(ctx, RiderService_Signup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// RiderServiceServer is the server API for RiderService service.
+// All implementations must embed UnimplementedRiderServiceServer
+// for forward compatibility.
+//
+// RiderService handles rider-related operations
+type RiderServiceServer interface {
+	// GetRiderByID returns the rider details by ID
+	GetRiderByID(context.Context, *GetRiderRequest) (*GetRiderResponse, error)
+	// Login authenticates a rider and returns a JWT token
+	Login(context.Context, *LoginRequest) (*AuthResponse, error)
+	// Signup creates a new rider account
+	Signup(context.Context, *SignupRiderRequest) (*AuthResponse, error)
+	mustEmbedUnimplementedRiderServiceServer()
+}
+
+// UnimplementedRiderServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedRiderServiceServer struct{}
+
+func (UnimplementedRiderServiceServer) GetRiderByID(context.Context, *GetRiderRequest) (*GetRiderResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRiderByID not implemented")
+}
+func (UnimplementedRiderServiceServer) Login(context.Context, *LoginRequest) (*AuthResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
+}
+func (UnimplementedRiderServiceServer) Signup(context.Context, *SignupRiderRequest) (*AuthResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Signup not implemented")
+}
+func (UnimplementedRiderServiceServer) mustEmbedUnimplementedRiderServiceServer() {}
+func (UnimplementedRiderServiceServer) testEmbeddedByValue()                      {}
+
+// UnsafeRiderServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to RiderServiceServer will
+// result in compilation errors.
+type UnsafeRiderServiceServer interface {
+	mustEmbedUnimplementedRiderServiceServer()
+}
+
+func RegisterRiderServiceServer(s grpc.ServiceRegistrar, srv RiderServiceServer) {
+	// If the following call panics, it indicates UnimplementedRiderServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&RiderService_ServiceDesc, srv)
+}
+
+func _RiderService_GetRiderByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRiderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RiderServiceServer).GetRiderByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RiderService_GetRiderByID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RiderServiceServer).GetRiderByID(ctx, req.(*GetRiderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RiderService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RiderServiceServer).Login(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RiderService_Login_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RiderServiceServer).Login(ctx, req.(*LoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RiderService_Signup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SignupRiderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RiderServiceServer).Signup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RiderService_Signup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RiderServiceServer).Signup(ctx, req.(*SignupRiderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// RiderService_ServiceDesc is the grpc.ServiceDesc for RiderService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var RiderService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "wayfare.RiderService",
+	HandlerType: (*RiderServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetRiderByID",
+			Handler:    _RiderService_GetRiderByID_Handler,
+		},
+		{
+			MethodName: "Login",
+			Handler:    _RiderService_Login_Handler,
+		},
+		{
+			MethodName: "Signup",
+			Handler:    _RiderService_Signup_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

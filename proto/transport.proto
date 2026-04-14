@@ -18,6 +18,20 @@ service TripService {
 service DriverService {
   // GetDriverByID returns the driver details by ID
   rpc GetDriverByID(GetDriverRequest) returns (GetDriverResponse);
+  // Login authenticates a driver and returns a JWT token
+  rpc Login(LoginRequest) returns (AuthResponse);
+  // Signup creates a new driver account
+  rpc Signup(SignupDriverRequest) returns (AuthResponse);
+}
+
+// RiderService handles rider-related operations
+service RiderService {
+  // GetRiderByID returns the rider details by ID
+  rpc GetRiderByID(GetRiderRequest) returns (GetRiderResponse);
+  // Login authenticates a rider and returns a JWT token
+  rpc Login(LoginRequest) returns (AuthResponse);
+  // Signup creates a new rider account
+  rpc Signup(SignupRiderRequest) returns (AuthResponse);
 }
 
 message GetDriverRequest {
@@ -26,6 +40,39 @@ message GetDriverRequest {
 
 message GetDriverResponse {
   Driver driver = 1;
+}
+
+message GetRiderRequest {
+  string rider_id = 1;
+}
+
+message GetRiderResponse {
+  Rider rider = 1;
+}
+
+message LoginRequest {
+  string email    = 1;
+  string password = 2;
+}
+
+message SignupRiderRequest {
+  string name            = 1;
+  string email           = 2;
+  string password        = 3;
+  string profile_picture = 4;
+}
+
+message SignupDriverRequest {
+  string name            = 1;
+  string email           = 2;
+  string password        = 3;
+  string profile_picture = 4;
+  string car_package     = 5;
+  string car_plate       = 6;
+}
+
+message AuthResponse {
+  string token = 1;
 }
 
 message PreviewTripRequest {
