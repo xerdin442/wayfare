@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -53,12 +55,12 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		}
 
 		res, err := h.cfg.Clients.Driver.Signup(c.Request.Context(), &rpc.SignupDriverRequest{
-			Name:           req.Name,
-			Email:          req.Email,
-			Password:       req.Password,
-			ProfilePicture: result.SecureURL,
-			CarPackage:     req.CarPackage,
-			CarPlate:       req.CarPlate,
+			Name:         req.Name,
+			Email:        req.Email,
+			Password:     req.Password,
+			ProfileImage: result.SecureURL,
+			CarPackage:   req.CarPackage,
+			CarPlate:     req.CarPlate,
 		})
 		if err != nil {
 			logger.Error().Err(err).Msg("Driver signup error")
@@ -90,8 +92,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
-		// Upload profile image if available
-		profilePicURL := ""
+		var profilePicURL string
 		if req.ProfileImage != nil {
 			file, err := req.ProfileImage.Open()
 			if err != nil {
@@ -114,13 +115,15 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 				return
 			}
 			profilePicURL = result.SecureURL
+		} else {
+			profilePicURL = fmt.Sprintf("https://randomuser.me/api/portraits/lego/%d.jpg", rand.Intn(100))
 		}
 
 		res, err := h.cfg.Clients.Rider.Signup(c.Request.Context(), &rpc.SignupRiderRequest{
-			Name:           req.Name,
-			Email:          req.Email,
-			Password:       req.Password,
-			ProfilePicture: &profilePicURL,
+			Name:         req.Name,
+			Email:        req.Email,
+			Password:     req.Password,
+			ProfileImage: profilePicURL,
 		})
 		if err != nil {
 			logger.Error().Err(err).Msg("Rider signup error")
