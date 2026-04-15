@@ -1,6 +1,8 @@
 package contracts
 
 import (
+	"mime/multipart"
+
 	"github.com/xerdin442/wayfare/shared/types"
 )
 
@@ -25,20 +27,34 @@ type OsrmApiResponse struct {
 	} `json:"routes"`
 }
 
-type PreviewTripRequest struct {
-	Pickup      types.Coordinate `json:"pickup"`
-	Destination types.Coordinate `json:"destination"`
+type SignupDetails struct {
+	Email    string `form:"email" binding:"required,email"`
+	Password string `form:"password" binding:"required,min=8"`
+	Name     string `form:"name" binding:"required"`
 }
 
-type PreviewTripResponse struct {
-	Route     types.Route      `json:"route"`
-	RideFares []types.RideFare `json:"rideFares"`
+type SignupDriverRequest struct {
+	SignupDetails
+	ProfileImage *multipart.FileHeader `form:"profile_image" binding:"required"`
+	CarPackage   string                `form:"car_package" binding:"required"`
+	CarPlate     string                `form:"car_plate" binding:"required"`
+}
+
+type SignupRiderRequest struct {
+	SignupDetails
+	ProfileImage *multipart.FileHeader `form:"profile_image"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=8"`
+}
+
+type PreviewTripRequest struct {
+	Pickup      types.Coordinate `json:"pickup" binding:"required"`
+	Destination types.Coordinate `json:"destination" binding:"required"`
 }
 
 type StartTripRequest struct {
-	RideFareID string `json:"rideFareID"`
-}
-
-type StartTripResponse struct {
-	TripID string `json:"tripID"`
+	RideFareID string `json:"rideFareID" binding:"required"`
 }

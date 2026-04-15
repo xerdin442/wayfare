@@ -10,16 +10,14 @@ import (
 
 type RiderService struct {
 	rpc.UnimplementedRiderServiceServer
-	repo      *repo.RiderRepository
-	queue     messaging.MessageBus
-	jwtSecret string
+	repo  *repo.RiderRepository
+	queue messaging.MessageBus
 }
 
-func NewRiderService(r *repo.RiderRepository, q messaging.MessageBus, secret string) *RiderService {
+func NewRiderService(r *repo.RiderRepository, q messaging.MessageBus) *RiderService {
 	return &RiderService{
-		repo:      r,
-		queue:     q,
-		jwtSecret: secret,
+		repo:  r,
+		queue: q,
 	}
 }
 

@@ -15,6 +15,9 @@ type Secrets struct {
 	AmqpUri     string
 	JwtSecret   string
 	FrontendUrl string
+	CloudinaryName   string
+	CloudinarySecret string
+	CloudinaryApiKey string
 }
 
 func Load() *Secrets {
@@ -25,6 +28,9 @@ func Load() *Secrets {
 		AmqpUri:     getStr("AMQP_URI"),
 		JwtSecret:   getStr("JWT_SECRET"),
 		FrontendUrl: getStr("FRONTEND_URL"),
+		CloudinaryName:   getStr("CLOUDINARY_NAME"),
+		CloudinarySecret: getStr("CLOUDINARY_SECRET"),
+		CloudinaryApiKey: getStr("CLOUDINARY_API_KEY"),
 	}
 }
 

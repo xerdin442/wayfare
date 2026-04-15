@@ -35,7 +35,7 @@ func main() {
 	defer rmq.Close()
 
 	repo := repo.NewRiderRepository(database)
-	svc := service.NewRiderService(repo, rmq, env.JwtSecret)
+	svc := service.NewRiderService(repo, rmq)
 
 	g.Go(func() error {
 		log.Info().Msg("Starting server...")

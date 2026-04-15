@@ -63,6 +63,21 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: FRONTEND_URL
+            - name: CLOUDINARY_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: CLOUDINARY_NAME
+            - name: CLOUDINARY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: CLOUDINARY_SECRET
+            - name: CLOUDINARY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: CLOUDINARY_API_KEY
 ---
 apiVersion: v1
 kind: Service

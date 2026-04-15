@@ -42,11 +42,6 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: AMQP_URI
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: JWT_SECRET
 ---
 apiVersion: v1
 kind: Service

@@ -12,7 +12,6 @@ type Secrets struct {
 	ServicePort int
 	MongoUri    string
 	AmqpUri     string
-	JwtSecret   string
 }
 
 func Load() *Secrets {
@@ -20,7 +19,6 @@ func Load() *Secrets {
 		ServicePort: getInt("SERVICE_PORT"),
 		MongoUri:    getStr("MONGO_URI"),
 		AmqpUri:     getStr("AMQP_URI"),
-		JwtSecret:   getStr("JWT_SECRET"),
 	}
 }
 
