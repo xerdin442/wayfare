@@ -42,6 +42,11 @@ func (app *application) routes() http.Handler {
 		auth.POST("/logout", m.JwtGuard(), h.HandleLogout)
 	}
 
+	user := v1.Group("/user", m.JwtGuard())
+	{
+		user.GET("/profile", h.HandleUserProfile)
+	}
+
 	trip := v1.Group("/trip", m.JwtGuard())
 	{
 		trip.POST("/start", h.HandleStartTrip)
