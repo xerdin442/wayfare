@@ -10,6 +10,7 @@ import (
 type Registry struct {
 	Trip   rpc.TripServiceClient
 	Driver rpc.DriverServiceClient
+	Rider  rpc.RiderServiceClient
 	conns  []*grpc.ClientConn
 }
 
@@ -28,10 +29,17 @@ func NewRegistry() *Registry {
 		return nil
 	}
 
+	riderConn, err := grpc.NewClient("rider-service:80", credentials)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect to Rider service")
+		return nil
+	}
+
 	return &Registry{
 		Trip:   rpc.NewTripServiceClient(tripConn),
 		Driver: rpc.NewDriverServiceClient(driverConn),
-		conns:  []*grpc.ClientConn{tripConn},
+		Rider:  rpc.NewRiderServiceClient(riderConn),
+		conns:  []*grpc.ClientConn{tripConn, driverConn, riderConn},
 	}
 }
 

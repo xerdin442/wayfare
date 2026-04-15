@@ -1,5 +1,12 @@
 package types
 
+type UserRole string
+
+const (
+	RoleRider  UserRole = "rider"
+	RoleDriver UserRole = "driver"
+)
+
 type CarPackage string
 
 const (

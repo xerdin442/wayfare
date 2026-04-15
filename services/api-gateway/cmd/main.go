@@ -55,6 +55,12 @@ func main() {
 		Cache:   cache,
 		Clients: clients,
 		Queue:   rmq,
+		Uploader: &storage.FileUploadConfig{
+			Folder:      "wayfare/uploads",
+			CloudName:   env.CloudinaryName,
+			ApiKey:      env.CloudinaryApiKey,
+			CloudSecret: env.CloudinarySecret,
+		},
 	}
 
 	h := events.NewGatewayEventsHandler(baseCfg)

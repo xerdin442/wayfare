@@ -254,7 +254,7 @@ type SignupRiderRequest struct {
 	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Email          string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	Password       string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
-	ProfilePicture string                 `protobuf:"bytes,4,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
+	ProfilePicture *string                `protobuf:"bytes,4,opt,name=profile_picture,json=profilePicture,proto3,oneof" json:"profile_picture,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -311,8 +311,8 @@ func (x *SignupRiderRequest) GetPassword() string {
 }
 
 func (x *SignupRiderRequest) GetProfilePicture() string {
-	if x != nil {
-		return x.ProfilePicture
+	if x != nil && x.ProfilePicture != nil {
+		return *x.ProfilePicture
 	}
 	return ""
 }
@@ -403,7 +403,7 @@ func (x *SignupDriverRequest) GetCarPlate() string {
 
 type AuthResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -438,9 +438,9 @@ func (*AuthResponse) Descriptor() ([]byte, []int) {
 	return file_transport_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *AuthResponse) GetToken() string {
+func (x *AuthResponse) GetUserId() string {
 	if x != nil {
-		return x.Token
+		return x.UserId
 	}
 	return ""
 }
@@ -668,12 +668,13 @@ const file_transport_proto_rawDesc = "" +
 	"\x05rider\x18\x01 \x01(\v2\x0e.wayfare.RiderR\x05rider\"@\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"\x83\x01\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"\x9c\x01\n" +
 	"\x12SignupRiderRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x03 \x01(\tR\bpassword\x12'\n" +
-	"\x0fprofile_picture\x18\x04 \x01(\tR\x0eprofilePicture\"\xc2\x01\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\x12,\n" +
+	"\x0fprofile_picture\x18\x04 \x01(\tH\x00R\x0eprofilePicture\x88\x01\x01B\x12\n" +
+	"\x10_profile_picture\"\xc2\x01\n" +
 	"\x13SignupDriverRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
@@ -681,9 +682,9 @@ const file_transport_proto_rawDesc = "" +
 	"\x0fprofile_picture\x18\x04 \x01(\tR\x0eprofilePicture\x12\x1f\n" +
 	"\vcar_package\x18\x05 \x01(\tR\n" +
 	"carPackage\x12\x1b\n" +
-	"\tcar_plate\x18\x06 \x01(\tR\bcarPlate\"$\n" +
-	"\fAuthResponse\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"\x91\x01\n" +
+	"\tcar_plate\x18\x06 \x01(\tR\bcarPlate\"'\n" +
+	"\fAuthResponse\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"\x91\x01\n" +
 	"\x12PreviewTripRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12+\n" +
 	"\x06pickup\x18\x02 \x01(\v2\x13.wayfare.CoordinateR\x06pickup\x125\n" +
@@ -778,6 +779,7 @@ func file_transport_proto_init() {
 		return
 	}
 	file_schema_proto_init()
+	file_transport_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

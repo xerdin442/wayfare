@@ -81,7 +81,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 					Latitude:  data.Coords.Latitude,
 				},
 			).Err(); err != nil {
-				logger.Error().Err(err).Msg("Failed to add driver to location tracker")
+				logger.Error().Err(err).Msg("Failed to add driver coordinates to location tracker")
 				return
 			}
 

@@ -35,6 +35,13 @@ func (app *application) routes() http.Handler {
 		c.String(http.StatusOK, "Hello from the API Gateway!")
 	})
 
+	auth := v1.Group("/auth")
+	{
+		auth.POST("/signup", h.HandleSignup)
+		auth.POST("/login", h.HandleLogin)
+		auth.POST("/logout", m.JwtGuard(), h.HandleLogout)
+	}
+
 	trip := v1.Group("/trip", m.JwtGuard())
 	{
 		trip.POST("/start", h.HandleStartTrip)

@@ -56,10 +56,10 @@ message LoginRequest {
 }
 
 message SignupRiderRequest {
-  string name            = 1;
-  string email           = 2;
-  string password        = 3;
-  string profile_picture = 4;
+  string          name            = 1;
+  string          email           = 2;
+  string          password        = 3;
+  optional string profile_picture = 4;
 }
 
 message SignupDriverRequest {
@@ -72,7 +72,7 @@ message SignupDriverRequest {
 }
 
 message AuthResponse {
-  string token = 1;
+  string user_id = 1;
 }
 
 message PreviewTripRequest {

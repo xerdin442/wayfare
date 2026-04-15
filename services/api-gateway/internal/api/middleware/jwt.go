@@ -8,16 +8,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog/log"
+	"github.com/xerdin442/wayfare/shared/types"
 )
 
 type AllClaims struct {
-	UserID int32 `json:"user_id"`
+	SubjectID string         `json:"sub"`
+	Role      types.UserRole `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(userID int32, secretKey string) (string, error) {
+func GenerateToken(userID string, role types.UserRole, secretKey string) (string, error) {
 	claims := AllClaims{
-		UserID: userID,
+		SubjectID: userID,
+		Role:      role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
@@ -59,8 +62,10 @@ func (m *Middleware) JwtGuard() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user_id", claims.UserID)
+		c.Set("user_id", claims.SubjectID)
+		c.Set("role", claims.Role)
 		c.Set("token_exp", time.Unix(claims.ExpiresAt.Unix(), 0))
+
 		c.Next()
 	}
 }

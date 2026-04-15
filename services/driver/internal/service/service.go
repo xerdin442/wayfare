@@ -24,3 +24,11 @@ func NewDriverService(r *repo.DriverRepository, q messaging.MessageBus) *DriverS
 func (s *DriverService) GetDriverByID(ctx context.Context, req *rpc.GetDriverRequest) (*rpc.GetDriverResponse, error) {
 	return &rpc.GetDriverResponse{}, nil
 }
+
+func (s *DriverService) Login(ctx context.Context, req *rpc.LoginRequest) (*rpc.AuthResponse, error) {
+	return &rpc.AuthResponse{}, nil
+}
+
+func (s *DriverService) Signup(ctx context.Context, req *rpc.SignupDriverRequest) (*rpc.AuthResponse, error) {
+	return &rpc.AuthResponse{}, nil
+}
