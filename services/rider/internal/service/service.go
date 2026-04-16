@@ -21,8 +21,8 @@ func NewRiderService(r *repo.RiderRepository, q messaging.MessageBus) *RiderServ
 	}
 }
 
-func (s *RiderService) GetRiderByID(ctx context.Context, req *rpc.GetRiderRequest) (*rpc.GetRiderResponse, error) {
-	return &rpc.GetRiderResponse{}, nil
+func (s *RiderService) GetRiderProfile(ctx context.Context, req *rpc.GetProfileRequest) (*rpc.RiderProfileResponse, error) {
+	return &rpc.RiderProfileResponse{}, nil
 }
 
 func (s *RiderService) Login(ctx context.Context, req *rpc.LoginRequest) (*rpc.AuthResponse, error) {

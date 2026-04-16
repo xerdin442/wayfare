@@ -167,9 +167,9 @@ var TripService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	DriverService_GetDriverByID_FullMethodName = "/wayfare.DriverService/GetDriverByID"
-	DriverService_Login_FullMethodName         = "/wayfare.DriverService/Login"
-	DriverService_Signup_FullMethodName        = "/wayfare.DriverService/Signup"
+	DriverService_GetDriverProfile_FullMethodName = "/wayfare.DriverService/GetDriverProfile"
+	DriverService_Login_FullMethodName            = "/wayfare.DriverService/Login"
+	DriverService_Signup_FullMethodName           = "/wayfare.DriverService/Signup"
 )
 
 // DriverServiceClient is the client API for DriverService service.
@@ -178,8 +178,8 @@ const (
 //
 // DriverService handles drivers' response to trip requests
 type DriverServiceClient interface {
-	// GetDriverByID returns the driver details by ID
-	GetDriverByID(ctx context.Context, in *GetDriverRequest, opts ...grpc.CallOption) (*GetDriverResponse, error)
+	// GetDriverProfile returns the driver details by ID
+	GetDriverProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*DriverProfileResponse, error)
 	// Login authenticates a driver and returns a JWT token
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthResponse, error)
 	// Signup creates a new driver account
@@ -194,10 +194,10 @@ func NewDriverServiceClient(cc grpc.ClientConnInterface) DriverServiceClient {
 	return &driverServiceClient{cc}
 }
 
-func (c *driverServiceClient) GetDriverByID(ctx context.Context, in *GetDriverRequest, opts ...grpc.CallOption) (*GetDriverResponse, error) {
+func (c *driverServiceClient) GetDriverProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*DriverProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetDriverResponse)
-	err := c.cc.Invoke(ctx, DriverService_GetDriverByID_FullMethodName, in, out, cOpts...)
+	out := new(DriverProfileResponse)
+	err := c.cc.Invoke(ctx, DriverService_GetDriverProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -230,8 +230,8 @@ func (c *driverServiceClient) Signup(ctx context.Context, in *SignupDriverReques
 //
 // DriverService handles drivers' response to trip requests
 type DriverServiceServer interface {
-	// GetDriverByID returns the driver details by ID
-	GetDriverByID(context.Context, *GetDriverRequest) (*GetDriverResponse, error)
+	// GetDriverProfile returns the driver details by ID
+	GetDriverProfile(context.Context, *GetProfileRequest) (*DriverProfileResponse, error)
 	// Login authenticates a driver and returns a JWT token
 	Login(context.Context, *LoginRequest) (*AuthResponse, error)
 	// Signup creates a new driver account
@@ -246,8 +246,8 @@ type DriverServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDriverServiceServer struct{}
 
-func (UnimplementedDriverServiceServer) GetDriverByID(context.Context, *GetDriverRequest) (*GetDriverResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetDriverByID not implemented")
+func (UnimplementedDriverServiceServer) GetDriverProfile(context.Context, *GetProfileRequest) (*DriverProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetDriverProfile not implemented")
 }
 func (UnimplementedDriverServiceServer) Login(context.Context, *LoginRequest) (*AuthResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
@@ -276,20 +276,20 @@ func RegisterDriverServiceServer(s grpc.ServiceRegistrar, srv DriverServiceServe
 	s.RegisterService(&DriverService_ServiceDesc, srv)
 }
 
-func _DriverService_GetDriverByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetDriverRequest)
+func _DriverService_GetDriverProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DriverServiceServer).GetDriverByID(ctx, in)
+		return srv.(DriverServiceServer).GetDriverProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: DriverService_GetDriverByID_FullMethodName,
+		FullMethod: DriverService_GetDriverProfile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DriverServiceServer).GetDriverByID(ctx, req.(*GetDriverRequest))
+		return srv.(DriverServiceServer).GetDriverProfile(ctx, req.(*GetProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -338,8 +338,8 @@ var DriverService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DriverServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetDriverByID",
-			Handler:    _DriverService_GetDriverByID_Handler,
+			MethodName: "GetDriverProfile",
+			Handler:    _DriverService_GetDriverProfile_Handler,
 		},
 		{
 			MethodName: "Login",
@@ -355,9 +355,9 @@ var DriverService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	RiderService_GetRiderByID_FullMethodName = "/wayfare.RiderService/GetRiderByID"
-	RiderService_Login_FullMethodName        = "/wayfare.RiderService/Login"
-	RiderService_Signup_FullMethodName       = "/wayfare.RiderService/Signup"
+	RiderService_GetRiderProfile_FullMethodName = "/wayfare.RiderService/GetRiderProfile"
+	RiderService_Login_FullMethodName           = "/wayfare.RiderService/Login"
+	RiderService_Signup_FullMethodName          = "/wayfare.RiderService/Signup"
 )
 
 // RiderServiceClient is the client API for RiderService service.
@@ -366,8 +366,8 @@ const (
 //
 // RiderService handles rider-related operations
 type RiderServiceClient interface {
-	// GetRiderByID returns the rider details by ID
-	GetRiderByID(ctx context.Context, in *GetRiderRequest, opts ...grpc.CallOption) (*GetRiderResponse, error)
+	// GetRiderProfile returns the rider details by ID
+	GetRiderProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*RiderProfileResponse, error)
 	// Login authenticates a rider and returns a JWT token
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthResponse, error)
 	// Signup creates a new rider account
@@ -382,10 +382,10 @@ func NewRiderServiceClient(cc grpc.ClientConnInterface) RiderServiceClient {
 	return &riderServiceClient{cc}
 }
 
-func (c *riderServiceClient) GetRiderByID(ctx context.Context, in *GetRiderRequest, opts ...grpc.CallOption) (*GetRiderResponse, error) {
+func (c *riderServiceClient) GetRiderProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*RiderProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetRiderResponse)
-	err := c.cc.Invoke(ctx, RiderService_GetRiderByID_FullMethodName, in, out, cOpts...)
+	out := new(RiderProfileResponse)
+	err := c.cc.Invoke(ctx, RiderService_GetRiderProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -418,8 +418,8 @@ func (c *riderServiceClient) Signup(ctx context.Context, in *SignupRiderRequest,
 //
 // RiderService handles rider-related operations
 type RiderServiceServer interface {
-	// GetRiderByID returns the rider details by ID
-	GetRiderByID(context.Context, *GetRiderRequest) (*GetRiderResponse, error)
+	// GetRiderProfile returns the rider details by ID
+	GetRiderProfile(context.Context, *GetProfileRequest) (*RiderProfileResponse, error)
 	// Login authenticates a rider and returns a JWT token
 	Login(context.Context, *LoginRequest) (*AuthResponse, error)
 	// Signup creates a new rider account
@@ -434,8 +434,8 @@ type RiderServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRiderServiceServer struct{}
 
-func (UnimplementedRiderServiceServer) GetRiderByID(context.Context, *GetRiderRequest) (*GetRiderResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetRiderByID not implemented")
+func (UnimplementedRiderServiceServer) GetRiderProfile(context.Context, *GetProfileRequest) (*RiderProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRiderProfile not implemented")
 }
 func (UnimplementedRiderServiceServer) Login(context.Context, *LoginRequest) (*AuthResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Login not implemented")
@@ -464,20 +464,20 @@ func RegisterRiderServiceServer(s grpc.ServiceRegistrar, srv RiderServiceServer)
 	s.RegisterService(&RiderService_ServiceDesc, srv)
 }
 
-func _RiderService_GetRiderByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRiderRequest)
+func _RiderService_GetRiderProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RiderServiceServer).GetRiderByID(ctx, in)
+		return srv.(RiderServiceServer).GetRiderProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RiderService_GetRiderByID_FullMethodName,
+		FullMethod: RiderService_GetRiderProfile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RiderServiceServer).GetRiderByID(ctx, req.(*GetRiderRequest))
+		return srv.(RiderServiceServer).GetRiderProfile(ctx, req.(*GetProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -526,8 +526,8 @@ var RiderService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*RiderServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetRiderByID",
-			Handler:    _RiderService_GetRiderByID_Handler,
+			MethodName: "GetRiderProfile",
+			Handler:    _RiderService_GetRiderProfile_Handler,
 		},
 		{
 			MethodName: "Login",

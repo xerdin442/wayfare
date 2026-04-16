@@ -247,8 +247,8 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 
 	if types.UserRole(role) == types.RoleDriver {
-		res, err := h.cfg.Clients.Driver.GetDriverByID(c.Request.Context(), &rpc.GetDriverRequest{
-			DriverId: userID,
+		res, err := h.cfg.Clients.Driver.GetDriverProfile(c.Request.Context(), &rpc.GetProfileRequest{
+			UserId: userID,
 		})
 		if err != nil {
 			logger.Error().Err(err).Msg("Failed to fetch driver profile")
@@ -263,8 +263,8 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 	}
 
 	if types.UserRole(role) == types.RoleRider {
-		res, err := h.cfg.Clients.Rider.GetRiderByID(c.Request.Context(), &rpc.GetRiderRequest{
-			RiderId: userID,
+		res, err := h.cfg.Clients.Rider.GetRiderProfile(c.Request.Context(), &rpc.GetProfileRequest{
+			UserId: userID,
 		})
 		if err != nil {
 			logger.Error().Err(err).Msg("Failed to fetch rider profile")
