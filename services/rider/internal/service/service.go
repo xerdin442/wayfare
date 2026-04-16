@@ -2,10 +2,14 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	repo "github.com/xerdin442/wayfare/services/rider/internal/infra/repository"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type RiderService struct {
@@ -22,13 +26,53 @@ func NewRiderService(r *repo.RiderRepository, q messaging.MessageBus) *RiderServ
 }
 
 func (s *RiderService) GetRiderProfile(ctx context.Context, req *rpc.GetProfileRequest) (*rpc.RiderProfileResponse, error) {
-	return &rpc.RiderProfileResponse{}, nil
+	rider, err := s.repo.GetRiderByID(ctx, req.UserId)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return nil, status.Error(codes.NotFound, "Rider not found")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &rpc.RiderProfileResponse{
+		Rider: &rpc.Rider{
+			Id:             rider.ID.Hex(),
+			Name:           rider.Name,
+			ProfilePicture: rider.ProfilePicture,
+		},
+	}, nil
 }
 
 func (s *RiderService) Login(ctx context.Context, req *rpc.LoginRequest) (*rpc.AuthResponse, error) {
-	return &rpc.AuthResponse{}, nil
+	rider, err := s.repo.GetRiderByEmail(ctx, req.Email)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return nil, status.Error(codes.NotFound, "Invalid email address")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(rider.Password), []byte(req.Password)); err != nil {
+		return nil, status.Error(codes.Unauthenticated, "Incorrect password")
+	}
+
+	return &rpc.AuthResponse{
+		UserId: rider.ID.Hex(),
+	}, nil
 }
 
 func (s *RiderService) Signup(ctx context.Context, req *rpc.SignupRiderRequest) (*rpc.AuthResponse, error) {
-	return &rpc.AuthResponse{}, nil
+	_, err := s.repo.GetRiderByEmail(ctx, req.Email)
+	if err == nil {
+		return nil, status.Error(codes.AlreadyExists, "Rider already exists with this email")
+	}
+
+	rider, err := s.repo.CreateRiderAccount(ctx, req)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &rpc.AuthResponse{
+		UserId: rider.ID.Hex(),
+	}, nil
 }
