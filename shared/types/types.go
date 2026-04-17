@@ -26,6 +26,21 @@ const (
 	TripStatusCancelled TripStatus = "cancelled"
 )
 
+type PaymentStatus string
+
+const (
+	PaymentStatusPending PaymentStatus = "pending"
+	PaymentStatusSuccess PaymentStatus = "success"
+	PaymentStatusFailed  PaymentStatus = "failed"
+)
+
+type PaymentProvider string
+
+const (
+	ProviderPaystack    PaymentProvider = "paystack"
+	ProviderFlutterwave PaymentProvider = "flutterwave"
+)
+
 type Route struct {
 	Distance float64     `json:"distance"`
 	Duration float64     `json:"duration"`
