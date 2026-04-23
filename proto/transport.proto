@@ -34,6 +34,12 @@ service RiderService {
   rpc Signup(SignupRiderRequest) returns (AuthResponse);
 }
 
+// PaymentService handles payments
+service PaymentService {
+  // InitiatePayment starts processing a new payment request
+  rpc InitiatePayment(InitiatePaymentRequest) returns (InitiatePaymentResponse);
+}
+
 message GetProfileRequest {
   string user_id = 1;
 }
@@ -89,4 +95,14 @@ message StartTripRequest {
 
 message StartTripResponse {
   string trip_id = 1;
+}
+
+message InitiatePaymentRequest {
+  string trip_id = 1;
+  string email   = 2;
+  int64  amount  = 3;
+}
+
+message InitiatePaymentResponse {
+  string checkout_url = 1;
 }

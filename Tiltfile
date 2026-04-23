@@ -122,3 +122,29 @@ k8s_resource(
 )
 
 ### End of Rider Service ###
+### Payment Service ###
+
+docker_build_with_restart(
+  'wayfare/payment-service',
+  '.',
+  entrypoint=['/app/build/payment-service'],
+  dockerfile='./infra/development/docker/payment-service.Dockerfile',
+  ignore=['./infra', './tools'],
+  live_update=[
+    sync('./services/payment', '/app/services/payment'),
+    sync('./shared', '/app/shared'),
+    run(
+      'go build -o /app/build/payment-service ./services/payment/cmd/main.go',
+      trigger=['./services/payment', './shared']
+    )
+  ],
+)
+
+k8s_yaml('./infra/development/k8s/payment-service-deployment.yaml')
+k8s_resource(
+  'payment-service',
+  resource_deps=['redis', 'mongodb'],
+  labels="services",
+)
+
+### End of Payment Service ###
