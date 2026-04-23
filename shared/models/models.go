@@ -91,11 +91,10 @@ type RiderModel struct {
 type TransactionModel struct {
 	ID             bson.ObjectID         `bson:"_id,omitempty"`
 	TripID         bson.ObjectID         `bson:"trip_id"`
-	ProviderTxnRef string                `bson:"provider_txn_ref"`
+	ProviderTxnRef string                `bson:"provider_txn_ref,omitempty"`
 	Provider       types.PaymentProvider `bson:"provider"`
 	Email          string                `bson:"email"`
 	Amount         int64                 `bson:"amount"`
-	Currency       string                `bson:"currency"`
 	Status         types.PaymentStatus   `bson:"status"`
 	CreatedAt      time.Time             `bson:"created_at"`
 	UpdatedAt      time.Time             `bson:"updated_at"`

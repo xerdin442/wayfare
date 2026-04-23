@@ -257,9 +257,9 @@ type Driver struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Location       *Coordinate            `protobuf:"bytes,2,opt,name=location,proto3" json:"location,omitempty"`
-	Name           string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
-	ProfilePicture string                 `protobuf:"bytes,5,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
-	CarPlate       string                 `protobuf:"bytes,6,opt,name=car_plate,json=carPlate,proto3" json:"car_plate,omitempty"`
+	Name           string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	ProfilePicture string                 `protobuf:"bytes,4,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
+	CarPlate       string                 `protobuf:"bytes,5,opt,name=car_plate,json=carPlate,proto3" json:"car_plate,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -333,7 +333,8 @@ type Rider struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	ProfilePicture string                 `protobuf:"bytes,3,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
+	Email          string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	ProfilePicture string                 `protobuf:"bytes,4,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -378,6 +379,13 @@ func (x *Rider) GetId() string {
 func (x *Rider) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *Rider) GetEmail() string {
+	if x != nil {
+		return x.Email
 	}
 	return ""
 }
@@ -498,13 +506,14 @@ const file_schema_proto_rawDesc = "" +
 	"\x06Driver\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12/\n" +
 	"\blocation\x18\x02 \x01(\v2\x13.wayfare.CoordinateR\blocation\x12\x12\n" +
-	"\x04name\x18\x04 \x01(\tR\x04name\x12'\n" +
-	"\x0fprofile_picture\x18\x05 \x01(\tR\x0eprofilePicture\x12\x1b\n" +
-	"\tcar_plate\x18\x06 \x01(\tR\bcarPlate\"T\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12'\n" +
+	"\x0fprofile_picture\x18\x04 \x01(\tR\x0eprofilePicture\x12\x1b\n" +
+	"\tcar_plate\x18\x05 \x01(\tR\bcarPlate\"j\n" +
 	"\x05Rider\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
-	"\x0fprofile_picture\x18\x03 \x01(\tR\x0eprofilePicture\"\xc2\x01\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12'\n" +
+	"\x0fprofile_picture\x18\x04 \x01(\tR\x0eprofilePicture\"\xc2\x01\n" +
 	"\x04Trip\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1b\n" +

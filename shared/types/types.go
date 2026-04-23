@@ -29,9 +29,10 @@ const (
 type PaymentStatus string
 
 const (
-	PaymentStatusPending PaymentStatus = "pending"
-	PaymentStatusSuccess PaymentStatus = "success"
-	PaymentStatusFailed  PaymentStatus = "failed"
+	PaymentStatusPending  PaymentStatus = "pending"
+	PaymentStatusSuccess  PaymentStatus = "success"
+	PaymentStatusFailed   PaymentStatus = "failed"
+	PaymentStatusRefunded PaymentStatus = "refunded"
 )
 
 type PaymentProvider string
@@ -84,6 +85,7 @@ type Driver struct {
 type Rider struct {
 	ID             string `json:"id"`
 	Name           string `json:"name"`
+	Email          string `json:"email"`
 	ProfilePicture string `json:"profilePicture"`
 }
 

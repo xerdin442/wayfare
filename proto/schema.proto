@@ -30,15 +30,16 @@ message RideFare {
 message Driver {
   string     id              = 1;
   Coordinate location        = 2;
-  string     name            = 4;
-  string     profile_picture = 5;
-  string     car_plate       = 6;
+  string     name            = 3;
+  string     profile_picture = 4;
+  string     car_plate       = 5;
 }
 
 message Rider {
   string id              = 1;
   string name            = 2;
-  string profile_picture = 3;
+  string email           = 3;
+  string profile_picture = 4;
 }
 
 message Trip {

@@ -38,6 +38,7 @@ func (s *RiderService) GetRiderProfile(ctx context.Context, req *rpc.GetProfileR
 		Rider: &rpc.Rider{
 			Id:             rider.ID.Hex(),
 			Name:           rider.Name,
+			Email:          rider.Email,
 			ProfilePicture: rider.ProfilePicture,
 		},
 	}, nil

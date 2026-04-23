@@ -76,11 +76,7 @@ const (
 	DriverCmdLocationUpdate AmqpEvent = "driver.cmd.location_update"
 
 	// Payment events
-	PaymentEventSessionCreated AmqpEvent = "payment.event.session_created"
-	PaymentEventSuccess        AmqpEvent = "payment.event.success"
-	PaymentEventFailed         AmqpEvent = "payment.event.failed"
-	PaymentEventCancelled      AmqpEvent = "payment.event.cancelled"
-
-	// Payment commands
-	PaymentCmdCreateSession AmqpEvent = "payment.cmd.create_session"
+	PaymentEventSuccess  AmqpEvent = "payment.event.success"
+	PaymentEventFailed   AmqpEvent = "payment.event.failed"
+	PaymentEventRefunded AmqpEvent = "payment.event.refunded"
 )
