@@ -36,7 +36,7 @@ service RiderService {
 
 // PaymentService handles payments
 service PaymentService {
-  // InitiatePayment starts processing a new payment request
+  // InitiatePayment initiates payment processing for a trip and returns checkout URL
   rpc InitiatePayment(InitiatePaymentRequest) returns (InitiatePaymentResponse);
 }
 

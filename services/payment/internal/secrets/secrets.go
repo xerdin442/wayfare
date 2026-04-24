@@ -9,18 +9,24 @@ import (
 )
 
 type Secrets struct {
-	ServicePort int
-	MongoUri    string
-	RedisUri    string
-	AmqpUri     string
+	ServicePort             int
+	MongoUri                string
+	RedisUri                string
+	AmqpUri                 string
+	PaystackSecretKey       string
+	FlutterwaveClientId     string
+	FlutterwaveClientSecret string
 }
 
 func Load() *Secrets {
 	return &Secrets{
-		ServicePort: getInt("SERVICE_PORT"),
-		MongoUri:    getStr("MONGO_URI"),
-		RedisUri:    getStr("REDIS_URI"),
-		AmqpUri:     getStr("AMQP_URI"),
+		ServicePort:             getInt("SERVICE_PORT"),
+		MongoUri:                getStr("MONGO_URI"),
+		RedisUri:                getStr("REDIS_URI"),
+		AmqpUri:                 getStr("AMQP_URI"),
+		PaystackSecretKey:       getStr("PAYSTACK_SECRET_KEY"),
+		FlutterwaveClientId:     getStr("FLW_CLIENT_ID"),
+		FlutterwaveClientSecret: getStr("FLW_CLIENT_SECRET"),
 	}
 }
 

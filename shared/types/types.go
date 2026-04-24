@@ -29,10 +29,9 @@ const (
 type PaymentStatus string
 
 const (
-	PaymentStatusPending  PaymentStatus = "pending"
-	PaymentStatusSuccess  PaymentStatus = "success"
-	PaymentStatusFailed   PaymentStatus = "failed"
-	PaymentStatusRefunded PaymentStatus = "refunded"
+	PaymentStatusPending PaymentStatus = "pending"
+	PaymentStatusSuccess PaymentStatus = "success"
+	PaymentStatusFailed  PaymentStatus = "failed"
 )
 
 type PaymentProvider string
@@ -87,11 +86,4 @@ type Rider struct {
 	Name           string `json:"name"`
 	Email          string `json:"email"`
 	ProfilePicture string `json:"profilePicture"`
-}
-
-type PaymentSession struct {
-	TripID    string `json:"tripID"`
-	SessionID string `json:"sessionID"`
-	Amount    int64  `json:"amount"`
-	Currency  string `json:"currency"`
 }

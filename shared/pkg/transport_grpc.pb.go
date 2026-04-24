@@ -552,7 +552,7 @@ const (
 //
 // PaymentService handles payments
 type PaymentServiceClient interface {
-	// InitiatePayment starts a new payment process
+	// InitiatePayment initiates payment processing for a trip and returns checkout URL
 	InitiatePayment(ctx context.Context, in *InitiatePaymentRequest, opts ...grpc.CallOption) (*InitiatePaymentResponse, error)
 }
 
@@ -580,7 +580,7 @@ func (c *paymentServiceClient) InitiatePayment(ctx context.Context, in *Initiate
 //
 // PaymentService handles payments
 type PaymentServiceServer interface {
-	// InitiatePayment starts a new payment process
+	// InitiatePayment initiates payment processing for a trip and returns checkout URL
 	InitiatePayment(context.Context, *InitiatePaymentRequest) (*InitiatePaymentResponse, error)
 	mustEmbedUnimplementedPaymentServiceServer()
 }

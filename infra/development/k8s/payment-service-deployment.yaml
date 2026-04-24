@@ -46,7 +46,22 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: app-secrets
-                  key: AMQP_URI                  
+                  key: AMQP_URI     
+            - name: PAYSTACK_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: PAYSTACK_SECRET_KEY
+            - name: FLUTTERWAVE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: FLW_CLIENT_ID
+            - name: FLUTTERWAVE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: FLW_CLIENT_SECRET
 ---
 apiVersion: v1
 kind: Service

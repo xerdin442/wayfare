@@ -51,6 +51,11 @@ type TripUpdateQueuePayload struct {
 	DriverID string `json:"driver_id,omitempty"`
 }
 
+type PaymentQueuePayload struct {
+	Provider types.PaymentProvider `json:"provider"`
+	Data     any                   `json:"data"`
+}
+
 type AmqpEvent string
 
 const (
@@ -80,5 +85,4 @@ const (
 	PaymentEventWebhookReceived AmqpEvent = "payment.event.webhook_received"
 	PaymentEventSuccess         AmqpEvent = "payment.event.success"
 	PaymentEventFailed          AmqpEvent = "payment.event.failed"
-	PaymentEventRefunded        AmqpEvent = "payment.event.refunded"
 )
