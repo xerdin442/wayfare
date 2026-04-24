@@ -8,11 +8,11 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/xerdin442/wayfare/services/driver/internal/infra/events"
-	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
-	"github.com/xerdin442/wayfare/services/driver/internal/secrets"
-	"github.com/xerdin442/wayfare/services/driver/internal/server"
-	"github.com/xerdin442/wayfare/services/driver/internal/service"
+	"github.com/xerdin442/wayfare/services/payment/internal/infra/events"
+	repo "github.com/xerdin442/wayfare/services/payment/internal/infra/repository"
+	"github.com/xerdin442/wayfare/services/payment/internal/secrets"
+	"github.com/xerdin442/wayfare/services/payment/internal/server"
+	"github.com/xerdin442/wayfare/services/payment/internal/service"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/storage"
 	"golang.org/x/sync/errgroup"
@@ -32,6 +32,8 @@ func main() {
 
 	// Initialize database
 	database := storage.InitializeDatabase(ctx, env.MongoUri)
+
+	// Initialize cache
 	cache := storage.InitializeCache(ctx, env.RedisUri)
 
 	// Initialize message bus
@@ -39,17 +41,12 @@ func main() {
 	defer rmq.Close()
 
 	// Setup repository and service
-	repo := repo.NewDriverRepository(database)
-	svc := service.NewDriverService(repo)
-	h := events.NewDriverEventsHandler(rmq, cache)
+	repo := repo.NewPaymentRepository(database)
+	svc := service.NewPaymentService(repo, cache)
+	h := events.NewPaymentEventsHandler(repo, rmq, cache)
 
-	w := messaging.NewEventWorker(rmq, messaging.AssignDriverQueue)
-	w.RegisterHandler(
-		h.FindAndAssignDriver,
-		messaging.TripEventCreated,
-		messaging.TripEventDriverNotAvailable,
-		messaging.TripEventDriverNotInterested,
-	)
+	w := messaging.NewEventWorker(rmq, messaging.PaymentQueue)
+	w.RegisterHandler(h.HandleWebhook, messaging.PaymentEventWebhookReceived)
 
 	g.Go(func() error {
 		log.Info().Msg("Starting event worker...")
@@ -64,6 +61,6 @@ func main() {
 	})
 
 	if err := g.Wait(); err != nil {
-		log.Fatal().Err(err).Msg("Driver service stopped")
+		log.Fatal().Err(err).Msg("Payment service stopped")
 	}
 }

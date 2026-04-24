@@ -37,6 +37,7 @@ const (
 	GatewayQueue      AmqpQueue = "gateway_queue"
 	AssignDriverQueue AmqpQueue = "assign_driver_queue"
 	TripUpdateQueue   AmqpQueue = "trip_update_queue"
+	PaymentQueue      AmqpQueue = "payment_queue"
 	DeadLetterQueue   AmqpQueue = "dead_letter_queue"
 )
 
@@ -76,7 +77,8 @@ const (
 	DriverCmdLocationUpdate AmqpEvent = "driver.cmd.location_update"
 
 	// Payment events
-	PaymentEventSuccess  AmqpEvent = "payment.event.success"
-	PaymentEventFailed   AmqpEvent = "payment.event.failed"
-	PaymentEventRefunded AmqpEvent = "payment.event.refunded"
+	PaymentEventWebhookReceived AmqpEvent = "payment.event.webhook_received"
+	PaymentEventSuccess         AmqpEvent = "payment.event.success"
+	PaymentEventFailed          AmqpEvent = "payment.event.failed"
+	PaymentEventRefunded        AmqpEvent = "payment.event.refunded"
 )

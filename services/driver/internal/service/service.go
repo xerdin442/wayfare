@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
-	"github.com/xerdin442/wayfare/shared/messaging"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
@@ -14,14 +13,12 @@ import (
 
 type DriverService struct {
 	rpc.UnimplementedDriverServiceServer
-	repo  *repo.DriverRepository
-	queue messaging.MessageBus
+	repo *repo.DriverRepository
 }
 
-func NewDriverService(r *repo.DriverRepository, q messaging.MessageBus) *DriverService {
+func NewDriverService(r *repo.DriverRepository) *DriverService {
 	return &DriverService{
-		repo:  r,
-		queue: q,
+		repo: r,
 	}
 }
 

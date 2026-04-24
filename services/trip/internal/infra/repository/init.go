@@ -51,7 +51,7 @@ var carPackageSchema = bson.M{
 
 var priceSchema = bson.M{
 	"bsonType": "long",
-	"minimum":  0,
+	"minimum":  1,
 }
 
 func CreateRegionsCollection(db *mongo.Database, name string) (*mongo.Collection, error) {

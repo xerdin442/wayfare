@@ -37,11 +37,6 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: MONGO_URI
-            - name: AMQP_URI
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: AMQP_URI
 ---
 apiVersion: v1
 kind: Service

@@ -12,7 +12,6 @@ import (
 	"github.com/xerdin442/wayfare/services/rider/internal/secrets"
 	"github.com/xerdin442/wayfare/services/rider/internal/server"
 	"github.com/xerdin442/wayfare/services/rider/internal/service"
-	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/storage"
 	"golang.org/x/sync/errgroup"
 )
@@ -29,13 +28,12 @@ func main() {
 	// Initialize logger
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
+	// Initialize database
 	database := storage.InitializeDatabase(ctx, env.MongoUri)
 
-	rmq := messaging.NewRabbitMQ(env.AmqpUri)
-	defer rmq.Close()
-
+	// Setup repository and service
 	repo := repo.NewRiderRepository(database)
-	svc := service.NewRiderService(repo, rmq)
+	svc := service.NewRiderService(repo)
 
 	g.Go(func() error {
 		log.Info().Msg("Starting server...")

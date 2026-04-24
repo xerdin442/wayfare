@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	repo "github.com/xerdin442/wayfare/services/rider/internal/infra/repository"
-	"github.com/xerdin442/wayfare/shared/messaging"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
@@ -14,14 +13,12 @@ import (
 
 type RiderService struct {
 	rpc.UnimplementedRiderServiceServer
-	repo  *repo.RiderRepository
-	queue messaging.MessageBus
+	repo *repo.RiderRepository
 }
 
-func NewRiderService(r *repo.RiderRepository, q messaging.MessageBus) *RiderService {
+func NewRiderService(r *repo.RiderRepository) *RiderService {
 	return &RiderService{
-		repo:  r,
-		queue: q,
+		repo: r,
 	}
 }
 
