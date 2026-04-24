@@ -7,7 +7,9 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
@@ -27,6 +29,28 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 		return
 	}
 
+	idempotencyKey := fmt.Sprintf("lock:payment:%s", req.TripID)
+
+	// Check if request is still being processed
+	n, err := h.cfg.Cache.Exists(c.Request.Context(), idempotencyKey).Result()
+	if err != nil {
+		logger.Error().Err(err).Msg("Error fetching idempotency lock from cache")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
+		return
+	}
+
+	if n > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Request is already being processed"})
+		return
+	}
+
+	// Set idempotency lock in cache
+	if err := h.cfg.Cache.Set(c.Request.Context(), idempotencyKey, "locked", time.Minute).Err(); err != nil {
+		logger.Error().Err(err).Msg("Error setting idempotency lock")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
+		return
+	}
+
 	response, err := h.cfg.Clients.Payment.InitiatePayment(c.Request.Context(), &rpc.InitiatePaymentRequest{
 		TripId: req.TripID,
 		Email:  req.Email,
@@ -35,7 +59,7 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 
 	if err != nil {
 		logger.Error().Err(err).Str("trip_id", req.TripID).Msg("Failed to initiate processing of payment request")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not initiate payment"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
 		return
 	}
 

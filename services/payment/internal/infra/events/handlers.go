@@ -2,6 +2,8 @@ package events
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/redis/go-redis/v9"
 	repo "github.com/xerdin442/wayfare/services/payment/internal/infra/repository"
@@ -23,5 +25,15 @@ func NewPaymentEventsHandler(r *repo.PaymentRepository, b messaging.MessageBus, 
 }
 
 func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
+	var msg messaging.AmqpMessage
+	if err := json.Unmarshal(p.Body, &msg); err != nil {
+		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
+	}
+
+	var payload messaging.PaymentQueuePayload
+	if err := json.Unmarshal(msg.Data, &payload); err != nil {
+		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
+	}
+
 	return nil
 }
