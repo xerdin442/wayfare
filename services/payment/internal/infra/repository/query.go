@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -26,6 +27,24 @@ func NewPaymentRepository(db *mongo.Database) *PaymentRepository {
 	return &PaymentRepository{
 		txnColl: txnCollection,
 	}
+}
+
+func (r *PaymentRepository) GetTransactionByID(ctx context.Context, txnID string) (*models.TransactionModel, error) {
+	txnIDHex, err := bson.ObjectIDFromHex(txnID)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid transaction ID: %v", err)
+	}
+
+	var transaction models.TransactionModel
+	err = r.txnColl.FindOne(ctx, bson.M{"_id": txnIDHex}).Decode(&transaction)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("Transaction not found")
+		}
+		return nil, fmt.Errorf("Error fetching transaction: %v", err)
+	}
+
+	return &transaction, nil
 }
 
 func (r *PaymentRepository) CreateTransaction(ctx context.Context, details *rpc.InitiatePaymentRequest) (string, error) {

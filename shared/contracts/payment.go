@@ -22,10 +22,9 @@ type FlutterwaveCheckoutResponse struct {
 type FlutterwaveWebhookPayload struct {
 	Event string `json:"event"`
 	Data  struct {
-		Status   string               `json:"status"`
-		Amount   int64                `json:"amount"`
-		TxRef    string               `json:"tx_ref"`
-		Customer *FlutterwaveCustomer `json:"customer"`
+		Status string `json:"status"`
+		Amount int64  `json:"amount"`
+		TxRef  string `json:"tx_ref"`
 	} `json:"data"`
 }
 

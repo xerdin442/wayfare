@@ -52,21 +52,11 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: PAYSTACK_SECRET_KEY
-            - name: PAYSTACK_API_URL
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: PAYSTACK_API_URL                  
             - name: FLUTTERWAVE_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: app-secrets
-                  key: FLUTTERWAVE_SECRET_KEY
-            - name: FLUTTERWAVE_API_URL
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: FLUTTERWAVE_API_URL                  
+                  key: FLUTTERWAVE_SECRET_KEY                 
 ---
 apiVersion: v1
 kind: Service

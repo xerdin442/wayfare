@@ -66,7 +66,11 @@ func (s *PaymentService) sendApiRequest(url, secretKey string, payload io.Reader
 
 func (s *PaymentService) generatePaystackCheckout(req *contracts.PaystackCheckoutRequest) (string, error) {
 	payload, _ := json.Marshal(req)
-	httpResp, err := s.sendApiRequest(s.env.PaystackApiUrl, s.env.PaystackSecretKey, bytes.NewBuffer(payload))
+	httpResp, err := s.sendApiRequest(
+		"https://api.paystack.co/transaction/initialize",
+		s.env.PaystackSecretKey,
+		bytes.NewBuffer(payload),
+	)
 	if err != nil {
 		return "", err
 	}
@@ -81,7 +85,11 @@ func (s *PaymentService) generatePaystackCheckout(req *contracts.PaystackCheckou
 
 func (s *PaymentService) generateFlutterwaveCheckout(req *contracts.FlutterwaveCheckoutRequest) (string, error) {
 	payload, _ := json.Marshal(req)
-	httpResp, err := s.sendApiRequest(s.env.FlutterwaveApiUrl, s.env.FlutterwaveSecretKey, bytes.NewBuffer(payload))
+	httpResp, err := s.sendApiRequest(
+		"https://api.flutterwave.com/v3/payments",
+		s.env.FlutterwaveSecretKey,
+		bytes.NewBuffer(payload),
+	)
 	if err != nil {
 		return "", err
 	}
@@ -114,7 +122,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 	// Configure payloads for checkout request
 	paystackRequestPayload := &contracts.PaystackCheckoutRequest{
 		Email:       req.Email,
-		Amount:      req.Amount,
+		Amount:      req.Amount * 100,
 		Reference:   txnID,
 		Channels:    []string{"card", "apple_pay", "bank_transfer"},
 		CallbackUrl: req.CustomRedirect,

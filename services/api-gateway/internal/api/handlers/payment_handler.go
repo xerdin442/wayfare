@@ -68,6 +68,8 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 	logger := log.Ctx(c.Request.Context())
 
+	userID := c.MustGet("user_id").(string)
+
 	var provider types.PaymentProvider
 	var payload any
 
@@ -142,6 +144,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 
 	// Publish webhook event to payment service
 	paymentServiceData, err := json.Marshal(messaging.PaymentQueuePayload{
+		RiderID:  userID,
 		Provider: provider,
 		Data:     payload,
 	})

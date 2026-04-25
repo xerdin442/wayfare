@@ -52,6 +52,7 @@ type TripUpdateQueuePayload struct {
 }
 
 type PaymentQueuePayload struct {
+	RiderID  string                `json:"rider_id"`
 	Provider types.PaymentProvider `json:"provider"`
 	Data     any                   `json:"data"`
 }
