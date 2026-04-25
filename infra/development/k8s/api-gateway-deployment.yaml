@@ -83,11 +83,11 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: PAYSTACK_SECRET_KEY
-            - name: FLUTTERWAVE_SECRET_HASH
+            - name: FLUTTERWAVE_VERIF_HASH
               valueFrom:
                 secretKeyRef:
                   name: app-secrets
-                  key: FLW_SECRET_HASH
+                  key: FLUTTERWAVE_VERIF_HASH
 ---
 apiVersion: v1
 kind: Service

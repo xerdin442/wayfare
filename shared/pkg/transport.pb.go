@@ -610,12 +610,13 @@ func (x *StartTripResponse) GetTripId() string {
 }
 
 type InitiatePaymentRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TripId        string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Amount        int64                  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TripId         string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
+	Email          string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Amount         int64                  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	CustomRedirect string                 `protobuf:"bytes,4,opt,name=custom_redirect,json=customRedirect,proto3" json:"custom_redirect,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *InitiatePaymentRequest) Reset() {
@@ -667,6 +668,13 @@ func (x *InitiatePaymentRequest) GetAmount() int64 {
 		return x.Amount
 	}
 	return 0
+}
+
+func (x *InitiatePaymentRequest) GetCustomRedirect() string {
+	if x != nil {
+		return x.CustomRedirect
+	}
+	return ""
 }
 
 type InitiatePaymentResponse struct {
@@ -755,11 +763,12 @@ const file_transport_proto_rawDesc = "" +
 	"\fride_fare_id\x18\x02 \x01(\tR\n" +
 	"rideFareId\",\n" +
 	"\x11StartTripResponse\x12\x17\n" +
-	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"_\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"\x88\x01\n" +
 	"\x16InitiatePaymentRequest\x12\x17\n" +
 	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x16\n" +
-	"\x06amount\x18\x03 \x01(\x03R\x06amount\"<\n" +
+	"\x06amount\x18\x03 \x01(\x03R\x06amount\x12'\n" +
+	"\x0fcustom_redirect\x18\x04 \x01(\tR\x0ecustomRedirect\"<\n" +
 	"\x17InitiatePaymentResponse\x12!\n" +
 	"\fcheckout_url\x18\x01 \x01(\tR\vcheckoutUrl2\x9b\x01\n" +
 	"\vTripService\x12H\n" +

@@ -98,9 +98,10 @@ message StartTripResponse {
 }
 
 message InitiatePaymentRequest {
-  string trip_id = 1;
-  string email   = 2;
-  int64  amount  = 3;
+  string trip_id         = 1;
+  string email           = 2;
+  int64  amount          = 3;
+  string custom_redirect = 4;
 }
 
 message InitiatePaymentResponse {

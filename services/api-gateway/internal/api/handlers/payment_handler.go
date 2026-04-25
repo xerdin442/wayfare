@@ -2,13 +2,12 @@ package handlers
 
 import (
 	"crypto/hmac"
-	"crypto/sha256"
 	"crypto/sha512"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -45,7 +44,7 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 	}
 
 	// Set idempotency lock in cache
-	if err := h.cfg.Cache.Set(c.Request.Context(), idempotencyKey, "locked", time.Minute).Err(); err != nil {
+	if err := h.cfg.Cache.Set(c.Request.Context(), idempotencyKey, "locked", 2*time.Minute).Err(); err != nil {
 		logger.Error().Err(err).Msg("Error setting idempotency lock")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
 		return
@@ -73,7 +72,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 	var payload any
 
 	paystackSignature := c.GetHeader("x-paystack-signature")
-	flutterwaveSignature := c.GetHeader("flutterwave-signature")
+	flutterwaveSignature := c.GetHeader("verif-hash")
 
 	rawBody, err := c.GetRawData()
 	if err != nil {
@@ -103,15 +102,17 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 			return
 		}
 
+		if !strings.HasPrefix(req.Event, "charge.") {
+			logger.Warn().Msg("Invalid Paystack webhook event")
+			c.Status(http.StatusBadRequest)
+			return
+		}
+
 		payload = req
 	} else if flutterwaveSignature != "" {
 		provider = types.ProviderFlutterwave
 
-		h := hmac.New(sha256.New, []byte(h.cfg.Env.FlutterwaveSecretHash))
-		h.Write(rawBody)
-		hash := base64.StdEncoding.EncodeToString(h.Sum(nil))
-
-		if hash != flutterwaveSignature {
+		if h.cfg.Env.FlutterwaveVerifHash != flutterwaveSignature {
 			logger.Error().Msg("Invalid flutterwave signature")
 			c.Status(http.StatusBadRequest)
 			return
@@ -120,6 +121,12 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 		var req contracts.FlutterwaveWebhookPayload
 		if err := c.ShouldBindJSON(&req); err != nil {
 			logger.Error().Err(err).Msg("Error parsing Flutterwave webhook payload")
+			c.Status(http.StatusBadRequest)
+			return
+		}
+
+		if !strings.HasPrefix(req.Event, "charge.") {
+			logger.Warn().Msg("Invalid Flutterwave webhook event")
 			c.Status(http.StatusBadRequest)
 			return
 		}

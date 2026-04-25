@@ -13,10 +13,9 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"trip_id", "provider", "email", "amount", "status", "created_at", "updated_at"},
+		"required": []string{"trip_id", "email", "amount", "status", "created_at", "updated_at"},
 		"properties": bson.M{
-			"trip_id":          bson.M{"bsonType": "objectId"},
-			"provider_txn_ref": bson.M{"bsonType": "string"},
+			"trip_id": bson.M{"bsonType": "objectId"},
 			"provider": bson.M{
 				"enum":        []string{"paystack", "flutterwave"},
 				"description": "must be one of the supported payment providers",
@@ -42,15 +41,12 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 
 	collection := db.Collection(name)
 
-	// Create indexes
+	// Create search index
 	tripIndex := mongo.IndexModel{
 		Keys: bson.D{{Key: "trip_id", Value: 1}},
 	}
-	refIndex := mongo.IndexModel{
-		Keys: bson.D{{Key: "provider_txn_ref", Value: 1}},
-	}
 
-	_, err := collection.Indexes().CreateMany(ctx, []mongo.IndexModel{tripIndex, refIndex})
+	_, err := collection.Indexes().CreateOne(ctx, tripIndex)
 	if err != nil {
 		return nil, err
 	}

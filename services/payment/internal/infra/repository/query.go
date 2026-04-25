@@ -28,16 +28,15 @@ func NewPaymentRepository(db *mongo.Database) *PaymentRepository {
 	}
 }
 
-func (r *PaymentRepository) CreateTransaction(ctx context.Context, details *rpc.InitiatePaymentRequest, provider types.PaymentProvider) (*models.TransactionModel, error) {
+func (r *PaymentRepository) CreateTransaction(ctx context.Context, details *rpc.InitiatePaymentRequest) (string, error) {
 	tripIDHex, err := bson.ObjectIDFromHex(details.TripId)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid trip ID: %v", err)
+		return "", fmt.Errorf("Invalid trip ID: %v", err)
 	}
 
 	txn := &models.TransactionModel{
 		ID:        bson.NewObjectID(),
 		TripID:    tripIDHex,
-		Provider:  provider,
 		Email:     details.Email,
 		Amount:    details.Amount,
 		Status:    types.PaymentStatusPending,
@@ -47,22 +46,22 @@ func (r *PaymentRepository) CreateTransaction(ctx context.Context, details *rpc.
 
 	_, insertErr := r.txnColl.InsertOne(ctx, txn)
 	if insertErr != nil {
-		return nil, fmt.Errorf("Failed to insert transaction document: %v", insertErr)
+		return "", fmt.Errorf("Failed to insert transaction document: %v", insertErr)
 	}
 
-	return txn, nil
+	return txn.ID.Hex(), nil
 }
 
-func (r *PaymentRepository) UpdateTransaction(ctx context.Context, txnID string, status types.PaymentStatus, providerTxnRef string) error {
+func (r *PaymentRepository) UpdateTransaction(ctx context.Context, txnID string, status types.PaymentStatus, provider types.PaymentProvider) error {
 	txnIDHex, err := bson.ObjectIDFromHex(txnID)
 	if err != nil {
 		return fmt.Errorf("Invalid transaction ID: %v", err)
 	}
 
 	updateData := bson.M{
-		"status":           status,
-		"provider_txn_ref": providerTxnRef,
-		"updated_at":       time.Now().UTC(),
+		"status":     status,
+		"provider":   provider,
+		"updated_at": time.Now().UTC(),
 	}
 
 	update := bson.M{

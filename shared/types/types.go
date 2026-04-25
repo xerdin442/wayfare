@@ -32,6 +32,7 @@ const (
 	PaymentStatusPending PaymentStatus = "pending"
 	PaymentStatusSuccess PaymentStatus = "success"
 	PaymentStatusFailed  PaymentStatus = "failed"
+	PaymentStatusAborted PaymentStatus = "aborted"
 )
 
 type PaymentProvider string
