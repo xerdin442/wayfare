@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/models"
@@ -72,6 +73,8 @@ func (r *RiderRepository) CreateRiderAccount(ctx context.Context, details *rpc.S
 		Email:          details.Email,
 		Password:       string(hashedPassword),
 		ProfilePicture: details.ProfileImage,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 	}
 
 	_, insertErr := r.riderColl.InsertOne(ctx, rider)

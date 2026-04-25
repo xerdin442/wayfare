@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/models"
@@ -75,6 +76,8 @@ func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *rpc
 		ProfilePicture: details.ProfileImage,
 		CarPackage:     types.CarPackage(details.CarPackage),
 		CarPlate:       details.CarPlate,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 	}
 
 	_, insertErr := r.driverColl.InsertOne(ctx, driver)
