@@ -1,5 +1,12 @@
 package contracts
 
+type GatewayErrorResponse struct {
+	Message string `json:"message,omitempty"`
+	Code    string `json:"code,omitempty"`
+	Type    string `json:"type,omitempty"`     // Paystack only
+	ErrorID string `json:"error_id,omitempty"` // Flutterwave only
+}
+
 type FlutterwaveCustomer struct {
 	Email string `json:"email"`
 }

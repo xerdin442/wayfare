@@ -59,6 +59,28 @@ func (s *PaymentService) sendApiRequest(ctx context.Context, url, secretKey stri
 	defer response.Body.Close()
 
 	if response.StatusCode >= 500 {
+		errorBody, err := io.ReadAll(response.Body)
+		if err != nil {
+			log.Error().Str("provider_url", url).Err(err).Msg("Failed to read gateway error response")
+			return nil, ErrGatewayUnavailable
+		}
+
+		var gatewayErr contracts.GatewayErrorResponse
+		if err := json.Unmarshal(errorBody, &gatewayErr); err != nil {
+			log.Error().Str("provider_url", url).Err(err).Msg("Failed to unmarshal gateway error response")
+			return nil, ErrGatewayUnavailable
+		}
+
+		// Log error details for debugging
+		log.Error().
+			Int("http_status", response.StatusCode).
+			Str("provider_url", url).
+			Str("message", gatewayErr.Message).
+			Str("code", gatewayErr.Code).
+			Str("type", gatewayErr.Type).
+			Str("error_id", gatewayErr.ErrorID).
+			Msg("Gateway error response")
+
 		return nil, ErrGatewayUnavailable
 	}
 
