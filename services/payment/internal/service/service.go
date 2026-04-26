@@ -22,6 +22,7 @@ import (
 )
 
 var ErrGatewayUnavailable = errors.New("payment gateway is currently unavailable")
+var ErrApiRequestFailure = errors.New("failed to send api request")
 
 type PaymentService struct {
 	rpc.UnimplementedPaymentServiceServer
@@ -38,9 +39,9 @@ func NewPaymentService(r *repo.PaymentRepository, c *redis.Client, s *secrets.Se
 	}
 }
 
-func (s *PaymentService) sendApiRequest(url, secretKey string, payload io.Reader) ([]byte, error) {
+func (s *PaymentService) sendApiRequest(ctx context.Context, url, secretKey string, payload io.Reader) ([]byte, error) {
 	// Configure request details
-	req, err := http.NewRequest("POST", url, payload)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, payload)
 	if err != nil {
 		return nil, fmt.Errorf("Error configuring new HTTP request. %s", err.Error())
 	}
@@ -52,7 +53,8 @@ func (s *PaymentService) sendApiRequest(url, secretKey string, payload io.Reader
 	httpClient := &http.Client{Timeout: 30 * time.Second}
 	response, err := httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Error sending request to payment provider. %s", err.Error())
+		log.Error().Err(err).Msg("Error sending request to payment provider")
+		return nil, ErrApiRequestFailure
 	}
 	defer response.Body.Close()
 
@@ -60,14 +62,23 @@ func (s *PaymentService) sendApiRequest(url, secretKey string, payload io.Reader
 		return nil, ErrGatewayUnavailable
 	}
 
-	body, _ := io.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read API response body: %s", err.Error())
+	}
+
 	return body, nil
 }
 
-func (s *PaymentService) generatePaystackCheckout(req *contracts.PaystackCheckoutRequest) (string, error) {
-	payload, _ := json.Marshal(req)
+func (s *PaymentService) generatePaystackCheckout(ctx context.Context, req *contracts.PaystackCheckoutRequest) (string, error) {
+	payload, err := json.Marshal(req)
+	if err != nil {
+		return "", fmt.Errorf("Failed to marshal checkout request payload: %s", err.Error())
+	}
+
 	httpResp, err := s.sendApiRequest(
-		"https://api.paystack.co/transaction/initialize",
+		ctx,
+		s.env.PaystackApiUrl,
 		s.env.PaystackSecretKey,
 		bytes.NewBuffer(payload),
 	)
@@ -83,10 +94,15 @@ func (s *PaymentService) generatePaystackCheckout(req *contracts.PaystackCheckou
 	return checkoutInfo.Data.AuthorizationUrl, nil
 }
 
-func (s *PaymentService) generateFlutterwaveCheckout(req *contracts.FlutterwaveCheckoutRequest) (string, error) {
-	payload, _ := json.Marshal(req)
+func (s *PaymentService) generateFlutterwaveCheckout(ctx context.Context, req *contracts.FlutterwaveCheckoutRequest) (string, error) {
+	payload, err := json.Marshal(req)
+	if err != nil {
+		return "", fmt.Errorf("Failed to marshal checkout request payload: %s", err.Error())
+	}
+
 	httpResp, err := s.sendApiRequest(
-		"https://api.flutterwave.com/v3/payments",
+		ctx,
+		s.env.FlutterwaveApiUrl,
 		s.env.FlutterwaveSecretKey,
 		bytes.NewBuffer(payload),
 	)
@@ -139,12 +155,12 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 
 	if n > 0 {
 		for i := range 3 {
-			checkoutUrl, err = s.generateFlutterwaveCheckout(flutterwaveRequestPayload)
+			checkoutUrl, err = s.generateFlutterwaveCheckout(ctx, flutterwaveRequestPayload)
 			if err == nil {
 				break
 			}
 
-			if errors.Is(err, ErrGatewayUnavailable) {
+			if errors.Is(err, ErrGatewayUnavailable) || errors.Is(err, ErrApiRequestFailure) {
 				if i == 2 {
 					log.Warn().Msg("All payment gateways are currently unavailable!")
 
@@ -164,12 +180,12 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 		}
 	} else {
 		for i := range 3 {
-			checkoutUrl, err = s.generatePaystackCheckout(paystackRequestPayload)
+			checkoutUrl, err = s.generatePaystackCheckout(ctx, paystackRequestPayload)
 			if err == nil {
 				break
 			}
 
-			if errors.Is(err, ErrGatewayUnavailable) {
+			if errors.Is(err, ErrGatewayUnavailable) || errors.Is(err, ErrApiRequestFailure) {
 				if i == 2 {
 					log.Warn().Msg("Paystack gateway is unavailable. Redirecting requests to backup gateway...")
 
@@ -180,12 +196,12 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 
 					// Redirect requests to backup payment gateway
 					for j := range 3 {
-						checkoutUrl, err = s.generateFlutterwaveCheckout(flutterwaveRequestPayload)
+						checkoutUrl, err = s.generateFlutterwaveCheckout(ctx, flutterwaveRequestPayload)
 						if err == nil {
 							break
 						}
 
-						if errors.Is(err, ErrGatewayUnavailable) {
+						if errors.Is(err, ErrGatewayUnavailable) || errors.Is(err, ErrApiRequestFailure) {
 							if j == 2 {
 								log.Warn().Msg("All payment gateways are currently unavailable!")
 

@@ -14,7 +14,9 @@ type Secrets struct {
 	RedisUri             string
 	AmqpUri              string
 	PaystackSecretKey    string
+	PaystackApiUrl       string
 	FlutterwaveSecretKey string
+	FlutterwaveApiUrl    string
 }
 
 func Load() *Secrets {
@@ -24,7 +26,9 @@ func Load() *Secrets {
 		RedisUri:             getStr("REDIS_URI"),
 		AmqpUri:              getStr("AMQP_URI"),
 		PaystackSecretKey:    getStr("PAYSTACK_SECRET_KEY"),
+		PaystackApiUrl:       getStr("PAYSTACK_API_URL"),
 		FlutterwaveSecretKey: getStr("FLUTTERWAVE_SECRET_KEY"),
+		FlutterwaveApiUrl:    getStr("FLUTTERWAVE_API_URL"),
 	}
 }
 
