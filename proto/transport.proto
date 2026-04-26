@@ -12,6 +12,8 @@ service TripService {
   rpc PreviewTrip(PreviewTripRequest) returns (PreviewTripResponse);
   // StartTrip returns the generated trip ID
   rpc StartTrip(StartTripRequest) returns (StartTripResponse);
+  // GetTripDetails returns the trip details by ID
+  rpc GetTripDetails(TripDetailsRequest) returns (TripDetailsResponse);
 }
 
 // DriverService handles drivers' response to trip requests
@@ -38,6 +40,15 @@ service RiderService {
 service PaymentService {
   // InitiatePayment initiates payment processing for a trip and returns checkout URL
   rpc InitiatePayment(InitiatePaymentRequest) returns (InitiatePaymentResponse);
+}
+
+message TripDetailsRequest {
+  string trip_id = 1;
+}
+
+message TripDetailsResponse {
+  int64  ride_fare_amount = 1;
+  string user_id          = 2;
 }
 
 message GetProfileRequest {

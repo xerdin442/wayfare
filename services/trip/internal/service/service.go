@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/twpayne/go-polyline"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
@@ -94,6 +95,21 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *rpc
 	}
 
 	return rideFares, nil
+}
+
+func (s *TripService) GetTripDetails(ctx context.Context, req *rpc.TripDetailsRequest) (*rpc.TripDetailsResponse, error) {
+	trip, err := s.repo.GetTripByID(ctx, req.TripId)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return nil, status.Error(codes.NotFound, "Trip not found")
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &rpc.TripDetailsResponse{
+		RideFareAmount: trip.Fare.BasePrice,
+		UserId:         trip.UserID.Hex(),
+	}, nil
 }
 
 func (s *TripService) PreviewTrip(ctx context.Context, req *rpc.PreviewTripRequest) (*rpc.PreviewTripResponse, error) {

@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TripService_PreviewTrip_FullMethodName = "/wayfare.TripService/PreviewTrip"
-	TripService_StartTrip_FullMethodName   = "/wayfare.TripService/StartTrip"
+	TripService_PreviewTrip_FullMethodName    = "/wayfare.TripService/PreviewTrip"
+	TripService_StartTrip_FullMethodName      = "/wayfare.TripService/StartTrip"
+	TripService_GetTripDetails_FullMethodName = "/wayfare.TripService/GetTripDetails"
 )
 
 // TripServiceClient is the client API for TripService service.
@@ -33,6 +34,8 @@ type TripServiceClient interface {
 	PreviewTrip(ctx context.Context, in *PreviewTripRequest, opts ...grpc.CallOption) (*PreviewTripResponse, error)
 	// StartTrip returns the generated trip ID
 	StartTrip(ctx context.Context, in *StartTripRequest, opts ...grpc.CallOption) (*StartTripResponse, error)
+	// GetTripDetails returns the trip details by ID
+	GetTripDetails(ctx context.Context, in *TripDetailsRequest, opts ...grpc.CallOption) (*TripDetailsResponse, error)
 }
 
 type tripServiceClient struct {
@@ -63,6 +66,16 @@ func (c *tripServiceClient) StartTrip(ctx context.Context, in *StartTripRequest,
 	return out, nil
 }
 
+func (c *tripServiceClient) GetTripDetails(ctx context.Context, in *TripDetailsRequest, opts ...grpc.CallOption) (*TripDetailsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TripDetailsResponse)
+	err := c.cc.Invoke(ctx, TripService_GetTripDetails_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TripServiceServer is the server API for TripService service.
 // All implementations must embed UnimplementedTripServiceServer
 // for forward compatibility.
@@ -73,6 +86,8 @@ type TripServiceServer interface {
 	PreviewTrip(context.Context, *PreviewTripRequest) (*PreviewTripResponse, error)
 	// StartTrip returns the generated trip ID
 	StartTrip(context.Context, *StartTripRequest) (*StartTripResponse, error)
+	// GetTripDetails returns the trip details by ID
+	GetTripDetails(context.Context, *TripDetailsRequest) (*TripDetailsResponse, error)
 	mustEmbedUnimplementedTripServiceServer()
 }
 
@@ -88,6 +103,9 @@ func (UnimplementedTripServiceServer) PreviewTrip(context.Context, *PreviewTripR
 }
 func (UnimplementedTripServiceServer) StartTrip(context.Context, *StartTripRequest) (*StartTripResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartTrip not implemented")
+}
+func (UnimplementedTripServiceServer) GetTripDetails(context.Context, *TripDetailsRequest) (*TripDetailsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTripDetails not implemented")
 }
 func (UnimplementedTripServiceServer) mustEmbedUnimplementedTripServiceServer() {}
 func (UnimplementedTripServiceServer) testEmbeddedByValue()                     {}
@@ -146,6 +164,24 @@ func _TripService_StartTrip_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TripService_GetTripDetails_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TripDetailsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TripServiceServer).GetTripDetails(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TripService_GetTripDetails_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TripServiceServer).GetTripDetails(ctx, req.(*TripDetailsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TripService_ServiceDesc is the grpc.ServiceDesc for TripService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -160,6 +196,10 @@ var TripService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StartTrip",
 			Handler:    _TripService_StartTrip_Handler,
+		},
+		{
+			MethodName: "GetTripDetails",
+			Handler:    _TripService_GetTripDetails_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

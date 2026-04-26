@@ -21,6 +21,8 @@ import (
 func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 	logger := log.Ctx(c.Request.Context())
 
+	userID := c.MustGet("user_id").(string)
+
 	var req contracts.InitiatePaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Error().Err(err).Msg("Error parsing initiate payment request")
@@ -50,19 +52,38 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 		return
 	}
 
-	response, err := h.cfg.Clients.Payment.InitiatePayment(c.Request.Context(), &rpc.InitiatePaymentRequest{
+	// Verify trip details
+	tripDetails, err := h.cfg.Clients.Trip.GetTripDetails(c.Request.Context(), &rpc.TripDetailsRequest{
+		TripId: req.TripID,
+	})
+	if err != nil {
+		logger.Error().Err(err).Str("trip_id", req.TripID).Msg("Failed to get trip details")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
+		return
+	}
+
+	if tripDetails.UserId != userID {
+		log.Warn().
+			Str("trip_owner_id", tripDetails.UserId).
+			Str("payment_request_initiator_id", userID).
+			Msg("Unauthorized access")
+
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized access"})
+		return
+	}
+
+	checkoutResponse, err := h.cfg.Clients.Payment.InitiatePayment(c.Request.Context(), &rpc.InitiatePaymentRequest{
 		TripId: req.TripID,
 		Email:  req.Email,
-		Amount: req.Amount,
+		Amount: tripDetails.RideFareAmount,
 	})
-
 	if err != nil {
 		logger.Error().Err(err).Str("trip_id", req.TripID).Msg("Failed to initiate processing of payment request")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, contracts.APIResponse{Data: response})
+	c.JSON(http.StatusCreated, contracts.APIResponse{Data: checkoutResponse})
 }
 
 func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {

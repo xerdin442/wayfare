@@ -113,6 +113,24 @@ func (r *TripRepository) GetPricingPerRegion(ctx context.Context, pickupCoords [
 	return pricingModels, nil
 }
 
+func (r *TripRepository) GetTripByID(ctx context.Context, tripId string) (*models.TripModel, error) {
+	tripIDHex, err := bson.ObjectIDFromHex(tripId)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid trip ID: %v", err)
+	}
+
+	var trip models.TripModel
+	err = r.tripColl.FindOne(ctx, bson.M{"_id": tripIDHex}).Decode(&trip)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("Trip not found")
+		}
+		return nil, fmt.Errorf("Error fetching trip: %v", err)
+	}
+
+	return &trip, nil
+}
+
 func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) (*models.TripModel, error) {
 	userIDHex, err := bson.ObjectIDFromHex(userID)
 	if err != nil {

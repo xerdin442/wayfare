@@ -146,7 +146,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 	// Store transaction details
 	txnID, err := s.repo.CreateTransaction(ctx, req)
 	if err != nil {
-		return &rpc.InitiatePaymentResponse{}, status.Errorf(codes.Internal, "Database operation failed")
+		return &rpc.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
 	}
 
 	// Check health status of primary payment gateway
@@ -154,7 +154,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 	n, err := s.cache.Exists(ctx, gatewayStatusKey).Result()
 	if err != nil {
 		log.Error().Err(err).Msg("Error fetching gateway status from cache")
-		return nil, status.Errorf(codes.Internal, "Error occurred during payment processing")
+		return nil, status.Error(codes.Internal, "Error occurred during payment processing")
 	}
 
 	// Configure payloads for checkout request
@@ -188,16 +188,16 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 
 					// Update transaction details
 					if err := s.repo.UpdateTransaction(ctx, txnID, types.PaymentStatusAborted, types.ProviderFlutterwave); err != nil {
-						return &rpc.InitiatePaymentResponse{}, status.Errorf(codes.Internal, "Database operation failed")
+						return &rpc.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
 					}
 
-					return nil, status.Errorf(codes.Unavailable, "Service unavailable")
+					return nil, status.Error(codes.Unavailable, "Service unavailable")
 				}
 
 				log.Warn().Int("attempt", i+1).Msg("Flutterwave gateway is currently unavailable. Retrying...")
 				continue
 			} else {
-				return nil, status.Errorf(codes.Internal, "Error occurred during payment processing")
+				return nil, status.Error(codes.Internal, "Error occurred during payment processing")
 			}
 		}
 	} else {
@@ -229,16 +229,16 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 
 								// Update transaction details
 								if err := s.repo.UpdateTransaction(ctx, txnID, types.PaymentStatusAborted, types.ProviderFlutterwave); err != nil {
-									return &rpc.InitiatePaymentResponse{}, status.Errorf(codes.Internal, "Database operation failed")
+									return &rpc.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
 								}
 
-								return nil, status.Errorf(codes.Unavailable, "Service unavailable")
+								return nil, status.Error(codes.Unavailable, "Service unavailable")
 							}
 
 							log.Warn().Int("attempt", j+1).Msg("Flutterwave gateway is currently unavailable. Retrying...")
 							continue
 						} else {
-							return nil, status.Errorf(codes.Internal, "Error occurred during payment processing")
+							return nil, status.Error(codes.Internal, "Error occurred during payment processing")
 						}
 					}
 				} else {
@@ -246,7 +246,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 					continue
 				}
 			} else {
-				return nil, status.Errorf(codes.Internal, "Error occurred during payment processing")
+				return nil, status.Error(codes.Internal, "Error occurred during payment processing")
 			}
 		}
 	}
