@@ -83,7 +83,9 @@ const (
 	DriverCmdLocationUpdate AmqpEvent = "driver.cmd.location_update"
 
 	// Payment events
-	PaymentEventWebhookReceived AmqpEvent = "payment.event.webhook_received"
-	PaymentEventSuccess         AmqpEvent = "payment.event.success"
-	PaymentEventFailed          AmqpEvent = "payment.event.failed"
+	PaymentEventWebhookReceived     AmqpEvent = "payment.event.webhook_received"
+	PaymentEventSuccess             AmqpEvent = "payment.event.success"
+	PaymentEventFailed              AmqpEvent = "payment.event.failed"
+	PaymentEventCashOptionPreferred AmqpEvent = "payment.event.cash_option_preferred"
+	PaymentEventCashReceived        AmqpEvent = "payment.event.cash_payment_received"
 )

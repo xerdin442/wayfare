@@ -142,11 +142,23 @@ func (s *PaymentService) generateFlutterwaveCheckout(ctx context.Context, req *c
 
 func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiatePaymentRequest) (*rpc.InitiatePaymentResponse, error) {
 	var checkoutUrl string
+	var txnID string
 
-	// Store transaction details
-	txnID, err := s.repo.CreateTransaction(ctx, req)
+	// Check for pending transaction from unfinished checkout session
+	existingTxn, err := s.repo.GetTransactionByTripID(ctx, req.TripId)
 	if err != nil {
 		return &rpc.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
+	}
+
+	if existingTxn != nil {
+		// Use existing transaction
+		txnID = existingTxn.ID.Hex()
+	} else {
+		// Create new transaction
+		txnID, err = s.repo.CreateTransaction(ctx, req)
+		if err != nil {
+			return &rpc.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
+		}
 	}
 
 	// Check health status of primary payment gateway

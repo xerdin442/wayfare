@@ -102,7 +102,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 
 		// Send transaction status to rider
 		if err := h.sendTransactionStatus(ctx, payload.RiderID, updatedStatus); err != nil {
-			log.Warn().Err(err).Msg("Failed to send transaction status to rider")
+			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
 		}
 	case types.ProviderFlutterwave:
 		data := payload.Data.(contracts.FlutterwaveWebhookPayload)
@@ -140,7 +140,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 
 		// Send transaction status to rider
 		if err := h.sendTransactionStatus(ctx, payload.RiderID, updatedStatus); err != nil {
-			log.Warn().Err(err).Msg("Failed to send transaction status to rider")
+			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
 		}
 	default:
 		log.Warn().Str("provider", string(payload.Provider)).Msg("Webhook received from unknown payment provider")

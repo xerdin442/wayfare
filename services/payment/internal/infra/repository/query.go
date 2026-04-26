@@ -47,6 +47,24 @@ func (r *PaymentRepository) GetTransactionByID(ctx context.Context, txnID string
 	return &transaction, nil
 }
 
+func (r *PaymentRepository) GetTransactionByTripID(ctx context.Context, tripID string) (*models.TransactionModel, error) {
+	tripIDHex, err := bson.ObjectIDFromHex(tripID)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid trip ID: %v", err)
+	}
+
+	var transaction models.TransactionModel
+	err = r.txnColl.FindOne(ctx, bson.M{"trip_id": tripIDHex}).Decode(&transaction)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("Transaction not found")
+		}
+		return nil, fmt.Errorf("Error fetching transaction: %v", err)
+	}
+
+	return &transaction, nil
+}
+
 func (r *PaymentRepository) CreateTransaction(ctx context.Context, details *rpc.InitiatePaymentRequest) (string, error) {
 	tripIDHex, err := bson.ObjectIDFromHex(details.TripId)
 	if err != nil {

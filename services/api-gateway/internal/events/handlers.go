@@ -54,8 +54,6 @@ func (h *GatewayEventsHandler) HandleGatewayQueueEvents(ctx context.Context, p m
 			); err != nil {
 				return fmt.Errorf("Failed to publish %s event: %v", messaging.TripEventDriverNotAvailable, err)
 			}
-		case messaging.TripEventNoDriversFound:
-			return nil
 		case messaging.TripEventDriverAssigned:
 			response := payload.Data.(contracts.DriverAssignedResponse)
 
