@@ -9,32 +9,26 @@ import (
 )
 
 type Secrets struct {
-	GatewayPort          int
-	Environment          string
+	ServicePort          int
+	MongoUri             string
 	RedisUri             string
 	AmqpUri              string
-	JwtSecret            string
-	FrontendUrl          string
-	CloudinaryName       string
-	CloudinarySecret     string
-	CloudinaryApiKey     string
 	PaystackSecretKey    string
-	FlutterwaveVerifHash string
+	PaystackApiUrl       string
+	FlutterwaveSecretKey string
+	FlutterwaveApiUrl    string
 }
 
 func Load() *Secrets {
 	return &Secrets{
-		GatewayPort:          getInt("GATEWAY_PORT"),
-		Environment:          getStr("ENVIRONMENT"),
+		ServicePort:          getInt("SERVICE_PORT"),
+		MongoUri:             getStr("MONGO_URI"),
 		RedisUri:             getStr("REDIS_URI"),
 		AmqpUri:              getStr("AMQP_URI"),
-		JwtSecret:            getStr("JWT_SECRET"),
-		FrontendUrl:          getStr("FRONTEND_URL"),
-		CloudinaryName:       getStr("CLOUDINARY_NAME"),
-		CloudinarySecret:     getStr("CLOUDINARY_SECRET"),
-		CloudinaryApiKey:     getStr("CLOUDINARY_API_KEY"),
 		PaystackSecretKey:    getStr("PAYSTACK_SECRET_KEY"),
-		FlutterwaveVerifHash: getStr("FLUTTERWAVE_VERIF_HASH"),
+		PaystackApiUrl:       getStr("PAYSTACK_API_URL"),
+		FlutterwaveSecretKey: getStr("FLUTTERWAVE_SECRET_KEY"),
+		FlutterwaveApiUrl:    getStr("FLUTTERWAVE_API_URL"),
 	}
 }
 

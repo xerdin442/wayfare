@@ -65,10 +65,10 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*rpc.Ri
 			CarPackage:       types.CarPackage(fare.PackageSlug),
 			BasePrice:        fare.BasePrice,
 			TotalPriceInKobo: fare.TotalPriceInKobo,
-			ExpiresAt:        time.Now().UTC().Add(15 * time.Minute), // Documents are dropped after 15mins
+			ExpiresAt:        time.Now().Add(15 * time.Minute), // Documents are dropped after 15mins
 			Route:            route,
-			CreatedAt:        time.Now().UTC(),
-			UpdatedAt:        time.Now().UTC(),
+			CreatedAt:        time.Now(),
+			UpdatedAt:        time.Now(),
 		})
 	}
 
@@ -147,8 +147,8 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 			TotalPriceInKobo: rideFare.TotalPriceInKobo,
 		},
 		Route:     rideFare.Route,
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 	_, insertErr := r.tripColl.InsertOne(ctx, trip)
 	if insertErr != nil {

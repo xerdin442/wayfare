@@ -53,5 +53,11 @@ func (app *application) routes() http.Handler {
 		trip.POST("/preview", h.HandleTripPreview)
 	}
 
+	payment := v1.Group("/payment", m.JwtGuard())
+	{
+		payment.POST("/initiate", h.HandleInitiatePayment)
+		payment.POST("/callback", h.HandlePaymentCallback)
+	}
+
 	return r
 }

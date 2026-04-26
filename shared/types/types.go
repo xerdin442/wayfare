@@ -26,6 +26,22 @@ const (
 	TripStatusCancelled TripStatus = "cancelled"
 )
 
+type PaymentStatus string
+
+const (
+	PaymentStatusPending PaymentStatus = "pending"
+	PaymentStatusSuccess PaymentStatus = "success"
+	PaymentStatusFailed  PaymentStatus = "failed"
+	PaymentStatusAborted PaymentStatus = "aborted"
+)
+
+type PaymentProvider string
+
+const (
+	ProviderPaystack    PaymentProvider = "paystack"
+	ProviderFlutterwave PaymentProvider = "flutterwave"
+)
+
 type Route struct {
 	Distance float64     `json:"distance"`
 	Duration float64     `json:"duration"`
@@ -69,12 +85,6 @@ type Driver struct {
 type Rider struct {
 	ID             string `json:"id"`
 	Name           string `json:"name"`
+	Email          string `json:"email"`
 	ProfilePicture string `json:"profilePicture"`
-}
-
-type PaymentSession struct {
-	TripID    string `json:"tripID"`
-	SessionID string `json:"sessionID"`
-	Amount    int64  `json:"amount"`
-	Currency  string `json:"currency"`
 }

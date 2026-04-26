@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+        - name: payment-service
+          image: wayfare/payment-service
+          imagePullPolicy: IfNotPresent
+          workingDir: /app
+          ports:
+            - containerPort: 50051
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          env:
+            - name: SERVICE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: SERVICE_PORT
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MONGO_URI
+            - name: REDIS_URI
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: REDIS_URI
+            - name: AMQP_URI
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: AMQP_URI     
+            - name: PAYSTACK_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: PAYSTACK_SECRET_KEY
+            - name: PAYSTACK_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: PAYSTACK_API_URL                  
+            - name: FLUTTERWAVE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: FLUTTERWAVE_SECRET_KEY
+            - name: FLUTTERWAVE_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: FLUTTERWAVE_API_URL                  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 50051
+  selector:
+    app: payment-service

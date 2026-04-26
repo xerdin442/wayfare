@@ -168,6 +168,14 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		return err
 	}
 
+	if err := r.declareAndBindQueue(
+		PaymentQueue,
+		[]AmqpEvent{PaymentEventWebhookReceived},
+		ServicesExchange,
+	); err != nil {
+		return err
+	}
+
 	return nil
 }
 

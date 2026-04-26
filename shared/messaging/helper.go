@@ -37,6 +37,7 @@ const (
 	GatewayQueue      AmqpQueue = "gateway_queue"
 	AssignDriverQueue AmqpQueue = "assign_driver_queue"
 	TripUpdateQueue   AmqpQueue = "trip_update_queue"
+	PaymentQueue      AmqpQueue = "payment_queue"
 	DeadLetterQueue   AmqpQueue = "dead_letter_queue"
 )
 
@@ -48,6 +49,12 @@ type AssignDriverQueuePayload struct {
 type TripUpdateQueuePayload struct {
 	TripID   string `json:"trip_id"`
 	DriverID string `json:"driver_id,omitempty"`
+}
+
+type PaymentQueuePayload struct {
+	RiderID  string                `json:"rider_id"`
+	Provider types.PaymentProvider `json:"provider"`
+	Data     any                   `json:"data"`
 }
 
 type AmqpEvent string
@@ -76,11 +83,7 @@ const (
 	DriverCmdLocationUpdate AmqpEvent = "driver.cmd.location_update"
 
 	// Payment events
-	PaymentEventSessionCreated AmqpEvent = "payment.event.session_created"
-	PaymentEventSuccess        AmqpEvent = "payment.event.success"
-	PaymentEventFailed         AmqpEvent = "payment.event.failed"
-	PaymentEventCancelled      AmqpEvent = "payment.event.cancelled"
-
-	// Payment commands
-	PaymentCmdCreateSession AmqpEvent = "payment.cmd.create_session"
+	PaymentEventWebhookReceived AmqpEvent = "payment.event.webhook_received"
+	PaymentEventSuccess         AmqpEvent = "payment.event.success"
+	PaymentEventFailed          AmqpEvent = "payment.event.failed"
 )

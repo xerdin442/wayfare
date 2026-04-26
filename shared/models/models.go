@@ -32,9 +32,11 @@ type RideFareSummary struct {
 }
 
 type RegionModel struct {
-	ID       bson.ObjectID `bson:"_id,omitempty"`
-	Name     string        `bson:"name"`
-	Boundary GeoPolygon    `bson:"boundary"`
+	ID        bson.ObjectID `bson:"_id,omitempty"`
+	Name      string        `bson:"name"`
+	Boundary  GeoPolygon    `bson:"boundary"`
+	CreatedAt time.Time     `bson:"created_at"`
+	UpdatedAt time.Time     `bson:"updated_at"`
 }
 
 type PricingModel struct {
@@ -45,6 +47,8 @@ type PricingModel struct {
 	PerKmKobo     int64            `bson:"per_km_kobo"`
 	PerMinuteKobo int64            `bson:"per_minute_kobo"`
 	MinFareKobo   int64            `bson:"min_fare_kobo"`
+	CreatedAt     time.Time        `bson:"created_at"`
+	UpdatedAt     time.Time        `bson:"updated_at"`
 }
 
 type RideFareModel struct {
@@ -78,6 +82,8 @@ type DriverModel struct {
 	ProfilePicture string           `bson:"profile_picture"`
 	CarPackage     types.CarPackage `bson:"car_package"`
 	CarPlate       string           `bson:"car_plate"`
+	CreatedAt      time.Time        `bson:"created_at"`
+	UpdatedAt      time.Time        `bson:"updated_at"`
 }
 
 type RiderModel struct {
@@ -86,4 +92,17 @@ type RiderModel struct {
 	Email          string        `bson:"email"`
 	Password       string        `bson:"password"`
 	ProfilePicture string        `bson:"profile_picture"`
+	CreatedAt      time.Time     `bson:"created_at"`
+	UpdatedAt      time.Time     `bson:"updated_at"`
+}
+
+type TransactionModel struct {
+	ID        bson.ObjectID         `bson:"_id,omitempty"`
+	TripID    bson.ObjectID         `bson:"trip_id"`
+	Provider  types.PaymentProvider `bson:"provider,omitempty"`
+	Email     string                `bson:"email"`
+	Amount    int64                 `bson:"amount"`
+	Status    types.PaymentStatus   `bson:"status"`
+	CreatedAt time.Time             `bson:"created_at"`
+	UpdatedAt time.Time             `bson:"updated_at"`
 }

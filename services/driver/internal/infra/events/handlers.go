@@ -8,20 +8,17 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
-	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 )
 
 type DriverEventsHandler struct {
-	repo  *repo.DriverRepository
 	cache *redis.Client
 	bus   messaging.MessageBus
 }
 
-func NewDriverEventsHandler(r *repo.DriverRepository, b messaging.MessageBus, c *redis.Client) *DriverEventsHandler {
+func NewDriverEventsHandler(b messaging.MessageBus, c *redis.Client) *DriverEventsHandler {
 	return &DriverEventsHandler{
-		repo:  r,
 		cache: c,
 		bus:   b,
 	}

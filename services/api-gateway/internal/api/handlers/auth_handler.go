@@ -229,7 +229,6 @@ func (h *RouteHandler) HandleLogout(c *gin.Context) {
 		return
 	}
 
-	logger.Info().Msg("Logout successful")
 	c.JSON(http.StatusOK, contracts.APIResponse{
 		Data: gin.H{"message": "Logged out!"},
 	})
