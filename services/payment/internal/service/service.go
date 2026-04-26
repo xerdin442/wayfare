@@ -155,7 +155,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 		txnID = existingTxn.ID.Hex()
 	} else {
 		// Create new transaction
-		txnID, err = s.repo.CreateTransaction(ctx, req)
+		txnID, err = s.repo.CreateTransaction(ctx, req.TripId, req.Amount)
 		if err != nil {
 			return &rpc.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
 		}

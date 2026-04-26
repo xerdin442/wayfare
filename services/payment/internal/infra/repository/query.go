@@ -8,7 +8,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/models"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/types"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -65,8 +64,8 @@ func (r *PaymentRepository) GetTransactionByTripID(ctx context.Context, tripID s
 	return &transaction, nil
 }
 
-func (r *PaymentRepository) CreateTransaction(ctx context.Context, details *rpc.InitiatePaymentRequest) (string, error) {
-	tripIDHex, err := bson.ObjectIDFromHex(details.TripId)
+func (r *PaymentRepository) CreateTransaction(ctx context.Context, tripID string, amount int64) (string, error) {
+	tripIDHex, err := bson.ObjectIDFromHex(tripID)
 	if err != nil {
 		return "", fmt.Errorf("Invalid trip ID: %v", err)
 	}
@@ -74,8 +73,7 @@ func (r *PaymentRepository) CreateTransaction(ctx context.Context, details *rpc.
 	txn := &models.TransactionModel{
 		ID:        bson.NewObjectID(),
 		TripID:    tripIDHex,
-		Email:     details.Email,
-		Amount:    details.Amount,
+		Amount:    amount,
 		Status:    types.PaymentStatusPending,
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -97,8 +95,11 @@ func (r *PaymentRepository) UpdateTransaction(ctx context.Context, txnID string,
 
 	updateData := bson.M{
 		"status":     status,
-		"provider":   provider,
 		"updated_at": time.Now().UTC(),
+	}
+
+	if provider != "" {
+		updateData["provider"] = provider
 	}
 
 	update := bson.M{

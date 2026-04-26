@@ -13,21 +13,18 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"trip_id", "email", "amount", "status", "created_at", "updated_at"},
+		"required": []string{"trip_id", "amount", "status"},
 		"properties": bson.M{
 			"trip_id": bson.M{"bsonType": "objectId"},
 			"provider": bson.M{
 				"enum":        []string{"paystack", "flutterwave"},
 				"description": "must be one of the supported payment providers",
 			},
-			"email":  bson.M{"bsonType": "string"},
 			"amount": bson.M{"bsonType": "long", "minimum": 1},
 			"status": bson.M{
 				"enum":        []string{"pending", "success", "failed", "refunded"},
 				"description": "must be a valid payment status value",
 			},
-			"created_at": bson.M{"bsonType": "date"},
-			"updated_at": bson.M{"bsonType": "date"},
 		},
 	}
 

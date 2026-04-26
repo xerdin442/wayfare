@@ -100,7 +100,6 @@ type TransactionModel struct {
 	ID        bson.ObjectID         `bson:"_id,omitempty"`
 	TripID    bson.ObjectID         `bson:"trip_id"`
 	Provider  types.PaymentProvider `bson:"provider,omitempty"`
-	Email     string                `bson:"email"`
 	Amount    int64                 `bson:"amount"`
 	Status    types.PaymentStatus   `bson:"status"`
 	CreatedAt time.Time             `bson:"created_at"`

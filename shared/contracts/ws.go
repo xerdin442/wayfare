@@ -23,6 +23,10 @@ type TripUpdateRequest struct {
 	Trip types.Trip `json:"trip"`
 }
 
+type CashPaymentRequest struct {
+	TripID string `json:"trip_id"`
+}
+
 type DriverAssignedResponse struct {
 	Driver types.Driver `json:"driver"`
 	Trip   types.Trip   `json:"trip"`

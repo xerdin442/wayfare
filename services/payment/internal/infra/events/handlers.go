@@ -149,3 +149,46 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 
 	return nil
 }
+
+func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
+	var msg messaging.AmqpMessage
+	if err := json.Unmarshal(p.Body, &msg); err != nil {
+		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
+	}
+
+	var payload messaging.PaymentQueuePayload
+	if err := json.Unmarshal(msg.Data, &payload); err != nil {
+		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
+	}
+
+	// Check for pending transaction
+	existingTxn, err := h.repo.GetTransactionByTripID(ctx, payload.TripID)
+	if err != nil {
+		return err
+	}
+
+	// Idempotent processing to skip settled transactions
+	if existingTxn.Status != types.PaymentStatusPending {
+		return nil
+	}
+
+	if existingTxn != nil {
+		// Update existing transaction
+		if err := h.repo.UpdateTransaction(ctx, existingTxn.ID.Hex(), types.PaymentStatusSuccess, ""); err != nil {
+			return err
+		}
+	} else {
+		// Create new transaction
+		txnID, err := h.repo.CreateTransaction(ctx, payload.TripID, payload.Amount)
+		if err != nil {
+			return err
+		}
+
+		// Set transaction status
+		if err := h.repo.UpdateTransaction(ctx, txnID, types.PaymentStatusSuccess, ""); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

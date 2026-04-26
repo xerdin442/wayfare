@@ -196,7 +196,7 @@ func (s *TripService) StartTrip(ctx context.Context, req *rpc.StartTripRequest) 
 
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "Could not parse event queue payload")
+		return nil, status.Error(codes.Internal, "Failed to marshal assign_driver queue payload")
 	}
 
 	msg := messaging.AmqpMessage{Data: data}

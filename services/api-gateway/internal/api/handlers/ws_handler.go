@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
+	rpc "github.com/xerdin442/wayfare/shared/pkg"
 )
 
 func (h *RouteHandler) monitorConnection(conn *websocket.Conn) {
@@ -85,7 +86,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				return
 			}
 
-			if err := h.cfg.Cache.Expire(c.Request.Context(), cacheKey, 15*time.Second).Err(); err != nil {
+			if err := h.cfg.Cache.Expire(c.Request.Context(), cacheKey, 10*time.Second).Err(); err != nil {
 				logger.Error().Err(err).Msg("Failed to set expiry on location tracker")
 				return
 			}
@@ -98,6 +99,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				DriverID: data.Driver.ID,
 			})
 			if err != nil {
+				logger.Error().Err(err).Msg("Failed to marshal assign_driver queue payload")
 				return
 			}
 
@@ -107,17 +109,19 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				messaging.TripEventDriverNotInterested,
 				messaging.AmqpMessage{Data: msg},
 			); err != nil {
+				logger.Error().Err(err).Msgf("Failed to publish %s event", messaging.TripEventDriverNotInterested)
 				return
 			}
 		case messaging.DriverCmdTripAccept:
 			payloadData := payload.Data.(contracts.DriverTripActionRequest)
 
-			// Publish to trip service to update trip status
+			// Update trip status
 			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
 				TripID:   payloadData.Trip.ID,
 				DriverID: payloadData.Driver.ID,
 			})
 			if err != nil {
+				logger.Error().Err(err).Msg("Failed to marshal trip_update queue payload")
 				return
 			}
 
@@ -127,6 +131,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				messaging.TripEventDriverAssigned,
 				messaging.AmqpMessage{Data: tripServiceData},
 			); err != nil {
+				logger.Error().Err(err).Msgf("Failed to publish %s event", messaging.TripEventDriverAssigned)
 				return
 			}
 
@@ -139,6 +144,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				},
 			})
 			if err != nil {
+				logger.Error().Err(err).Msg("Failed to marshal websocket message")
 				return
 			}
 
@@ -148,16 +154,18 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.UserID)),
 				messaging.AmqpMessage{Data: data},
 			); err != nil {
+				logger.Error().Err(err).Msg("Failed to publish gateway event")
 				return
 			}
 		case messaging.DriverCmdTripPickup:
 			payloadData := payload.Data.(contracts.TripUpdateRequest)
 
-			// Publish to trip service to update trip status
+			// Update trip status
 			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
 				TripID: payloadData.Trip.ID,
 			})
 			if err != nil {
+				logger.Error().Err(err).Msg("Failed to marshal trip_update queue payload")
 				return
 			}
 
@@ -167,6 +175,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				messaging.DriverCmdTripPickup,
 				messaging.AmqpMessage{Data: tripServiceData},
 			); err != nil {
+				logger.Error().Err(err).Msgf("Failed to publish %s event", messaging.DriverCmdTripPickup)
 				return
 			}
 
@@ -175,6 +184,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				Type: messaging.TripEventDriverArrival,
 			})
 			if err != nil {
+				logger.Error().Err(err).Msg("Failed to marshal websocket message")
 				return
 			}
 
@@ -184,6 +194,38 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.UserID)),
 				messaging.AmqpMessage{Data: gatewayData},
 			); err != nil {
+				logger.Error().Err(err).Msg("Failed to publish gateway event")
+				return
+			}
+		case messaging.PaymentEventCashReceived:
+			payloadData := payload.Data.(contracts.CashPaymentRequest)
+
+			// Get trip details
+			tripDetails, err := h.cfg.Clients.Trip.GetTripDetails(c.Request.Context(), &rpc.TripDetailsRequest{
+				TripId: payloadData.TripID,
+			})
+			if err != nil {
+				logger.Error().Err(err).Msg("Failed to get trip details")
+				return
+			}
+
+			// Send details of cash payment to payment service
+			paymentServiceData, err := json.Marshal(messaging.PaymentQueuePayload{
+				TripID: payloadData.TripID,
+				Amount: tripDetails.RideFareAmount,
+			})
+			if err != nil {
+				logger.Error().Err(err).Msg("Failed to marshal payment queue payload")
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				c.Request.Context(),
+				messaging.ServicesExchange,
+				messaging.PaymentEventCashReceived,
+				messaging.AmqpMessage{Data: paymentServiceData},
+			); err != nil {
+				logger.Error().Err(err).Msgf("Failed to publish %s event", messaging.PaymentEventCashReceived)
 				return
 			}
 		default:
@@ -237,6 +279,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 				TripID: payloadData.Trip.ID,
 			})
 			if err != nil {
+				logger.Error().Err(err).Msg("Failed to marshal trip_update queue payload")
 				return
 			}
 
@@ -246,14 +289,16 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 				messaging.TripCmdCancelled,
 				messaging.AmqpMessage{Data: tripServiceData},
 			); err != nil {
+				logger.Error().Err(err).Msgf("Failed to publish %s event", messaging.TripCmdCancelled)
 				return
 			}
 
-			// Publish to gateway to update driver's trip preview
+			// Update driver's trip preview
 			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
 				Type: messaging.TripCmdCancelled,
 			})
 			if err != nil {
+				logger.Error().Err(err).Msg("Failed to marshal websocket message")
 				return
 			}
 
@@ -263,6 +308,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.DriverID)),
 				messaging.AmqpMessage{Data: gatewayData},
 			); err != nil {
+				logger.Error().Err(err).Msg("Failed to publish gateway event")
 				return
 			}
 		case messaging.TripCmdCompleted:
@@ -273,6 +319,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 				TripID: payloadData.Trip.ID,
 			})
 			if err != nil {
+				logger.Error().Err(err).Msg("Failed to marshal trip_update queue payload")
 				return
 			}
 
@@ -282,14 +329,16 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 				messaging.TripCmdCompleted,
 				messaging.AmqpMessage{Data: tripServiceData},
 			); err != nil {
+				logger.Error().Err(err).Msgf("Failed to publish %s event", messaging.TripCmdCompleted)
 				return
 			}
 
-			// Publish to gateway to update driver's trip preview
+			// Update driver's trip preview
 			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
 				Type: messaging.TripCmdCompleted,
 			})
 			if err != nil {
+				logger.Error().Err(err).Msg("Failed to marshal websocket message")
 				return
 			}
 
@@ -299,6 +348,28 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.DriverID)),
 				messaging.AmqpMessage{Data: gatewayData},
 			); err != nil {
+				logger.Error().Err(err).Msg("Failed to publish gateway event")
+				return
+			}
+		case messaging.PaymentEventCashOptionPreferred:
+			payloadData := payload.Data.(contracts.TripUpdateRequest)
+
+			// Notify driver that rider prefers cash payment
+			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+				Type: messaging.PaymentEventCashOptionPreferred,
+			})
+			if err != nil {
+				logger.Error().Err(err).Msg("Failed to marshal websocket message")
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				c.Request.Context(),
+				messaging.GatewayExchange,
+				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.DriverID)),
+				messaging.AmqpMessage{Data: gatewayData},
+			); err != nil {
+				logger.Error().Err(err).Msg("Failed to publish gateway event")
 				return
 			}
 		default:

@@ -52,9 +52,11 @@ type TripUpdateQueuePayload struct {
 }
 
 type PaymentQueuePayload struct {
-	RiderID  string                `json:"rider_id"`
-	Provider types.PaymentProvider `json:"provider"`
-	Data     any                   `json:"data"`
+	RiderID  string                `json:"rider_id,omitempty"`
+	Provider types.PaymentProvider `json:"provider,omitempty"`
+	Data     any                   `json:"data,omitempty"`
+	TripID   string                `json:"trip_id,omitempty"`
+	Amount   int64                 `json:"amount,omitempty"`
 }
 
 type AmqpEvent string
