@@ -38,9 +38,9 @@ func ParseImageMimetype(file multipart.File) error {
 	return nil
 }
 
-func ProcessFileUpload(file multipart.File, cfg *FileUploadConfig) (*uploader.UploadResult, error) {
+func ProcessFileUpload(ctx context.Context, file multipart.File, cfg *FileUploadConfig) (*uploader.UploadResult, error) {
 	cld, _ := cloudinary.NewFromParams(cfg.CloudName, cfg.ApiKey, cfg.CloudSecret)
-	return cld.Upload.Upload(context.Background(), file, uploader.UploadParams{
+	return cld.Upload.Upload(ctx, file, uploader.UploadParams{
 		Folder: cfg.Folder,
 	})
 }

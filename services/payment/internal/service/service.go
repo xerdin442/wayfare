@@ -21,8 +21,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var ErrGatewayUnavailable = errors.New("payment gateway is currently unavailable")
-var ErrApiRequestFailure = errors.New("failed to send api request")
+var (
+	ErrGatewayUnavailable = errors.New("payment gateway is currently unavailable")
+	ErrApiRequestFailure  = errors.New("failed to send api request")
+)
 
 type PaymentService struct {
 	rpc.UnimplementedPaymentServiceServer

@@ -5,89 +5,30 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
 )
 
-func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
-	logger := log.Ctx(c.Request.Context())
-
-	userID := c.MustGet("user_id").(string)
-
-	var req contracts.InitiatePaymentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.Error().Err(err).Msg("Error parsing initiate payment request")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	idempotencyKey := fmt.Sprintf("lock:payment:%s", req.TripID)
-
-	// Check if request is still being processed
-	n, err := h.cfg.Cache.Exists(c.Request.Context(), idempotencyKey).Result()
-	if err != nil {
-		logger.Error().Err(err).Msg("Error fetching idempotency lock from cache")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
-		return
-	}
-
-	if n > 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Request is already being processed"})
-		return
-	}
-
-	// Set idempotency lock in cache
-	if err := h.cfg.Cache.Set(c.Request.Context(), idempotencyKey, "locked", 2*time.Minute).Err(); err != nil {
-		logger.Error().Err(err).Msg("Error setting idempotency lock")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
-		return
-	}
-
-	// Verify trip details
-	tripDetails, err := h.cfg.Clients.Trip.GetTripDetails(c.Request.Context(), &rpc.TripDetailsRequest{
-		TripId: req.TripID,
-	})
-	if err != nil {
-		logger.Error().Err(err).Str("trip_id", req.TripID).Msg("Failed to get trip details")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
-		return
-	}
-
-	if tripDetails.UserId != userID {
-		log.Warn().
-			Str("trip_owner_id", tripDetails.UserId).
-			Str("payment_request_initiator_id", userID).
-			Msg("Unauthorized access")
-
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized access"})
-		return
-	}
-
-	checkoutResponse, err := h.cfg.Clients.Payment.InitiatePayment(c.Request.Context(), &rpc.InitiatePaymentRequest{
-		TripId: req.TripID,
-		Email:  req.Email,
-		Amount: tripDetails.RideFareAmount,
-	})
-	if err != nil {
-		logger.Error().Err(err).Str("trip_id", req.TripID).Msg("Failed to initiate processing of payment request")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, contracts.APIResponse{Data: checkoutResponse})
-}
+var (
+	ErrInvalidWebhookSignature = errors.New("invalid webhook signature")
+	ErrInvalidWebhookEvent     = errors.New("invalid webhook event")
+	ErrEmptyWebhookPayload     = errors.New("empty webhook payload")
+)
 
 func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
-	logger := log.Ctx(c.Request.Context())
+	// Start tracer
+	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandlePaymentCallback")
+	defer span.End()
+
+	logger := log.Ctx(ctx)
 
 	userID := c.MustGet("user_id").(string)
 
@@ -99,6 +40,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 
 	rawBody, err := c.GetRawData()
 	if err != nil {
+		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msg("Error parsing raw data from payment webhook payload")
 		c.Status(http.StatusBadRequest)
 		return
@@ -113,6 +55,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 		hash := hex.EncodeToString(h.Sum(nil))
 
 		if hash != paystackSignature {
+			tracing.HandleError(span, ErrInvalidWebhookSignature)
 			logger.Error().Msg("Invalid paystack signature")
 			c.Status(http.StatusBadRequest)
 			return
@@ -120,12 +63,14 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 
 		var req contracts.PaystackWebhookPayload
 		if err := c.ShouldBindJSON(&req); err != nil {
+			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Error parsing Paystack webhook payload")
 			c.Status(http.StatusBadRequest)
 			return
 		}
 
 		if !strings.HasPrefix(req.Event, "charge.") {
+			tracing.HandleError(span, ErrInvalidWebhookEvent)
 			logger.Warn().Msg("Invalid Paystack webhook event")
 			c.Status(http.StatusBadRequest)
 			return
@@ -136,6 +81,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 		provider = types.ProviderFlutterwave
 
 		if h.cfg.Env.FlutterwaveVerifHash != flutterwaveSignature {
+			tracing.HandleError(span, ErrInvalidWebhookSignature)
 			logger.Error().Msg("Invalid flutterwave signature")
 			c.Status(http.StatusBadRequest)
 			return
@@ -143,12 +89,14 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 
 		var req contracts.FlutterwaveWebhookPayload
 		if err := c.ShouldBindJSON(&req); err != nil {
+			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Error parsing Flutterwave webhook payload")
 			c.Status(http.StatusBadRequest)
 			return
 		}
 
 		if !strings.HasPrefix(req.Event, "charge.") {
+			tracing.HandleError(span, ErrInvalidWebhookEvent)
 			logger.Warn().Msg("Invalid Flutterwave webhook event")
 			c.Status(http.StatusBadRequest)
 			return
@@ -158,6 +106,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 	}
 
 	if payload == nil {
+		tracing.HandleError(span, ErrEmptyWebhookPayload)
 		logger.Error().Msg("No payload received")
 		c.Status(http.StatusBadRequest)
 		return
@@ -170,17 +119,19 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 		Data:     payload,
 	})
 	if err != nil {
+		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msg("Failed to marshal payment queue payload")
 		c.Status(http.StatusInternalServerError)
 		return
 	}
 
 	if err := h.cfg.Queue.PublishMessage(
-		c.Request.Context(),
+		ctx,
 		messaging.ServicesExchange,
 		messaging.PaymentEventWebhookReceived,
 		messaging.AmqpMessage{Data: paymentServiceData},
 	); err != nil {
+		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msgf("Failed to publish %s event", messaging.PaymentEventWebhookReceived)
 		c.Status(http.StatusInternalServerError)
 		return

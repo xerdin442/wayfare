@@ -76,6 +76,7 @@ func main() {
 			ApiKey:      env.CloudinaryApiKey,
 			CloudSecret: env.CloudinarySecret,
 		},
+		Tracer: tracing.GetTracer(tracerCfg.ServiceName),
 	}
 
 	h := events.NewGatewayEventsHandler(baseCfg)

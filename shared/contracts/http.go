@@ -60,7 +60,6 @@ type StartTripRequest struct {
 }
 
 type InitiatePaymentRequest struct {
-	TripID         string `json:"trip_id" binding:"required"`
 	Email          string `json:"email" binding:"required,email"`
 	CustomRedirect string `json:"custom_redirect" binding:"required"`
 }
