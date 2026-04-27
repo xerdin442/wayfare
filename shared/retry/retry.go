@@ -2,8 +2,9 @@ package retry
 
 import (
 	"context"
-	"log"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type RetryConfig struct {
@@ -13,8 +14,8 @@ type RetryConfig struct {
 }
 
 // DefaultConfig returns a RetryConfig with default values
-func DefaultConfig() RetryConfig {
-	return RetryConfig{
+func DefaultConfig() *RetryConfig {
+	return &RetryConfig{
 		MaxRetries:  3,
 		InitialWait: 1 * time.Second,
 		MaxWait:     10 * time.Second,
@@ -22,13 +23,13 @@ func DefaultConfig() RetryConfig {
 }
 
 // WithBackoff executes the given operation with exponential backoff retry logic
-func WithBackoff(ctx context.Context, cfg RetryConfig, operation func() error) error {
+func WithBackoff(ctx context.Context, cfg *RetryConfig, operation func() error) error {
 	var err error
 	wait := cfg.InitialWait
 
-	for attempt := 0; attempt <= cfg.MaxRetries; attempt++ {
-		if attempt > 0 {
-			log.Printf("Retry attempt %d/%d after %v", attempt, cfg.MaxRetries, wait)
+	for attempt := 1; attempt <= cfg.MaxRetries; attempt++ {
+		if attempt > 1 {
+			log.Info().Msgf("Retry attempt %d/%d after %v", attempt, cfg.MaxRetries, wait)
 
 			select {
 			case <-ctx.Done():
@@ -46,9 +47,8 @@ func WithBackoff(ctx context.Context, cfg RetryConfig, operation func() error) e
 		if err = operation(); err == nil {
 			return nil
 		}
-
-		log.Printf("Operation failed (attempt %d/%d): %v", attempt+1, cfg.MaxRetries, err)
 	}
 
+	log.Error().Err(err).Msgf("Operation failed after %d attempts", cfg.MaxRetries)
 	return err
 }
