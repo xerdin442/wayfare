@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/middleware"
 	"github.com/xerdin442/wayfare/shared/contracts"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/storage"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
@@ -69,7 +69,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
-		res, err := h.cfg.Clients.Driver.Signup(ctx, &rpc.SignupDriverRequest{
+		res, err := h.cfg.Clients.Driver.Signup(ctx, &pb.SignupDriverRequest{
 			Name:         req.Name,
 			Email:        req.Email,
 			Password:     req.Password,
@@ -136,7 +136,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			profilePicURL = fmt.Sprintf("https://randomuser.me/api/portraits/lego/%d.jpg", rand.Intn(100))
 		}
 
-		res, err := h.cfg.Clients.Rider.Signup(ctx, &rpc.SignupRiderRequest{
+		res, err := h.cfg.Clients.Rider.Signup(ctx, &pb.SignupRiderRequest{
 			Name:         req.Name,
 			Email:        req.Email,
 			Password:     req.Password,
@@ -189,7 +189,7 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 
 	var authToken string
 	if types.UserRole(role) == types.RoleDriver {
-		res, err := h.cfg.Clients.Driver.Login(ctx, &rpc.LoginRequest{
+		res, err := h.cfg.Clients.Driver.Login(ctx, &pb.LoginRequest{
 			Email:    req.Email,
 			Password: req.Password,
 		})
@@ -211,7 +211,7 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 
 		authToken = token
 	} else {
-		res, err := h.cfg.Clients.Rider.Login(ctx, &rpc.LoginRequest{
+		res, err := h.cfg.Clients.Rider.Login(ctx, &pb.LoginRequest{
 			Email:    req.Email,
 			Password: req.Password,
 		})
@@ -277,7 +277,7 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 	userRole := c.MustGet("user_role").(types.UserRole)
 
 	if userRole == types.RoleDriver {
-		res, err := h.cfg.Clients.Driver.GetDriverProfile(ctx, &rpc.GetProfileRequest{
+		res, err := h.cfg.Clients.Driver.GetDriverProfile(ctx, &pb.GetProfileRequest{
 			UserId: userID,
 		})
 		if err != nil {
@@ -294,7 +294,7 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 	}
 
 	if userRole == types.RoleRider {
-		res, err := h.cfg.Clients.Rider.GetRiderProfile(ctx, &rpc.GetProfileRequest{
+		res, err := h.cfg.Clients.Rider.GetRiderProfile(ctx, &pb.GetProfileRequest{
 			UserId: userID,
 		})
 		if err != nil {

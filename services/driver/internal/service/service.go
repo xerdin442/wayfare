@@ -5,14 +5,14 @@ import (
 	"strings"
 
 	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type DriverService struct {
-	rpc.UnimplementedDriverServiceServer
+	pb.UnimplementedDriverServiceServer
 	repo *repo.DriverRepository
 }
 
@@ -22,7 +22,7 @@ func NewDriverService(r *repo.DriverRepository) *DriverService {
 	}
 }
 
-func (s *DriverService) GetDriverProfile(ctx context.Context, req *rpc.GetProfileRequest) (*rpc.DriverProfileResponse, error) {
+func (s *DriverService) GetDriverProfile(ctx context.Context, req *pb.GetProfileRequest) (*pb.DriverProfileResponse, error) {
 	driver, err := s.repo.GetDriverByID(ctx, req.UserId)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -31,8 +31,8 @@ func (s *DriverService) GetDriverProfile(ctx context.Context, req *rpc.GetProfil
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &rpc.DriverProfileResponse{
-		Driver: &rpc.Driver{
+	return &pb.DriverProfileResponse{
+		Driver: &pb.Driver{
 			Id:             driver.ID.Hex(),
 			Name:           driver.Name,
 			ProfilePicture: driver.ProfilePicture,
@@ -41,7 +41,7 @@ func (s *DriverService) GetDriverProfile(ctx context.Context, req *rpc.GetProfil
 	}, nil
 }
 
-func (s *DriverService) Login(ctx context.Context, req *rpc.LoginRequest) (*rpc.AuthResponse, error) {
+func (s *DriverService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.AuthResponse, error) {
 	driver, err := s.repo.GetDriverByEmail(ctx, req.Email)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -54,12 +54,12 @@ func (s *DriverService) Login(ctx context.Context, req *rpc.LoginRequest) (*rpc.
 		return nil, status.Error(codes.Unauthenticated, "Incorrect password")
 	}
 
-	return &rpc.AuthResponse{
+	return &pb.AuthResponse{
 		UserId: driver.ID.Hex(),
 	}, nil
 }
 
-func (s *DriverService) Signup(ctx context.Context, req *rpc.SignupDriverRequest) (*rpc.AuthResponse, error) {
+func (s *DriverService) Signup(ctx context.Context, req *pb.SignupDriverRequest) (*pb.AuthResponse, error) {
 	_, err := s.repo.GetDriverByEmail(ctx, req.Email)
 	if err == nil {
 		return nil, status.Error(codes.AlreadyExists, "Driver already exists with this email")
@@ -70,7 +70,7 @@ func (s *DriverService) Signup(ctx context.Context, req *rpc.SignupDriverRequest
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &rpc.AuthResponse{
+	return &pb.AuthResponse{
 		UserId: driver.ID.Hex(),
 	}, nil
 }

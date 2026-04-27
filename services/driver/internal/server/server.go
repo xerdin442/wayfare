@@ -11,7 +11,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/driver/internal/service"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"google.golang.org/grpc"
 )
@@ -34,7 +34,7 @@ func (s *Server) Start(svc *service.DriverService, port int) error {
 	}
 
 	// Register service
-	rpc.RegisterDriverServiceServer(s.grpcServer, svc)
+	pb.RegisterDriverServiceServer(s.grpcServer, svc)
 
 	log.Info().Int("port", port).Msg("Starting gRPC server...")
 

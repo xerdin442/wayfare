@@ -1,35 +1,35 @@
 package contracts
 
-import rpc "github.com/xerdin442/wayfare/shared/pkg"
+import pb "github.com/xerdin442/wayfare/shared/pkg"
 
-func (o *OsrmApiResponse) ToProto() *rpc.Route {
+func (o *OsrmApiResponse) ToProto() *pb.Route {
 	route := o.Routes[0]
 	geometry := route.Geometry.Coordinates
-	coordinates := make([]*rpc.Coordinate, len(geometry))
+	coordinates := make([]*pb.Coordinate, len(geometry))
 
 	for i, coord := range geometry {
-		coordinates[i] = &rpc.Coordinate{
+		coordinates[i] = &pb.Coordinate{
 			Longitude: coord[0],
 			Latitude:  coord[1],
 		}
 	}
 
-	return &rpc.Route{
+	return &pb.Route{
 		Distance: route.Distance,
 		Duration: route.Duration,
-		Geometry: []*rpc.Geometry{
+		Geometry: []*pb.Geometry{
 			{Coordinates: coordinates},
 		},
 	}
 }
 
-func (r *PreviewTripRequest) ToProto() *rpc.PreviewTripRequest {
-	return &rpc.PreviewTripRequest{
-		Pickup: &rpc.Coordinate{
+func (r *PreviewTripRequest) ToProto() *pb.PreviewTripRequest {
+	return &pb.PreviewTripRequest{
+		Pickup: &pb.Coordinate{
 			Latitude:  r.Pickup.Latitude,
 			Longitude: r.Pickup.Longitude,
 		},
-		Destination: &rpc.Coordinate{
+		Destination: &pb.Coordinate{
 			Latitude:  r.Destination.Latitude,
 			Longitude: r.Destination.Longitude,
 		},

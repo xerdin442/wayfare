@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
 )
 
@@ -226,7 +226,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 			payloadData := payload.Data.(contracts.CashPaymentRequest)
 
 			// Get trip details
-			tripDetails, err := h.cfg.Clients.Trip.GetTripDetails(ctx, &rpc.TripDetailsRequest{
+			tripDetails, err := h.cfg.Clients.Trip.GetTripDetails(ctx, &pb.TripDetailsRequest{
 				TripId: payloadData.TripID,
 			})
 			if err != nil {

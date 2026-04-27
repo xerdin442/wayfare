@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/contracts"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
 )
 
@@ -34,7 +34,7 @@ func (h *RouteHandler) HandleTripPreview(c *gin.Context) {
 		return
 	}
 
-	response, err := h.cfg.Clients.Trip.PreviewTrip(ctx, &rpc.PreviewTripRequest{
+	response, err := h.cfg.Clients.Trip.PreviewTrip(ctx, &pb.PreviewTripRequest{
 		UserId:      userID,
 		Pickup:      req.ToProto().Pickup,
 		Destination: req.ToProto().Destination,
@@ -67,7 +67,7 @@ func (h *RouteHandler) HandleStartTrip(c *gin.Context) {
 		return
 	}
 
-	response, err := h.cfg.Clients.Trip.StartTrip(ctx, &rpc.StartTripRequest{
+	response, err := h.cfg.Clients.Trip.StartTrip(ctx, &pb.StartTripRequest{
 		UserId:     userID,
 		RideFareId: req.RideFareID,
 	})
@@ -126,7 +126,7 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 	}
 
 	// Verify trip details
-	tripDetails, err := h.cfg.Clients.Trip.GetTripDetails(ctx, &rpc.TripDetailsRequest{
+	tripDetails, err := h.cfg.Clients.Trip.GetTripDetails(ctx, &pb.TripDetailsRequest{
 		TripId: tripID,
 	})
 	if err != nil {
@@ -147,7 +147,7 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 	}
 
 	// Generate checkout link
-	checkoutResponse, err := h.cfg.Clients.Payment.InitiatePayment(ctx, &rpc.InitiatePaymentRequest{
+	checkoutResponse, err := h.cfg.Clients.Payment.InitiatePayment(ctx, &pb.InitiatePaymentRequest{
 		TripId: tripID,
 		Email:  req.Email,
 		Amount: tripDetails.RideFareAmount,

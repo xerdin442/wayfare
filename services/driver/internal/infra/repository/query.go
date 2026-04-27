@@ -8,7 +8,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/models"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/types"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -61,7 +61,7 @@ func (r *DriverRepository) GetDriverByEmail(ctx context.Context, email string) (
 	return &driver, nil
 }
 
-func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *rpc.SignupDriverRequest) (*models.DriverModel, error) {
+func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *pb.SignupDriverRequest) (*models.DriverModel, error) {
 	// Generate password hash
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(details.Password), bcrypt.DefaultCost)
 	if err != nil {

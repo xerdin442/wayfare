@@ -5,14 +5,14 @@ import (
 	"strings"
 
 	repo "github.com/xerdin442/wayfare/services/rider/internal/infra/repository"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type RiderService struct {
-	rpc.UnimplementedRiderServiceServer
+	pb.UnimplementedRiderServiceServer
 	repo *repo.RiderRepository
 }
 
@@ -22,7 +22,7 @@ func NewRiderService(r *repo.RiderRepository) *RiderService {
 	}
 }
 
-func (s *RiderService) GetRiderProfile(ctx context.Context, req *rpc.GetProfileRequest) (*rpc.RiderProfileResponse, error) {
+func (s *RiderService) GetRiderProfile(ctx context.Context, req *pb.GetProfileRequest) (*pb.RiderProfileResponse, error) {
 	rider, err := s.repo.GetRiderByID(ctx, req.UserId)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -31,8 +31,8 @@ func (s *RiderService) GetRiderProfile(ctx context.Context, req *rpc.GetProfileR
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &rpc.RiderProfileResponse{
-		Rider: &rpc.Rider{
+	return &pb.RiderProfileResponse{
+		Rider: &pb.Rider{
 			Id:             rider.ID.Hex(),
 			Name:           rider.Name,
 			Email:          rider.Email,
@@ -41,7 +41,7 @@ func (s *RiderService) GetRiderProfile(ctx context.Context, req *rpc.GetProfileR
 	}, nil
 }
 
-func (s *RiderService) Login(ctx context.Context, req *rpc.LoginRequest) (*rpc.AuthResponse, error) {
+func (s *RiderService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.AuthResponse, error) {
 	rider, err := s.repo.GetRiderByEmail(ctx, req.Email)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -54,12 +54,12 @@ func (s *RiderService) Login(ctx context.Context, req *rpc.LoginRequest) (*rpc.A
 		return nil, status.Error(codes.Unauthenticated, "Incorrect password")
 	}
 
-	return &rpc.AuthResponse{
+	return &pb.AuthResponse{
 		UserId: rider.ID.Hex(),
 	}, nil
 }
 
-func (s *RiderService) Signup(ctx context.Context, req *rpc.SignupRiderRequest) (*rpc.AuthResponse, error) {
+func (s *RiderService) Signup(ctx context.Context, req *pb.SignupRiderRequest) (*pb.AuthResponse, error) {
 	_, err := s.repo.GetRiderByEmail(ctx, req.Email)
 	if err == nil {
 		return nil, status.Error(codes.AlreadyExists, "Rider already exists with this email")
@@ -70,7 +70,7 @@ func (s *RiderService) Signup(ctx context.Context, req *rpc.SignupRiderRequest) 
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &rpc.AuthResponse{
+	return &pb.AuthResponse{
 		UserId: rider.ID.Hex(),
 	}, nil
 }

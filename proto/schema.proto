@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package wayfare;
 
-option go_package = "github.com/xerdin442/wayfare/shared/pkg/rpc";
+option go_package = "github.com/xerdin442/wayfare/shared/pkg/pb";
 
 message Coordinate {
   double latitude  = 1;

@@ -4,7 +4,7 @@
 // - protoc             v6.33.4
 // source: transport.proto
 
-package rpc
+package pb
 
 import (
 	context "context"

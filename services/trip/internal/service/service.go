@@ -13,14 +13,14 @@ import (
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/models"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type TripService struct {
-	rpc.UnimplementedTripServiceServer
+	pb.UnimplementedTripServiceServer
 	repo  *repo.TripRepository
 	queue messaging.MessageBus
 }
@@ -32,7 +32,7 @@ func NewTripService(r *repo.TripRepository, q messaging.MessageBus) *TripService
 	}
 }
 
-func (s *TripService) getTripRoute(pickup, destination *rpc.Coordinate) (*contracts.OsrmApiResponse, error) {
+func (s *TripService) getTripRoute(pickup, destination *pb.Coordinate) (*contracts.OsrmApiResponse, error) {
 	url := fmt.Sprintf(
 		"http://router.project-osrm.org/route/v1/driving/%f,%f;%f,%f?overview=full&geometries=geojson",
 		pickup.Longitude, pickup.Latitude,
@@ -58,7 +58,7 @@ func (s *TripService) getTripRoute(pickup, destination *rpc.Coordinate) (*contra
 	return &osrmResp, nil
 }
 
-func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *rpc.Route, pickupCoords []float64) ([]*rpc.RideFare, error) {
+func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.Route, pickupCoords []float64) ([]*pb.RideFare, error) {
 	// priceConfig := map[repo.CarPackage]{
 	// 	repo.PackageSedan:  {BaseFare: 50000, PricePerKm: 15000, PricePerMinute: 2000, MinFare: 150000},
 	// 	repo.PackageSUV:    {BaseFare: 100000, PricePerKm: 25000, PricePerMinute: 4000, MinFare: 250000},
@@ -75,7 +75,7 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *rpc
 	distKm := route.Distance / 1000.0
 	durMin := route.Duration / 60.0
 
-	rideFares := make([]*rpc.RideFare, len(priceConfig))
+	rideFares := make([]*pb.RideFare, len(priceConfig))
 
 	// Estimate ride fare per package
 	for _, cfg := range priceConfig {
@@ -86,7 +86,7 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *rpc
 		// Apply minimum fare if total cost is below fare threshold
 		estimatedPrice := max(totalCost, cfg.MinFareKobo)
 
-		rideFares = append(rideFares, &rpc.RideFare{
+		rideFares = append(rideFares, &pb.RideFare{
 			PackageSlug:      string(cfg.CarPackage),
 			BasePrice:        estimatedPrice / 100,
 			TotalPriceInKobo: estimatedPrice,
@@ -97,7 +97,7 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *rpc
 	return rideFares, nil
 }
 
-func (s *TripService) GetTripDetails(ctx context.Context, req *rpc.TripDetailsRequest) (*rpc.TripDetailsResponse, error) {
+func (s *TripService) GetTripDetails(ctx context.Context, req *pb.TripDetailsRequest) (*pb.TripDetailsResponse, error) {
 	trip, err := s.repo.GetTripByID(ctx, req.TripId)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -106,13 +106,13 @@ func (s *TripService) GetTripDetails(ctx context.Context, req *rpc.TripDetailsRe
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &rpc.TripDetailsResponse{
+	return &pb.TripDetailsResponse{
 		RideFareAmount: trip.Fare.BasePrice,
 		UserId:         trip.UserID.Hex(),
 	}, nil
 }
 
-func (s *TripService) PreviewTrip(ctx context.Context, req *rpc.PreviewTripRequest) (*rpc.PreviewTripResponse, error) {
+func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripRequest) (*pb.PreviewTripResponse, error) {
 	// Extract coordinates
 	pickupCoords := []float64{req.Pickup.Longitude, req.Pickup.Latitude}
 	destinationCoords := []float64{req.Destination.Longitude, req.Destination.Latitude}
@@ -150,13 +150,13 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *rpc.PreviewTripReque
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	return &rpc.PreviewTripResponse{
+	return &pb.PreviewTripResponse{
 		Route:     route.ToProto(),
 		RideFares: rideFares,
 	}, nil
 }
 
-func (s *TripService) StartTrip(ctx context.Context, req *rpc.StartTripRequest) (*rpc.StartTripResponse, error) {
+func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (*pb.StartTripResponse, error) {
 	// Create new trip
 	trip, err := s.repo.CreateTrip(ctx, req.RideFareId, req.UserId)
 	if err != nil {
@@ -204,7 +204,7 @@ func (s *TripService) StartTrip(ctx context.Context, req *rpc.StartTripRequest) 
 		return nil, status.Errorf(codes.Internal, "Failed to publish %s event", messaging.TripEventCreated)
 	}
 
-	return &rpc.StartTripResponse{
+	return &pb.StartTripResponse{
 		TripId: trip.ID.Hex(),
 	}, nil
 }

@@ -2,17 +2,17 @@ package client
 
 import (
 	"github.com/rs/zerolog/log"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Registry struct {
-	Trip    rpc.TripServiceClient
-	Driver  rpc.DriverServiceClient
-	Rider   rpc.RiderServiceClient
-	Payment rpc.PaymentServiceClient
+	Trip    pb.TripServiceClient
+	Driver  pb.DriverServiceClient
+	Rider   pb.RiderServiceClient
+	Payment pb.PaymentServiceClient
 	conns   []*grpc.ClientConn
 }
 
@@ -45,10 +45,10 @@ func NewRegistry() *Registry {
 	}
 
 	return &Registry{
-		Trip:    rpc.NewTripServiceClient(tripConn),
-		Driver:  rpc.NewDriverServiceClient(driverConn),
-		Rider:   rpc.NewRiderServiceClient(riderConn),
-		Payment: rpc.NewPaymentServiceClient(paymentConn),
+		Trip:    pb.NewTripServiceClient(tripConn),
+		Driver:  pb.NewDriverServiceClient(driverConn),
+		Rider:   pb.NewRiderServiceClient(riderConn),
+		Payment: pb.NewPaymentServiceClient(paymentConn),
 		conns:   []*grpc.ClientConn{tripConn, driverConn, riderConn, paymentConn},
 	}
 }
