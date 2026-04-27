@@ -8,7 +8,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/models"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/types"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -50,7 +50,7 @@ func NewTripRepository(db *mongo.Database) *TripRepository {
 	}
 }
 
-func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*rpc.RideFare, route models.RouteDetails, userID string) error {
+func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.RideFare, route models.RouteDetails, userID string) error {
 	userIDHex, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
 		return fmt.Errorf("Invalid user ID: %v", err)

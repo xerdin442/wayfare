@@ -8,6 +8,7 @@ import (
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/secrets"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/storage"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Config struct {
@@ -17,4 +18,5 @@ type Config struct {
 	Clients     *client.Registry
 	Queue       messaging.MessageBus
 	Uploader    *storage.FileUploadConfig
+	Tracer      trace.Tracer
 }

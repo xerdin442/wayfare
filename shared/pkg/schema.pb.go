@@ -4,7 +4,7 @@
 // 	protoc        v6.33.4
 // source: schema.proto
 
-package rpc
+package pb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -520,7 +520,7 @@ const file_schema_proto_rawDesc = "" +
 	"\tdriver_id\x18\x03 \x01(\tR\bdriverId\x12\x16\n" +
 	"\x06status\x18\x04 \x01(\tR\x06status\x126\n" +
 	"\rselected_fare\x18\x05 \x01(\v2\x11.wayfare.RideFareR\fselectedFare\x12$\n" +
-	"\x05route\x18\x06 \x01(\v2\x0e.wayfare.RouteR\x05routeB-Z+github.com/xerdin442/wayfare/shared/pkg/rpcb\x06proto3"
+	"\x05route\x18\x06 \x01(\v2\x0e.wayfare.RouteR\x05routeB,Z*github.com/xerdin442/wayfare/shared/pkg/pbb\x06proto3"
 
 var (
 	file_schema_proto_rawDescOnce sync.Once

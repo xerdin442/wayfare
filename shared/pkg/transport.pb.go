@@ -4,7 +4,7 @@
 // 	protoc        v6.33.4
 // source: transport.proto
 
-package rpc
+package pb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -885,7 +885,7 @@ const file_transport_proto_rawDesc = "" +
 	"\x05Login\x12\x15.wayfare.LoginRequest\x1a\x15.wayfare.AuthResponse\x12<\n" +
 	"\x06Signup\x12\x1b.wayfare.SignupRiderRequest\x1a\x15.wayfare.AuthResponse2f\n" +
 	"\x0ePaymentService\x12T\n" +
-	"\x0fInitiatePayment\x12\x1f.wayfare.InitiatePaymentRequest\x1a .wayfare.InitiatePaymentResponseB-Z+github.com/xerdin442/wayfare/shared/pkg/rpcb\x06proto3"
+	"\x0fInitiatePayment\x12\x1f.wayfare.InitiatePaymentRequest\x1a .wayfare.InitiatePaymentResponseB,Z*github.com/xerdin442/wayfare/shared/pkg/pbb\x06proto3"
 
 var (
 	file_transport_proto_rawDescOnce sync.Once

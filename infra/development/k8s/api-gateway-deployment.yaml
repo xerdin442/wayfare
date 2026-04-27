@@ -43,6 +43,11 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: ENVIRONMENT
+            - name: TRACE_COLLECTOR_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: TRACE_COLLECTOR_ENDPOINT                  
             - name: REDIS_URI
               valueFrom:
                 secretKeyRef:

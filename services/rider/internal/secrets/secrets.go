@@ -9,16 +9,18 @@ import (
 )
 
 type Secrets struct {
-	ServicePort int
-	MongoUri    string
-	AmqpUri     string
+	ServicePort            int
+	Environment            string
+	MongoUri               string
+	TraceCollectorEndpoint string
 }
 
 func Load() *Secrets {
 	return &Secrets{
-		ServicePort: getInt("SERVICE_PORT"),
-		MongoUri:    getStr("MONGO_URI"),
-		AmqpUri:     getStr("AMQP_URI"),
+		ServicePort:            getInt("SERVICE_PORT"),
+		Environment:            getStr("ENVIRONMENT"),
+		MongoUri:               getStr("MONGO_URI"),
+		TraceCollectorEndpoint: getStr("TRACE_COLLECTOR_ENDPOINT"),
 	}
 }
 

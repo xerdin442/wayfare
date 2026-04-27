@@ -8,7 +8,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/models"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"golang.org/x/crypto/bcrypt"
@@ -60,7 +60,7 @@ func (r *RiderRepository) GetRiderByEmail(ctx context.Context, email string) (*m
 	return &rider, nil
 }
 
-func (r *RiderRepository) CreateRiderAccount(ctx context.Context, details *rpc.SignupRiderRequest) (*models.RiderModel, error) {
+func (r *RiderRepository) CreateRiderAccount(ctx context.Context, details *pb.SignupRiderRequest) (*models.RiderModel, error) {
 	// Generate password hash
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(details.Password), bcrypt.DefaultCost)
 	if err != nil {

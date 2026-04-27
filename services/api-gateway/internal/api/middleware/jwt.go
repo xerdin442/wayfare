@@ -63,7 +63,7 @@ func (m *Middleware) JwtGuard() gin.HandlerFunc {
 		}
 
 		c.Set("user_id", claims.SubjectID)
-		c.Set("role", claims.Role)
+		c.Set("user_role", claims.Role)
 		c.Set("token_exp", time.Unix(claims.ExpiresAt.Unix(), 0))
 
 		c.Next()

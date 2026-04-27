@@ -32,7 +32,7 @@ func (c *EventWorker) RegisterHandler(h AmqpEventHandler, events ...AmqpEvent) {
 	}
 }
 
-func (c *EventWorker) Start(ctx context.Context) error {
+func (c *EventWorker) Start() error {
 	return c.bus.ConsumeMessages(c.queue, func(ctx context.Context, msg amqp.Delivery) error {
 		event := AmqpEvent(msg.RoutingKey)
 		handler, ok := c.handlers[event]

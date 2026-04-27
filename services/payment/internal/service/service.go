@@ -15,17 +15,19 @@ import (
 	repo "github.com/xerdin442/wayfare/services/payment/internal/infra/repository"
 	"github.com/xerdin442/wayfare/services/payment/internal/secrets"
 	"github.com/xerdin442/wayfare/shared/contracts"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-var ErrGatewayUnavailable = errors.New("payment gateway is currently unavailable")
-var ErrApiRequestFailure = errors.New("failed to send api request")
+var (
+	ErrGatewayUnavailable = errors.New("payment gateway is currently unavailable")
+	ErrApiRequestFailure  = errors.New("failed to send api request")
+)
 
 type PaymentService struct {
-	rpc.UnimplementedPaymentServiceServer
+	pb.UnimplementedPaymentServiceServer
 	repo  *repo.PaymentRepository
 	cache *redis.Client
 	env   *secrets.Secrets
@@ -140,14 +142,14 @@ func (s *PaymentService) generateFlutterwaveCheckout(ctx context.Context, req *c
 	return checkoutInfo.Data.Link, nil
 }
 
-func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiatePaymentRequest) (*rpc.InitiatePaymentResponse, error) {
+func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePaymentRequest) (*pb.InitiatePaymentResponse, error) {
 	var checkoutUrl string
 	var txnID string
 
 	// Check for pending transaction from unfinished checkout session
 	existingTxn, err := s.repo.GetTransactionByTripID(ctx, req.TripId)
 	if err != nil {
-		return &rpc.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
+		return &pb.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
 	}
 
 	if existingTxn != nil {
@@ -157,7 +159,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 		// Create new transaction
 		txnID, err = s.repo.CreateTransaction(ctx, req.TripId, req.Amount)
 		if err != nil {
-			return &rpc.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
+			return &pb.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
 		}
 	}
 
@@ -200,7 +202,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 
 					// Update transaction details
 					if err := s.repo.UpdateTransaction(ctx, txnID, types.PaymentStatusAborted, types.ProviderFlutterwave); err != nil {
-						return &rpc.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
+						return &pb.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
 					}
 
 					return nil, status.Error(codes.Unavailable, "Service unavailable")
@@ -241,7 +243,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 
 								// Update transaction details
 								if err := s.repo.UpdateTransaction(ctx, txnID, types.PaymentStatusAborted, types.ProviderFlutterwave); err != nil {
-									return &rpc.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
+									return &pb.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
 								}
 
 								return nil, status.Error(codes.Unavailable, "Service unavailable")
@@ -263,5 +265,5 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *rpc.InitiateP
 		}
 	}
 
-	return &rpc.InitiatePaymentResponse{CheckoutUrl: checkoutUrl}, nil
+	return &pb.InitiatePaymentResponse{CheckoutUrl: checkoutUrl}, nil
 }

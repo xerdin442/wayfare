@@ -11,7 +11,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/trip/internal/service"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/tracing"
 	"google.golang.org/grpc"
 )
 
@@ -21,7 +22,7 @@ type Server struct {
 
 func New() *Server {
 	return &Server{
-		grpcServer: grpc.NewServer(),
+		grpcServer: grpc.NewServer(tracing.WithTracingInterceptors()...),
 	}
 }
 
@@ -33,7 +34,7 @@ func (s *Server) Start(svc *service.TripService, port int) error {
 	}
 
 	// Register service
-	rpc.RegisterTripServiceServer(s.grpcServer, svc)
+	pb.RegisterTripServiceServer(s.grpcServer, svc)
 
 	log.Info().Int("port", port).Msg("Starting gRPC server...")
 

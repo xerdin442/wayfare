@@ -11,7 +11,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/payment/internal/service"
-	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	pb "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/tracing"
 	"google.golang.org/grpc"
 )
 
@@ -21,20 +22,23 @@ type Server struct {
 
 func New() *Server {
 	return &Server{
-		grpcServer: grpc.NewServer(),
+		grpcServer: grpc.NewServer(tracing.WithTracingInterceptors()...),
 	}
 }
 
 func (s *Server) Start(svc *service.PaymentService, port int) error {
+	// Create listener
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return fmt.Errorf("Failed to listen: %w", err)
 	}
 
-	rpc.RegisterPaymentServiceServer(s.grpcServer, svc)
+	// Register service
+	pb.RegisterPaymentServiceServer(s.grpcServer, svc)
 
 	log.Info().Int("port", port).Msg("Starting gRPC server...")
 
+	// Start server
 	errChan := make(chan error, 1)
 	go func() {
 		if err := s.grpcServer.Serve(lis); err != nil {
@@ -42,6 +46,7 @@ func (s *Server) Start(svc *service.PaymentService, port int) error {
 		}
 	}()
 
+	// Wait for termination signal or error
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 

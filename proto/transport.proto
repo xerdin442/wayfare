@@ -4,7 +4,7 @@ package wayfare;
 
 import "schema.proto";
 
-option go_package = "github.com/xerdin442/wayfare/shared/pkg/rpc";
+option go_package = "github.com/xerdin442/wayfare/shared/pkg/pb";
 
 // TripService handles the preview, creation and management of trips
 service TripService {

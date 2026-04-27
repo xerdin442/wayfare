@@ -15,28 +15,38 @@ import (
 	"github.com/xerdin442/wayfare/services/payment/internal/service"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/storage"
+	"github.com/xerdin442/wayfare/shared/tracing"
 	"golang.org/x/sync/errgroup"
 )
 
 func main() {
+	// Load environment variables
+	env := secrets.Load()
+
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	g, ctx := errgroup.WithContext(ctx)
 
-	// Load environment variables
-	env := secrets.Load()
+	// Initialize tracer
+	tracerCfg := &tracing.TraceConfig{
+		ServiceName:       "payment-service",
+		Environment:       env.Environment,
+		CollectorEndpoint: env.TraceCollectorEndpoint,
+		Insecure:          env.Environment == "production",
+	}
+	shutdown, err := tracing.InitTracer(ctx, tracerCfg)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize tracer")
+	}
+	defer shutdown(ctx)
 
 	// Initialize logger
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
-	// Initialize database
-	database := storage.InitializeDatabase(ctx, env.MongoUri)
+	database := storage.InitDatabase(ctx, env.MongoUri)
+	cache := storage.InitCache(ctx, env.RedisUri)
 
-	// Initialize cache
-	cache := storage.InitializeCache(ctx, env.RedisUri)
-
-	// Initialize message bus
 	rmq := messaging.NewRabbitMQ(env.AmqpUri)
 	defer rmq.Close()
 
@@ -51,7 +61,7 @@ func main() {
 
 	g.Go(func() error {
 		log.Info().Msg("Starting event worker...")
-		return w.Start(ctx)
+		return w.Start()
 	})
 
 	g.Go(func() error {

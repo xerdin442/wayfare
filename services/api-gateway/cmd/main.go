@@ -15,6 +15,7 @@ import (
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/secrets"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/storage"
+	"github.com/xerdin442/wayfare/shared/tracing"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -24,24 +25,36 @@ type application struct {
 }
 
 func main() {
+	// Load environment variables
+	env := secrets.Load()
+
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	g, ctx := errgroup.WithContext(ctx)
 
+	// Initialize tracer
+	tracerCfg := &tracing.TraceConfig{
+		ServiceName:       "api-gateway",
+		Environment:       env.Environment,
+		CollectorEndpoint: env.TraceCollectorEndpoint,
+		Insecure:          env.Environment == "production",
+	}
+	shutdown, err := tracing.InitTracer(ctx, tracerCfg)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize tracer")
+	}
+	defer shutdown(ctx)
+
 	// Initialize logger
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
-	// Load environment variables
-	env := secrets.Load()
 
 	// Turn off debug messages in production
 	if env.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// Initialize Redis cache
-	cache := storage.InitializeCache(ctx, env.RedisUri)
+	cache := storage.InitCache(ctx, env.RedisUri)
 
 	rmq := messaging.NewRabbitMQ(env.AmqpUri)
 	defer rmq.Close()
@@ -61,6 +74,7 @@ func main() {
 			ApiKey:      env.CloudinaryApiKey,
 			CloudSecret: env.CloudinarySecret,
 		},
+		Tracer: tracing.GetTracer(tracerCfg.ServiceName),
 	}
 
 	h := events.NewGatewayEventsHandler(baseCfg)
@@ -74,7 +88,7 @@ func main() {
 
 	g.Go(func() error {
 		log.Info().Msg("Starting event worker...")
-		return w.Start(ctx)
+		return w.Start()
 	})
 
 	g.Go(func() error {

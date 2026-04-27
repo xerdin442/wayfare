@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/handlers"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/middleware"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 func (app *application) routes() http.Handler {
@@ -23,10 +24,10 @@ func (app *application) routes() http.Handler {
 	})
 
 	// Websocket handlers
-	r.Group("/ws")
+	ws := r.Group("/ws")
 	{
-		r.GET("/drivers", h.HandleDriversConnection)
-		r.GET("/riders", h.HandleRidersConnection)
+		ws.GET("/drivers", otelgin.Middleware("ws.drivers"), h.HandleDriversConnection)
+		ws.GET("/riders", otelgin.Middleware("ws.riders"), h.HandleRidersConnection)
 	}
 
 	v1 := r.Group("/api/v1")
@@ -37,27 +38,24 @@ func (app *application) routes() http.Handler {
 
 	auth := v1.Group("/auth")
 	{
-		auth.POST("/signup", h.HandleSignup)
-		auth.POST("/login", h.HandleLogin)
-		auth.POST("/logout", m.JwtGuard(), h.HandleLogout)
+		auth.POST("/signup", otelgin.Middleware("auth.signup"), h.HandleSignup)
+		auth.POST("/login", otelgin.Middleware("auth.login"), h.HandleLogin)
+		auth.POST("/logout", m.JwtGuard(), otelgin.Middleware("auth.logout"), h.HandleLogout)
 	}
 
 	user := v1.Group("/user", m.JwtGuard())
 	{
-		user.GET("/profile", h.HandleUserProfile)
+		user.GET("/profile", otelgin.Middleware("user.profile"), h.HandleUserProfile)
 	}
 
 	trip := v1.Group("/trip", m.JwtGuard())
 	{
-		trip.POST("/start", h.HandleStartTrip)
-		trip.POST("/preview", h.HandleTripPreview)
+		trip.POST("/start", otelgin.Middleware("trip.start"), h.HandleStartTrip)
+		trip.POST("/preview", otelgin.Middleware("trip.preview"), h.HandleTripPreview)
+		trip.POST("/:id/pay", otelgin.Middleware("trip.pay"), h.HandleInitiatePayment)
 	}
 
-	payment := v1.Group("/payment", m.JwtGuard())
-	{
-		payment.POST("/initiate", h.HandleInitiatePayment)
-		payment.POST("/callback", h.HandlePaymentCallback)
-	}
+	v1.POST("/payment/callback", m.JwtGuard(), otelgin.Middleware("payment.callback"), h.HandlePaymentCallback)
 
 	return r
 }
