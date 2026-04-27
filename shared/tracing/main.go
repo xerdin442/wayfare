@@ -20,7 +20,7 @@ type TraceConfig struct {
 	Insecure          bool
 }
 
-func InitTracer(ctx context.Context, cfg TraceConfig) (func(context.Context) error, error) {
+func InitTracer(ctx context.Context, cfg *TraceConfig) (func(context.Context) error, error) {
 	// Exporter
 	traceExporter, err := newExporter(ctx, cfg)
 	if err != nil {
@@ -45,7 +45,7 @@ func GetTracer(name string) trace.Tracer {
 	return otel.GetTracerProvider().Tracer(name)
 }
 
-func newExporter(ctx context.Context, cfg TraceConfig) (sdktrace.SpanExporter, error) {
+func newExporter(ctx context.Context, cfg *TraceConfig) (sdktrace.SpanExporter, error) {
 	opts := []otlptracehttp.Option{
 		otlptracehttp.WithEndpoint(cfg.CollectorEndpoint),
 	}
@@ -64,7 +64,7 @@ func newPropagator() propagation.TextMapPropagator {
 	)
 }
 
-func newTraceProvider(cfg TraceConfig, exporter sdktrace.SpanExporter) (*sdktrace.TracerProvider, error) {
+func newTraceProvider(cfg *TraceConfig, exporter sdktrace.SpanExporter) (*sdktrace.TracerProvider, error) {
 	res, err := resource.New(context.Background(),
 		resource.WithAttributes(
 			semconv.ServiceNameKey.String(cfg.ServiceName),

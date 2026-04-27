@@ -18,7 +18,7 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 16686
-            - containerPort: 4318
+            - containerPort: 14268
           env:
             - name: COLLECTOR_OTLP_ENABLED
               value: "true"
@@ -43,6 +43,6 @@ spec:
     - name: ui
       port: 16686
     - name: collector
-      port: 4318
+      port: 14268
   selector:
     app: jaeger

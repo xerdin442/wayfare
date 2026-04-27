@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func InitializeDatabase(ctx context.Context, uri string) *mongo.Database {
+func InitDatabase(ctx context.Context, uri string) *mongo.Database {
 	clientOptions := options.Client().ApplyURI(uri)
 	mongoClient, err := mongo.Connect(clientOptions)
 	if err != nil {

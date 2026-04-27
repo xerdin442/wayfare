@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func InitializeCache(ctx context.Context, uri string) *redis.Client {
+func InitCache(ctx context.Context, uri string) *redis.Client {
 	// Parse connection URI
 	cacheOpts, err := redis.ParseURL(uri)
 	if err != nil {
