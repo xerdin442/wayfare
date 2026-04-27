@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/driver/internal/service"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/tracing"
 	"google.golang.org/grpc"
 )
 
@@ -21,7 +22,7 @@ type Server struct {
 
 func New() *Server {
 	return &Server{
-		grpcServer: grpc.NewServer(),
+		grpcServer: grpc.NewServer(tracing.WithTracingInterceptors()...),
 	}
 }
 
@@ -31,9 +32,6 @@ func (s *Server) Start(svc *service.DriverService, port int) error {
 	if err != nil {
 		return fmt.Errorf("Failed to listen: %w", err)
 	}
-
-	// Create gRPC server
-	s.grpcServer = grpc.NewServer()
 
 	// Register service
 	rpc.RegisterDriverServiceServer(s.grpcServer, svc)

@@ -3,6 +3,7 @@ package client
 import (
 	"github.com/rs/zerolog/log"
 	rpc "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/tracing"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -16,27 +17,28 @@ type Registry struct {
 }
 
 func NewRegistry() *Registry {
-	credentials := grpc.WithTransportCredentials(insecure.NewCredentials())
+	dialOptions := tracing.DialOptionsWithTracing()
+	dialOptions = append(dialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
-	tripConn, err := grpc.NewClient("trip-service:80", credentials)
+	tripConn, err := grpc.NewClient("trip-service:80", dialOptions...)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to Trip service")
 		return nil
 	}
 
-	driverConn, err := grpc.NewClient("driver-service:80", credentials)
+	driverConn, err := grpc.NewClient("driver-service:80", dialOptions...)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to Driver service")
 		return nil
 	}
 
-	riderConn, err := grpc.NewClient("rider-service:80", credentials)
+	riderConn, err := grpc.NewClient("rider-service:80", dialOptions...)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to Rider service")
 		return nil
 	}
 
-	paymentConn, err := grpc.NewClient("payment-service:80", credentials)
+	paymentConn, err := grpc.NewClient("payment-service:80", dialOptions...)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to Payment service")
 		return nil
