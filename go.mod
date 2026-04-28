@@ -10,7 +10,8 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rabbitmq/amqp091-go v1.10.0
-	github.com/redis/go-redis/v9 v9.18.0
+	github.com/redis/go-redis/extra/redisotel/v9 v9.19.0
+	github.com/redis/go-redis/v9 v9.19.0
 	github.com/rs/zerolog v1.34.0
 	github.com/twpayne/go-polyline v1.1.1
 	github.com/ulule/limiter/v3 v3.11.2
@@ -40,7 +41,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/creasty/defaults v1.8.0 // indirect
-	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/gin-contrib/sse v1.1.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -70,6 +70,7 @@ require (
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
+	github.com/redis/go-redis/extra/rediscmd/v9 v9.19.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
