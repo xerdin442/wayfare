@@ -36,7 +36,7 @@ func main() {
 		ServiceName:       "trip-service",
 		Environment:       env.Environment,
 		CollectorEndpoint: env.TraceCollectorEndpoint,
-		Insecure:          env.Environment == "production",
+		Insecure:          env.Environment != "production",
 	}
 	traceShutdown, err := tracing.InitTracer(ctx, tracerCfg)
 	if err != nil {
