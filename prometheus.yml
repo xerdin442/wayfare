@@ -1,0 +1,7 @@
+scrape_configs:
+  - job_name: "wayfare"
+    metrics_path: /api/v1/metrics
+    scrape_interval: 5s
+    static_configs:
+      - targets:
+          - "api-gateway:8080"

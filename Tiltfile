@@ -4,6 +4,7 @@ load('ext://restart_process', 'docker_build_with_restart')
 ### K8s Config ###
 
 local('kubectl create secret generic app-secrets --from-env-file=.env --dry-run=client -o yaml > ./infra/development/k8s/secrets.yaml')
+local('kubectl create configmap prometheus-config --from-file=prometheus.yml')
 
 k8s_yaml('./infra/development/k8s/secrets.yaml')
 
@@ -15,6 +16,9 @@ k8s_resource('mongodb', port_forwards=['27017:27017'], labels="infra")
 
 k8s_yaml('./infra/development/k8s/rabbitmq.yaml')
 k8s_resource('rabbitmq', port_forwards=['15672:15672'], labels="infra")
+
+k8s_yaml('./infra/development/k8s/prometheus.yaml')
+k8s_resource('prometheus', port_forwards=['9090:9090'], labels="infra")
 
 k8s_yaml('./infra/development/k8s/elasticsearch.yaml')
 k8s_resource('elasticsearch', port_forwards=['9200:9200'], labels="infra")

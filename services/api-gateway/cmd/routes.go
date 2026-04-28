@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/handlers"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/middleware"
+	"github.com/xerdin442/wayfare/shared/metrics"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
@@ -23,7 +24,7 @@ func (app *application) routes() http.Handler {
 		c.Status(http.StatusOK)
 	})
 
-	// Websocket handlers
+	// Websockets
 	ws := r.Group("/ws")
 	{
 		ws.GET("/drivers", otelgin.Middleware("ws.drivers"), h.HandleDriversConnection)
@@ -31,6 +32,9 @@ func (app *application) routes() http.Handler {
 	}
 
 	v1 := r.Group("/api/v1")
+
+	// Metrics
+	v1.GET("/metrics", metrics.GetMetricsHandler())
 
 	v1.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "Hello from the API Gateway!")
