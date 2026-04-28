@@ -14,6 +14,7 @@ import (
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/events"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/secrets"
 	"github.com/xerdin442/wayfare/shared/messaging"
+	"github.com/xerdin442/wayfare/shared/metrics"
 	"github.com/xerdin442/wayfare/shared/storage"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"golang.org/x/sync/errgroup"
@@ -40,11 +41,22 @@ func main() {
 		CollectorEndpoint: env.TraceCollectorEndpoint,
 		Insecure:          env.Environment == "production",
 	}
-	shutdown, err := tracing.InitTracer(ctx, tracerCfg)
+	traceShutdown, err := tracing.InitTracer(ctx, tracerCfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize tracer")
 	}
-	defer shutdown(ctx)
+	defer traceShutdown(ctx)
+
+	// Initialize metrics
+	metricsCfg := &metrics.MetricConfig{
+		ServiceName: "api-gateway",
+		Environment: env.Environment,
+	}
+	metricsShutdown, err := metrics.InitMetrics(ctx, metricsCfg)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize metrics")
+	}
+	defer metricsShutdown(ctx)
 
 	// Initialize logger
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
