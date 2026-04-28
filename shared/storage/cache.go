@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )
@@ -15,10 +16,19 @@ func InitCache(ctx context.Context, uri string) *redis.Client {
 		log.Fatal().Err(err).Msg("Invalid Redis connection URI")
 	}
 
-	// Initialize cache and test connection
+	// Initialize cache
 	cache := redis.NewClient(cacheOpts)
-	var pingErr error
 
+	// Instrument cache
+	if err := redisotel.InstrumentTracing(cache); err != nil {
+		log.Fatal().Err(err).Msg("Failed to instrument Redis for tracing")
+	}
+	if err := redisotel.InstrumentMetrics(cache); err != nil {
+		log.Fatal().Err(err).Msg("Failed to instrument Redis for metrics")
+	}
+
+	// Ping Redis to ensure connection is alive
+	var pingErr error
 	for range 3 {
 		pingErr = cache.Ping(context.Background()).Err()
 		if pingErr == nil {

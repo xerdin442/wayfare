@@ -2,16 +2,19 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	repo "github.com/xerdin442/wayfare/services/rider/internal/infra/repository"
 	"github.com/xerdin442/wayfare/services/rider/internal/secrets"
 	"github.com/xerdin442/wayfare/services/rider/internal/server"
 	"github.com/xerdin442/wayfare/services/rider/internal/service"
+	"github.com/xerdin442/wayfare/shared/metrics"
 	"github.com/xerdin442/wayfare/shared/storage"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"golang.org/x/sync/errgroup"
@@ -26,19 +29,29 @@ func main() {
 
 	g, ctx := errgroup.WithContext(ctx)
 
-	// Initialize tracing
+	// Initialize tracer
 	tracerCfg := &tracing.TraceConfig{
 		ServiceName:       "rider-service",
 		Environment:       env.Environment,
 		CollectorEndpoint: env.TraceCollectorEndpoint,
-		Insecure:          env.Environment == "production",
+		Insecure:          env.Environment != "production",
 	}
-
-	shutdown, err := tracing.InitTracer(ctx, tracerCfg)
+	traceShutdown, err := tracing.InitTracer(ctx, tracerCfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize tracer")
 	}
-	defer shutdown(ctx)
+	defer traceShutdown(ctx)
+
+	// Initialize metrics
+	metricsCfg := &metrics.MetricConfig{
+		ServiceName: "rider-service",
+		Environment: env.Environment,
+	}
+	metricsShutdown, err := metrics.InitMetrics(ctx, metricsCfg)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize metrics")
+	}
+	defer metricsShutdown(ctx)
 
 	// Initialize logger
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -50,8 +63,18 @@ func main() {
 	repo := repo.NewRiderRepository(database)
 	svc := service.NewRiderService(repo)
 
+	go func() {
+		log.Info().Msg("Starting metrics server...")
+
+		// Background HTTP server to expose metrics
+		http.Handle("/metrics", promhttp.Handler())
+		if err := http.ListenAndServe(":2112", nil); err != nil {
+			log.Fatal().Err(err).Msg("Metrics server failed to start")
+		}
+	}()
+
 	g.Go(func() error {
-		log.Info().Msg("Starting server...")
+		log.Info().Msg("Starting gRPC server...")
 
 		srv := server.New()
 		return srv.Start(svc, env.ServicePort)
