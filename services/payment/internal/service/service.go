@@ -16,6 +16,7 @@ import (
 	"github.com/xerdin442/wayfare/services/payment/internal/secrets"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,16 +29,18 @@ var (
 
 type PaymentService struct {
 	pb.UnimplementedPaymentServiceServer
-	repo  *repo.PaymentRepository
-	cache *redis.Client
-	env   *secrets.Secrets
+	repo       *repo.PaymentRepository
+	cache      *redis.Client
+	env        *secrets.Secrets
+	httpClient *http.Client
 }
 
 func NewPaymentService(r *repo.PaymentRepository, c *redis.Client, s *secrets.Secrets) *PaymentService {
 	return &PaymentService{
-		repo:  r,
-		cache: c,
-		env:   s,
+		repo:       r,
+		cache:      c,
+		env:        s,
+		httpClient: tracing.NewHttpClient(),
 	}
 }
 
@@ -52,8 +55,7 @@ func (s *PaymentService) sendApiRequest(ctx context.Context, url, secretKey stri
 	req.Header.Set("Authorization", "Bearer "+secretKey)
 
 	// Send request to payment provider
-	httpClient := &http.Client{Timeout: 30 * time.Second}
-	response, err := httpClient.Do(req)
+	response, err := s.httpClient.Do(req)
 	if err != nil {
 		log.Error().Err(err).Msg("Error sending request to payment provider")
 		return nil, ErrApiRequestFailure

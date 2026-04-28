@@ -14,6 +14,7 @@ import (
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/models"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -21,14 +22,16 @@ import (
 
 type TripService struct {
 	pb.UnimplementedTripServiceServer
-	repo  *repo.TripRepository
-	queue messaging.MessageBus
+	repo       *repo.TripRepository
+	queue      messaging.MessageBus
+	httpClient *http.Client
 }
 
 func NewTripService(r *repo.TripRepository, q messaging.MessageBus) *TripService {
 	return &TripService{
-		repo:  r,
-		queue: q,
+		repo:       r,
+		queue:      q,
+		httpClient: tracing.NewHttpClient(),
 	}
 }
 
@@ -39,7 +42,7 @@ func (s *TripService) getTripRoute(pickup, destination *pb.Coordinate) (*contrac
 		destination.Longitude, destination.Latitude,
 	)
 
-	httpResp, err := http.Get(url)
+	httpResp, err := s.httpClient.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to fetch routes from OSRM API: %v", err)
 	}
