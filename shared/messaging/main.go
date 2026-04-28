@@ -7,6 +7,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog/log"
+	"github.com/xerdin442/wayfare/shared/retry"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -88,12 +89,32 @@ func (r *RabbitMQ) ConsumeMessages(queueName AmqpQueue, handler func(context.Con
 			)
 			defer span.End()
 
-			if err := handler(ctx, msg); err != nil {
-				tracing.HandleError(span, err)
-				log.Warn().Err(err).Str("routing_key", string(msg.RoutingKey)).Msgf("Failed to consume message from %s queue", queueName)
-				if nackErr := msg.Nack(false, false); nackErr != nil {
-					tracing.HandleError(span, nackErr)
-					log.Warn().Err(nackErr).Str("routing_key", string(msg.RoutingKey)).Msg("Failed to Nack message")
+			cfg := retry.DefaultConfig()
+			retryErr := retry.WithBackoff(ctx, cfg, func() error {
+				return handler(ctx, msg)
+			})
+
+			if retryErr != nil {
+				tracing.HandleError(span, retryErr)
+				log.Warn().Err(retryErr).Str("routing_key", string(msg.RoutingKey)).Msgf("Failed to consume message from %s queue", queueName)
+
+				// Attach failure details to trace context
+				headers := amqp.Table{}
+				if msg.Headers != nil {
+					headers = msg.Headers
+				}
+
+				headers["x-death-reason"] = retryErr.Error()
+				headers["x-origin-exchange"] = msg.Exchange
+				headers["x-origin-routing-key"] = msg.RoutingKey
+				headers["x-retry-count"] = cfg.MaxRetries
+				msg.Headers = headers
+
+				// Reject message without requeue and send to the DLQ
+				err = msg.Reject(false)
+				if err != nil {
+					tracing.HandleError(span, err)
+					log.Warn().Err(err).Str("routing_key", string(msg.RoutingKey)).Msg("Failed to send message to DLQ")
 				}
 
 				continue
@@ -223,13 +244,18 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 }
 
 func (r *RabbitMQ) declareAndBindQueue(queueName AmqpQueue, messageTypes []AmqpEvent, exchange AmqpExchange) error {
+	// Add dead letter configuration
+	args := amqp.Table{
+		"x-dead-letter-exchange": DeadLetterExchange,
+	}
+
 	q, err := r.channel.QueueDeclare(
 		string(queueName), // name
 		true,              // durable
 		false,             // delete when unused
 		false,             // exclusive
 		false,             // no-wait
-		nil,               // arguments
+		args,              // arguments with DLX config
 	)
 	if err != nil {
 		return fmt.Errorf("Failed to declare queue: %v", err)
