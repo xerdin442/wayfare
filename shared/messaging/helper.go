@@ -36,10 +36,16 @@ type AmqpQueue string
 const (
 	GatewayQueue      AmqpQueue = "gateway_queue"
 	AssignDriverQueue AmqpQueue = "assign_driver_queue"
+	DriverUpdateQueue AmqpQueue = "driver_update_queue"
 	TripUpdateQueue   AmqpQueue = "trip_update_queue"
 	PaymentQueue      AmqpQueue = "payment_queue"
 	DeadLetterQueue   AmqpQueue = "dead_letter_queue"
 )
+
+type DriverUpdateQueuePayload struct {
+	DriverID        string `json:"driver_id"`
+	TripCountUpdate bool   `json:"trip_count_update,omitempty"`
+}
 
 type AssignDriverQueuePayload struct {
 	Trip     types.Trip `json:"trip"`
@@ -84,11 +90,12 @@ const (
 	DriverEventTripRequest AmqpEvent = "driver.event.trip_request"
 
 	// Driver commands
-	DriverCmdTripPickup     AmqpEvent = "driver.cmd.confirm_pickup"
-	DriverCmdTripAccept     AmqpEvent = "driver.cmd.trip_accept"
-	DriverCmdTripDecline    AmqpEvent = "driver.cmd.trip_decline"
-	DriverCmdLocationUpdate AmqpEvent = "driver.cmd.location_update"
-	DriverCmdEndTrip        AmqpEvent = "driver.cmd.end_trip"
+	DriverCmdTripPickup      AmqpEvent = "driver.cmd.confirm_pickup"
+	DriverCmdTripAccept      AmqpEvent = "driver.cmd.trip_accept"
+	DriverCmdTripDecline     AmqpEvent = "driver.cmd.trip_decline"
+	DriverCmdLocationUpdate  AmqpEvent = "driver.cmd.location_update"
+	DriverCmdEndTrip         AmqpEvent = "driver.cmd.end_trip"
+	DriverCmdTripCountUpdate AmqpEvent = "driver.cmd.trip_count_update"
 
 	// Payment events
 	PaymentEventWebhookReceived     AmqpEvent = "payment.event.webhook_received"

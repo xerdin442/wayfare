@@ -215,6 +215,16 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 	}
 
 	if err := r.declareAndBindQueue(
+		DriverUpdateQueue,
+		[]AmqpEvent{
+			DriverCmdTripCountUpdate,
+		},
+		ServicesExchange,
+	); err != nil {
+		return err
+	}
+
+	if err := r.declareAndBindQueue(
 		TripUpdateQueue,
 		[]AmqpEvent{
 			TripEventDriverAssigned,

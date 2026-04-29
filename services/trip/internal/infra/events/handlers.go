@@ -64,41 +64,53 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		return err
 	}
 
-	// Notify participants that the trip has ended
 	if updatedStatus == types.TripStatusCompleted {
-		if err := h.sendTripCompletionStatus(ctx, updatedTrip.DriverID.Hex(), updatedTrip.UserID.Hex()); err != nil {
-			return err
+		var publishErr error
+
+		// Notify participants that the trip has ended
+		gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+			Type: messaging.TripCmdCompleted,
+		})
+		if err != nil {
+			return fmt.Errorf("Failed to marshal websocket message")
+		}
+
+		publishErr = h.bus.PublishMessage(
+			ctx,
+			messaging.GatewayExchange,
+			messaging.AmqpEvent(fmt.Sprintf("user.%s", updatedTrip.DriverID.Hex())),
+			messaging.AmqpMessage{Data: gatewayData},
+		)
+
+		publishErr = h.bus.PublishMessage(
+			ctx,
+			messaging.GatewayExchange,
+			messaging.AmqpEvent(fmt.Sprintf("user.%s", updatedTrip.UserID.Hex())),
+			messaging.AmqpMessage{Data: gatewayData},
+		)
+
+		if publishErr != nil {
+			return fmt.Errorf("Failed to publish gateway event")
+		}
+
+		// Update driver completed trips count
+		tripServiceData, err := json.Marshal(messaging.DriverUpdateQueuePayload{
+			DriverID:        payload.DriverID,
+			TripCountUpdate: true,
+		})
+		if err != nil {
+			return fmt.Errorf("Failed to marshal driver_update queue payload: %v", err)
+		}
+
+		if err = h.bus.PublishMessage(
+			ctx,
+			messaging.ServicesExchange,
+			messaging.DriverCmdTripCountUpdate,
+			messaging.AmqpMessage{Data: tripServiceData},
+		); err != nil {
+			return fmt.Errorf("Failed to publish %s event: %v", messaging.DriverCmdTripCountUpdate, err)
 		}
 	}
 
 	return nil
-}
-
-func (h *TripEventsHandler) sendTripCompletionStatus(ctx context.Context, driverID, riderID string) error {
-	var publishErr error
-
-	gatewayData, err := json.Marshal(contracts.WebsocketMessage{
-		Type: messaging.TripCmdCompleted,
-	})
-	if err != nil {
-		return fmt.Errorf("Failed to marshal websocket message")
-	}
-
-	// Update the driver's trip preview
-	publishErr = h.bus.PublishMessage(
-		ctx,
-		messaging.GatewayExchange,
-		messaging.AmqpEvent(fmt.Sprintf("user.%s", driverID)),
-		messaging.AmqpMessage{Data: gatewayData},
-	)
-
-	// Update the rider's trip preview
-	publishErr = h.bus.PublishMessage(
-		ctx,
-		messaging.GatewayExchange,
-		messaging.AmqpEvent(fmt.Sprintf("user.%s", riderID)),
-		messaging.AmqpMessage{Data: gatewayData},
-	)
-
-	return publishErr
 }

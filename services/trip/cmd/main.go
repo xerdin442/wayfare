@@ -83,15 +83,13 @@ func main() {
 		return w.Start()
 	})
 
-	go func() {
+	g.Go(func() error {
 		log.Info().Msg("Starting metrics server...")
 
 		// Background HTTP server to expose metrics
 		http.Handle("/metrics", promhttp.Handler())
-		if err := http.ListenAndServe(":2112", nil); err != nil {
-			log.Fatal().Err(err).Msg("Metrics server failed to start")
-		}
-	}()
+		return http.ListenAndServe(":2112", nil)
+	})
 
 	g.Go(func() error {
 		log.Info().Msg("Starting gRPC server...")

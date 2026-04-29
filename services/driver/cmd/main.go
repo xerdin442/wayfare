@@ -67,30 +67,36 @@ func main() {
 	// Setup repository and service
 	repo := repo.NewDriverRepository(database)
 	svc := service.NewDriverService(repo)
-	h := events.NewDriverEventsHandler(rmq, cache)
+	h := events.NewDriverEventsHandler(repo, rmq, cache)
 
-	w := messaging.NewEventWorker(rmq, messaging.AssignDriverQueue)
-	w.RegisterHandler(
+	w1 := messaging.NewEventWorker(rmq, messaging.AssignDriverQueue)
+	w1.RegisterHandler(
 		h.FindAndAssignDriver,
 		messaging.TripEventCreated,
 		messaging.TripEventDriverNotAvailable,
 		messaging.TripEventDriverNotInterested,
 	)
 
+	w2 := messaging.NewEventWorker(rmq, messaging.DriverUpdateQueue)
+	w2.RegisterHandler(h.HandleDriverUpdate, messaging.DriverCmdTripCountUpdate)
+
 	g.Go(func() error {
-		log.Info().Msg("Starting event worker...")
-		return w.Start()
+		log.Info().Msg("Starting event worker 1...")
+		return w1.Start()
 	})
 
-	go func() {
+	g.Go(func() error {
+		log.Info().Msg("Starting event worker 2...")
+		return w2.Start()
+	})
+
+	g.Go(func() error {
 		log.Info().Msg("Starting metrics server...")
 
 		// Background HTTP server to expose metrics
 		http.Handle("/metrics", promhttp.Handler())
-		if err := http.ListenAndServe(":2112", nil); err != nil {
-			log.Fatal().Err(err).Msg("Metrics server failed to start")
-		}
-	}()
+		return http.ListenAndServe(":2112", nil)
+	})
 
 	g.Go(func() error {
 		log.Info().Msg("Starting gRPC server...")
