@@ -61,6 +61,7 @@ type TripUpdateQueuePayload struct {
 
 type CashPaymentPayload struct {
 	TripID       string `json:"trip_id"`
+	RiderID      string `json:"rider_id"`
 	Amount       int64  `json:"amount"`
 	TripRating   int64  `json:"trip_rating"`
 	RiderComment string `json:"rider_comment,omitempty"`

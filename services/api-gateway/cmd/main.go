@@ -91,7 +91,7 @@ func main() {
 
 	h := events.NewGatewayEventsHandler(baseCfg)
 	w := messaging.NewEventWorker(rmq, messaging.GatewayQueue)
-	w.RegisterHandler(h.HandleGatewayQueueEvents, "user.*")
+	w.RegisterHandler(h.HandleOutgoingWebsocketMessages, "user.*")
 
 	app := &application{
 		port:   env.GatewayPort,

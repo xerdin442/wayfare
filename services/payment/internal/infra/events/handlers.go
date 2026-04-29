@@ -232,6 +232,11 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		}
 	}
 
+	// Send transaction status to rider
+	if err := h.sendTransactionStatus(ctx, payload.RiderID, types.PaymentStatusSuccess); err != nil {
+		log.Warn().Err(err).Msg("Failed to send transaction status to rider")
+	}
+
 	// Mark trip as completed
 	if err := h.markTripAsCompleted(ctx, payload.TripID, payload.RiderComment, payload.TripRating); err != nil {
 		return err

@@ -261,6 +261,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 			// Send payment details to payment service
 			paymentServiceData, err := json.Marshal(messaging.CashPaymentPayload{
 				TripID:       payloadData.TripID,
+				RiderID:      tripDetails.UserId,
 				Amount:       tripDetails.RideFareAmount,
 				TripRating:   payloadData.TripRating,
 				RiderComment: payloadData.RiderComment,

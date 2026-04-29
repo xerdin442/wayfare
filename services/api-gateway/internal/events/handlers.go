@@ -21,7 +21,7 @@ func NewGatewayEventsHandler(c *base.Config) *GatewayEventsHandler {
 	return &GatewayEventsHandler{cfg: c}
 }
 
-func (h *GatewayEventsHandler) HandleGatewayQueueEvents(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
+func (h *GatewayEventsHandler) HandleOutgoingWebsocketMessages(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
 	var msg messaging.AmqpMessage
 	if err := json.Unmarshal(p.Body, &msg); err != nil {
 		return fmt.Errorf("Failed to unmarshal message from gateway queue: %v", err)
@@ -91,7 +91,7 @@ func (h *GatewayEventsHandler) HandleGatewayQueueEvents(ctx context.Context, p m
 				return fmt.Errorf("Failed to publish %s event: %v", messaging.TripCmdAborted, err)
 			}
 		default:
-			return fmt.Errorf("Unknown payload event type received by gateway queue: %s", payload.Type)
+			return fmt.Errorf("Invalid user ID received by gateway queue: %s", userID)
 		}
 	}
 
