@@ -21,6 +21,13 @@ type TripRepository struct {
 	tripColl     *mongo.Collection
 }
 
+type TripUpdateData struct {
+	DriverID     string
+	NewStatus    types.TripStatus
+	Rating       int64
+	RiderComment string
+}
+
 func NewTripRepository(db *mongo.Database) *TripRepository {
 	regionCollection, err := CreateRegionsCollection(db, "regions")
 	if err != nil {
@@ -176,25 +183,36 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 	return trip, nil
 }
 
-func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, newStatus types.TripStatus, driverID *string) error {
+func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, data *TripUpdateData) error {
 	tripIDHex, err := bson.ObjectIDFromHex(tripID)
 	if err != nil {
 		return fmt.Errorf("Invalid user ID: %v", err)
 	}
 
-	updateData := bson.M{
-		"status":     newStatus,
-		"updated_at": time.Now(),
-	}
+	updateData := bson.M{}
 
-	if driverID != nil && *driverID != "" {
-		driverIDHex, err := bson.ObjectIDFromHex(*driverID)
+	if data.DriverID != "" {
+		driverIDHex, err := bson.ObjectIDFromHex(data.DriverID)
 		if err != nil {
 			return fmt.Errorf("Invalid driver ID: %v", err)
 		}
 
 		updateData["driver_id"] = driverIDHex
 	}
+
+	if data.NewStatus != "" {
+		updateData["status"] = data.NewStatus
+	}
+
+	if data.Rating != 0 {
+		updateData["rating"] = data.Rating
+	}
+
+	if data.RiderComment != "" {
+		updateData["rider_comment"] = data.RiderComment
+	}
+
+	updateData["updated_at"] = time.Now()
 
 	update := bson.M{
 		"$set": updateData,

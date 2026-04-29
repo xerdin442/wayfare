@@ -24,7 +24,9 @@ type TripUpdateRequest struct {
 }
 
 type CashPaymentRequest struct {
-	TripID string `json:"trip_id"`
+	TripID       string `json:"tripId"`
+	TripRating   int64  `json:"tripRating"`
+	RiderComment string `json:"riderComment,omitempty"`
 }
 
 type DriverAssignedResponse struct {

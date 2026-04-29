@@ -69,15 +69,18 @@ func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *pb.
 	}
 
 	driver := &models.DriverModel{
-		ID:             bson.NewObjectID(),
-		Name:           details.Name,
-		Email:          details.Email,
-		Password:       string(hashedPassword),
-		ProfilePicture: details.ProfileImage,
-		CarPackage:     types.CarPackage(details.CarPackage),
-		CarPlate:       details.CarPlate,
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
+		ID:                  bson.NewObjectID(),
+		Name:                details.Name,
+		Email:               details.Email,
+		Password:            string(hashedPassword),
+		ProfilePicture:      details.ProfileImage,
+		CarPackage:          types.CarPackage(details.CarPackage),
+		CarPlate:            details.CarPlate,
+		CurrentRating:       0.0,
+		TotalCompletedTrips: 0,
+		LifetimeRatingAvg:   0.0,
+		CreatedAt:           time.Now(),
+		UpdatedAt:           time.Now(),
 	}
 
 	_, insertErr := r.driverColl.InsertOne(ctx, driver)

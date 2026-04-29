@@ -51,7 +51,14 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		return fmt.Errorf("Unknown event type received in trip update queue: %s", p.RoutingKey)
 	}
 
-	if err := h.repo.UpdateTrip(ctx, payload.TripID, updatedStatus, &payload.DriverID); err != nil {
+	updateData := &repo.TripUpdateData{
+		NewStatus:    updatedStatus,
+		DriverID:     payload.DriverID,
+		Rating:       payload.Rating,
+		RiderComment: payload.RiderComment,
+	}
+
+	if err := h.repo.UpdateTrip(ctx, payload.TripID, updateData); err != nil {
 		return err
 	}
 

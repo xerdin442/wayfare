@@ -75,11 +75,12 @@ type Trip struct {
 }
 
 type Driver struct {
-	ID             string     `json:"id"`
-	Location       Coordinate `json:"location"`
-	Name           string     `json:"name"`
-	ProfilePicture string     `json:"profilePicture"`
-	CarPlate       string     `json:"carPlate"`
+	ID                  string  `json:"id"`
+	Name                string  `json:"name"`
+	ProfilePicture      string  `json:"profilePicture"`
+	CarPlate            string  `json:"carPlate"`
+	CurrentRating       float64 `json:"currentRating"`
+	TotalCompletedTrips int64   `json:"totalCompletedTrips"`
 }
 
 type Rider struct {

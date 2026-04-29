@@ -190,5 +190,24 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		}
 	}
 
+	// Mark trip as completed
+	tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
+		TripID:       payload.TripID,
+		Rating:       payload.TripRating,
+		RiderComment: payload.RiderComment,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to marshal trip_update queue payload")
+	}
+
+	if err := h.bus.PublishMessage(
+		ctx,
+		messaging.ServicesExchange,
+		messaging.TripCmdCompleted,
+		messaging.AmqpMessage{Data: tripServiceData},
+	); err != nil {
+		return fmt.Errorf("Failed to publish %s event", messaging.TripCmdCompleted)
+	}
+
 	return nil
 }

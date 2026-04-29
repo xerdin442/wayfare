@@ -13,7 +13,11 @@ func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"name", "email", "password", "profile_picture", "car_package", "car_plate"},
+		"required": []string{
+			"name", "email", "password", "profile_picture",
+			"car_package", "car_plate", "current_rating",
+			"total_completed_trips", "lifetime_rating_avg",
+		},
 		"properties": bson.M{
 			"name":     bson.M{"bsonType": "string"},
 			"email":    bson.M{"bsonType": "string"},
@@ -22,8 +26,11 @@ func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection
 				"enum":        []string{"luxury", "sedan", "suv"},
 				"description": "must be one of the approved car packages",
 			},
-			"profile_picture": bson.M{"bsonType": "string"},
-			"car_plate":       bson.M{"bsonType": "string"},
+			"profile_picture":       bson.M{"bsonType": "string"},
+			"car_plate":             bson.M{"bsonType": "string"},
+			"current_rating":        bson.M{"bsonType": "double", "minimum": 0, "maximum": 5},
+			"total_completed_trips": bson.M{"bsonType": "int"},
+			"lifetime_rating_avg":   bson.M{"bsonType": "double", "minimum": 0, "maximum": 5},
 		},
 	}
 

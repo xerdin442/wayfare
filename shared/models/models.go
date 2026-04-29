@@ -64,26 +64,31 @@ type RideFareModel struct {
 }
 
 type TripModel struct {
-	ID        bson.ObjectID    `bson:"_id,omitempty"`
-	DriverID  bson.ObjectID    `bson:"driver_id,omitempty"`
-	UserID    bson.ObjectID    `bson:"user_id"`
-	Status    types.TripStatus `bson:"status"`
-	Fare      RideFareSummary  `bson:"fare"`
-	Route     RouteDetails     `bson:"route"`
-	CreatedAt time.Time        `bson:"created_at"`
-	UpdatedAt time.Time        `bson:"updated_at"`
+	ID           bson.ObjectID    `bson:"_id,omitempty"`
+	DriverID     bson.ObjectID    `bson:"driver_id,omitempty"`
+	UserID       bson.ObjectID    `bson:"user_id"`
+	Status       types.TripStatus `bson:"status"`
+	Fare         RideFareSummary  `bson:"fare"`
+	Route        RouteDetails     `bson:"route"`
+	Rating       int64            `bson:"rating,omitempty"`
+	RiderComment string           `bson:"rider_comment,omitempty"`
+	CreatedAt    time.Time        `bson:"created_at"`
+	UpdatedAt    time.Time        `bson:"updated_at"`
 }
 
 type DriverModel struct {
-	ID             bson.ObjectID    `bson:"_id,omitempty"`
-	Name           string           `bson:"name"`
-	Email          string           `bson:"email"`
-	Password       string           `bson:"password"`
-	ProfilePicture string           `bson:"profile_picture"`
-	CarPackage     types.CarPackage `bson:"car_package"`
-	CarPlate       string           `bson:"car_plate"`
-	CreatedAt      time.Time        `bson:"created_at"`
-	UpdatedAt      time.Time        `bson:"updated_at"`
+	ID                  bson.ObjectID    `bson:"_id,omitempty"`
+	Name                string           `bson:"name"`
+	Email               string           `bson:"email"`
+	Password            string           `bson:"password"`
+	ProfilePicture      string           `bson:"profile_picture"`
+	CarPackage          types.CarPackage `bson:"car_package"`
+	CarPlate            string           `bson:"car_plate"`
+	CurrentRating       float64          `bson:"current_rating"`
+	TotalCompletedTrips int64            `bson:"total_completed_trips"`
+	LifetimeRatingAvg   float64          `bson:"lifetime_rating_avg"`
+	CreatedAt           time.Time        `bson:"created_at"`
+	UpdatedAt           time.Time        `bson:"updated_at"`
 }
 
 type RiderModel struct {

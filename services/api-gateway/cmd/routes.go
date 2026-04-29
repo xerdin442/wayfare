@@ -57,6 +57,7 @@ func (app *application) routes() http.Handler {
 		trip.POST("/start", otelgin.Middleware("trip.start"), h.HandleStartTrip)
 		trip.POST("/preview", otelgin.Middleware("trip.preview"), h.HandleTripPreview)
 		trip.POST("/:id/pay", otelgin.Middleware("trip.pay"), h.HandleInitiatePayment)
+		trip.POST("/:id/rate", otelgin.Middleware("trip.rate"), h.HandleTripRating)
 	}
 
 	v1.POST("/payment/callback", m.JwtGuard(), otelgin.Middleware("payment.callback"), h.HandlePaymentCallback)

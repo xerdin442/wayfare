@@ -28,11 +28,12 @@ message RideFare {
 }
 
 message Driver {
-  string     id              = 1;
-  Coordinate location        = 2;
-  string     name            = 3;
-  string     profile_picture = 4;
-  string     car_plate       = 5;
+  string id                    = 1;
+  string name                  = 2;
+  string profile_picture       = 3;
+  string car_plate             = 4;
+  double current_rating        = 5;
+  int64  total_completed_trips = 6;
 }
 
 message Rider {

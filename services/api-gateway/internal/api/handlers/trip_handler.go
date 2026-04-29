@@ -161,3 +161,13 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, contracts.APIResponse{Data: checkoutResponse})
 }
+
+func (h *RouteHandler) HandleTripRating(c *gin.Context) {
+	// Start tracer
+	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleTripRating")
+	defer span.End()
+
+	logger := log.Ctx(ctx)
+
+	userID := c.MustGet("user_id").(string)
+}

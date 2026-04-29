@@ -63,3 +63,8 @@ type InitiatePaymentRequest struct {
 	Email          string `json:"email" binding:"required,email"`
 	CustomRedirect string `json:"custom_redirect" binding:"required"`
 }
+
+type TripRatingRequest struct {
+	Rating  int64  `json:"rating" binding:"required,min=1,max=5"`
+	Comment string `json:"comment,omitempty"`
+}

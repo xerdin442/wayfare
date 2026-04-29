@@ -222,6 +222,29 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				logger.Error().Err(err).Msg("Failed to publish gateway event")
 				return
 			}
+		case messaging.DriverCmdEndTrip:
+			payloadData := payload.Data.(contracts.TripUpdateRequest)
+
+			// Notify rider to make payment
+			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+				Type: messaging.TripEventPaymentRequired,
+			})
+			if err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to marshal websocket message")
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				ctx,
+				messaging.GatewayExchange,
+				messaging.AmqpEvent(fmt.Sprintf("user.%s", payloadData.Trip.UserID)),
+				messaging.AmqpMessage{Data: gatewayData},
+			); err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to publish gateway event")
+				return
+			}
 		case messaging.PaymentEventCashReceived:
 			payloadData := payload.Data.(contracts.CashPaymentRequest)
 
@@ -235,10 +258,12 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				return
 			}
 
-			// Send details of cash payment to payment service
+			// Send payment details to payment service
 			paymentServiceData, err := json.Marshal(messaging.PaymentQueuePayload{
-				TripID: payloadData.TripID,
-				Amount: tripDetails.RideFareAmount,
+				TripID:       payloadData.TripID,
+				Amount:       tripDetails.RideFareAmount,
+				TripRating:   payloadData.TripRating,
+				RiderComment: payloadData.RiderComment,
 			})
 			if err != nil {
 				tracing.HandleError(span, err)
