@@ -113,6 +113,8 @@ message InitiatePaymentRequest {
   string email           = 2;
   int64  amount          = 3;
   string custom_redirect = 4;
+  int64  trip_rating     = 5;
+  string rider_comment   = 6;
 }
 
 message InitiatePaymentResponse {

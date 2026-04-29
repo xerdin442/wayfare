@@ -54,11 +54,11 @@ func (h *PaymentEventsHandler) sendTransactionStatus(ctx context.Context, userID
 	return nil
 }
 
-func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, p messaging.PaymentQueuePayload) error {
+func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, tripID, riderComment string, rating int64) error {
 	tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
-		TripID:       p.TripID,
-		Rating:       p.TripRating,
-		RiderComment: p.RiderComment,
+		TripID:       tripID,
+		Rating:       rating,
+		RiderComment: riderComment,
 	})
 	if err != nil {
 		return fmt.Errorf("Failed to marshal trip_update queue payload")
@@ -82,7 +82,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
 	}
 
-	var payload messaging.PaymentQueuePayload
+	var payload messaging.CheckoutPaymentPayload
 	if err := json.Unmarshal(msg.Data, &payload); err != nil {
 		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
@@ -90,6 +90,11 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 	switch payload.Provider {
 	case types.ProviderPaystack:
 		data := payload.Data.(contracts.PaystackWebhookPayload)
+
+		var metadata contracts.PaymentMetadata
+		if err := json.Unmarshal([]byte(data.Data.Metadata), &metadata); err != nil {
+			return fmt.Errorf("Failed to unmarshal Paystack webhook metadata")
+		}
 
 		transaction, err := h.repo.GetTransactionByID(ctx, data.Data.Reference)
 		if err != nil {
@@ -129,12 +134,13 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 
 		// Mark trip as completed after successful payment
 		if data.Event == "charge.success" && data.Data.Status == "success" {
-			if err := h.markTripAsCompleted(ctx, payload); err != nil {
+			if err := h.markTripAsCompleted(ctx, metadata.TripID, metadata.RiderComment, metadata.TripRating); err != nil {
 				return err
 			}
 		}
 	case types.ProviderFlutterwave:
 		data := payload.Data.(contracts.FlutterwaveWebhookPayload)
+		metadata := data.Data.Meta
 
 		transaction, err := h.repo.GetTransactionByID(ctx, data.Data.TxRef)
 		if err != nil {
@@ -174,7 +180,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 
 		// Mark trip as completed after successful payment
 		if data.Event == "charge.completed" && data.Data.Status == "successful" {
-			if err := h.markTripAsCompleted(ctx, payload); err != nil {
+			if err := h.markTripAsCompleted(ctx, metadata.TripID, metadata.RiderComment, metadata.TripRating); err != nil {
 				return err
 			}
 		}
@@ -192,7 +198,7 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
 	}
 
-	var payload messaging.PaymentQueuePayload
+	var payload messaging.CashPaymentPayload
 	if err := json.Unmarshal(msg.Data, &payload); err != nil {
 		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
@@ -227,7 +233,7 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 	}
 
 	// Mark trip as completed
-	if err := h.markTripAsCompleted(ctx, payload); err != nil {
+	if err := h.markTripAsCompleted(ctx, payload.TripID, payload.RiderComment, payload.TripRating); err != nil {
 		return err
 	}
 

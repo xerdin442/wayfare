@@ -173,19 +173,30 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 		return nil, status.Error(codes.Internal, "Error occurred during payment processing")
 	}
 
-	// Configure payloads for checkout request
+	paymentMetadata := &contracts.PaymentMetadata{
+		TripID:       req.TripId,
+		TripRating:   req.TripRating,
+		RiderComment: req.RiderComment,
+	}
+
+	paystackMetadata, err := json.Marshal(paymentMetadata)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "Error occurred during payment processing")
+	}
 	paystackRequestPayload := &contracts.PaystackCheckoutRequest{
 		Email:       req.Email,
 		Amount:      req.Amount * 100,
 		Reference:   txnID,
 		Channels:    []string{"card", "apple_pay", "bank_transfer"},
 		CallbackUrl: req.CustomRedirect,
+		Metadata:    string(paystackMetadata),
 	}
 
 	flutterwaveRequestPayload := &contracts.FlutterwaveCheckoutRequest{
 		Amount:      req.Amount,
 		TxRef:       txnID,
 		RedirectUrl: req.CustomRedirect,
+		Meta:        paymentMetadata,
 		Customer: &contracts.FlutterwaveCustomer{
 			Email: req.Email,
 		},
