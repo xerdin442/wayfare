@@ -54,6 +54,28 @@ func (h *PaymentEventsHandler) sendTransactionStatus(ctx context.Context, userID
 	return nil
 }
 
+func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, p messaging.PaymentQueuePayload) error {
+	tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
+		TripID:       p.TripID,
+		Rating:       p.TripRating,
+		RiderComment: p.RiderComment,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to marshal trip_update queue payload")
+	}
+
+	if err := h.bus.PublishMessage(
+		ctx,
+		messaging.ServicesExchange,
+		messaging.TripCmdCompleted,
+		messaging.AmqpMessage{Data: tripServiceData},
+	); err != nil {
+		return fmt.Errorf("Failed to publish %s event", messaging.TripCmdCompleted)
+	}
+
+	return nil
+}
+
 func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
 	var msg messaging.AmqpMessage
 	if err := json.Unmarshal(p.Body, &msg); err != nil {
@@ -104,6 +126,13 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 		if err := h.sendTransactionStatus(ctx, payload.RiderID, updatedStatus); err != nil {
 			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
 		}
+
+		// Mark trip as completed after successful payment
+		if data.Event == "charge.success" && data.Data.Status == "success" {
+			if err := h.markTripAsCompleted(ctx, payload); err != nil {
+				return err
+			}
+		}
 	case types.ProviderFlutterwave:
 		data := payload.Data.(contracts.FlutterwaveWebhookPayload)
 
@@ -141,6 +170,13 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 		// Send transaction status to rider
 		if err := h.sendTransactionStatus(ctx, payload.RiderID, updatedStatus); err != nil {
 			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
+		}
+
+		// Mark trip as completed after successful payment
+		if data.Event == "charge.completed" && data.Data.Status == "successful" {
+			if err := h.markTripAsCompleted(ctx, payload); err != nil {
+				return err
+			}
 		}
 	default:
 		log.Warn().Str("provider", string(payload.Provider)).Msg("Webhook received from unknown payment provider")
@@ -191,22 +227,8 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 	}
 
 	// Mark trip as completed
-	tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
-		TripID:       payload.TripID,
-		Rating:       payload.TripRating,
-		RiderComment: payload.RiderComment,
-	})
-	if err != nil {
-		return fmt.Errorf("Failed to marshal trip_update queue payload")
-	}
-
-	if err := h.bus.PublishMessage(
-		ctx,
-		messaging.ServicesExchange,
-		messaging.TripCmdCompleted,
-		messaging.AmqpMessage{Data: tripServiceData},
-	); err != nil {
-		return fmt.Errorf("Failed to publish %s event", messaging.TripCmdCompleted)
+	if err := h.markTripAsCompleted(ctx, payload); err != nil {
+		return err
 	}
 
 	return nil

@@ -148,9 +148,10 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 
 	// Generate checkout link
 	checkoutResponse, err := h.cfg.Clients.Payment.InitiatePayment(ctx, &pb.InitiatePaymentRequest{
-		TripId: tripID,
-		Email:  req.Email,
-		Amount: tripDetails.RideFareAmount,
+		TripId:         tripID,
+		Email:          req.Email,
+		Amount:         tripDetails.RideFareAmount,
+		CustomRedirect: req.CustomRedirect,
 	})
 	if err != nil {
 		tracing.HandleError(span, err)
@@ -160,14 +161,4 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, contracts.APIResponse{Data: checkoutResponse})
-}
-
-func (h *RouteHandler) HandleTripRating(c *gin.Context) {
-	// Start tracer
-	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleTripRating")
-	defer span.End()
-
-	logger := log.Ctx(ctx)
-
-	userID := c.MustGet("user_id").(string)
 }

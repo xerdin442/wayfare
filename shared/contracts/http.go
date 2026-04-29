@@ -61,10 +61,7 @@ type StartTripRequest struct {
 
 type InitiatePaymentRequest struct {
 	Email          string `json:"email" binding:"required,email"`
-	CustomRedirect string `json:"custom_redirect" binding:"required"`
-}
-
-type TripRatingRequest struct {
-	Rating  int64  `json:"rating" binding:"required,min=1,max=5"`
-	Comment string `json:"comment,omitempty"`
+	CustomRedirect string `json:"customRedirect" binding:"required"`
+	TripRating     int64  `json:"tripRating" binding:"required,min=1,max=5"`
+	RiderComment   string `json:"riderComment,omitempty"`
 }

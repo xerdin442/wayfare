@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
+	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/types"
 )
@@ -58,9 +59,46 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		RiderComment: payload.RiderComment,
 	}
 
-	if err := h.repo.UpdateTrip(ctx, payload.TripID, updateData); err != nil {
+	updatedTrip, err := h.repo.UpdateTrip(ctx, payload.TripID, updateData)
+	if err != nil {
 		return err
 	}
 
+	// Notify participants that the trip has ended
+	if updatedStatus == types.TripStatusCompleted {
+		if err := h.sendTripCompletionStatus(ctx, updatedTrip.DriverID.Hex(), updatedTrip.UserID.Hex()); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+func (h *TripEventsHandler) sendTripCompletionStatus(ctx context.Context, driverID, riderID string) error {
+	var publishErr error
+
+	gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+		Type: messaging.TripCmdCompleted,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to marshal websocket message")
+	}
+
+	// Update the driver's trip preview
+	publishErr = h.bus.PublishMessage(
+		ctx,
+		messaging.GatewayExchange,
+		messaging.AmqpEvent(fmt.Sprintf("user.%s", driverID)),
+		messaging.AmqpMessage{Data: gatewayData},
+	)
+
+	// Update the rider's trip preview
+	publishErr = h.bus.PublishMessage(
+		ctx,
+		messaging.GatewayExchange,
+		messaging.AmqpEvent(fmt.Sprintf("user.%s", riderID)),
+		messaging.AmqpMessage{Data: gatewayData},
+	)
+
+	return publishErr
 }
