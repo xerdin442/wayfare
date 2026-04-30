@@ -254,14 +254,15 @@ func (x *RideFare) GetRoute() *Route {
 }
 
 type Driver struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Location       *Coordinate            `protobuf:"bytes,2,opt,name=location,proto3" json:"location,omitempty"`
-	Name           string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	ProfilePicture string                 `protobuf:"bytes,4,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
-	CarPlate       string                 `protobuf:"bytes,5,opt,name=car_plate,json=carPlate,proto3" json:"car_plate,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name                string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	ProfilePicture      string                 `protobuf:"bytes,3,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
+	CarPlate            string                 `protobuf:"bytes,4,opt,name=car_plate,json=carPlate,proto3" json:"car_plate,omitempty"`
+	CurrentRating       float64                `protobuf:"fixed64,5,opt,name=current_rating,json=currentRating,proto3" json:"current_rating,omitempty"`
+	TotalCompletedTrips int64                  `protobuf:"varint,6,opt,name=total_completed_trips,json=totalCompletedTrips,proto3" json:"total_completed_trips,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Driver) Reset() {
@@ -301,13 +302,6 @@ func (x *Driver) GetId() string {
 	return ""
 }
 
-func (x *Driver) GetLocation() *Coordinate {
-	if x != nil {
-		return x.Location
-	}
-	return nil
-}
-
 func (x *Driver) GetName() string {
 	if x != nil {
 		return x.Name
@@ -327,6 +321,20 @@ func (x *Driver) GetCarPlate() string {
 		return x.CarPlate
 	}
 	return ""
+}
+
+func (x *Driver) GetCurrentRating() float64 {
+	if x != nil {
+		return x.CurrentRating
+	}
+	return 0
+}
+
+func (x *Driver) GetTotalCompletedTrips() int64 {
+	if x != nil {
+		return x.TotalCompletedTrips
+	}
+	return 0
 }
 
 type Rider struct {
@@ -502,13 +510,14 @@ const file_schema_proto_rawDesc = "" +
 	"\n" +
 	"base_price\x18\x03 \x01(\x03R\tbasePrice\x12-\n" +
 	"\x13total_price_in_kobo\x18\x04 \x01(\x03R\x10totalPriceInKobo\x12$\n" +
-	"\x05route\x18\x05 \x01(\v2\x0e.wayfare.RouteR\x05route\"\xa3\x01\n" +
+	"\x05route\x18\x05 \x01(\v2\x0e.wayfare.RouteR\x05route\"\xcd\x01\n" +
 	"\x06Driver\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12/\n" +
-	"\blocation\x18\x02 \x01(\v2\x13.wayfare.CoordinateR\blocation\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12'\n" +
-	"\x0fprofile_picture\x18\x04 \x01(\tR\x0eprofilePicture\x12\x1b\n" +
-	"\tcar_plate\x18\x05 \x01(\tR\bcarPlate\"j\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
+	"\x0fprofile_picture\x18\x03 \x01(\tR\x0eprofilePicture\x12\x1b\n" +
+	"\tcar_plate\x18\x04 \x01(\tR\bcarPlate\x12%\n" +
+	"\x0ecurrent_rating\x18\x05 \x01(\x01R\rcurrentRating\x122\n" +
+	"\x15total_completed_trips\x18\x06 \x01(\x03R\x13totalCompletedTrips\"j\n" +
 	"\x05Rider\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -548,14 +557,13 @@ var file_schema_proto_depIdxs = []int32{
 	0, // 0: wayfare.Geometry.coordinates:type_name -> wayfare.Coordinate
 	1, // 1: wayfare.Route.geometry:type_name -> wayfare.Geometry
 	2, // 2: wayfare.RideFare.route:type_name -> wayfare.Route
-	0, // 3: wayfare.Driver.location:type_name -> wayfare.Coordinate
-	3, // 4: wayfare.Trip.selected_fare:type_name -> wayfare.RideFare
-	2, // 5: wayfare.Trip.route:type_name -> wayfare.Route
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	3, // 3: wayfare.Trip.selected_fare:type_name -> wayfare.RideFare
+	2, // 4: wayfare.Trip.route:type_name -> wayfare.Route
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_schema_proto_init() }

@@ -211,6 +211,8 @@ func CreateTripsColelction(db *mongo.Database, name string) (*mongo.Collection, 
 					"total_price_in_kobo": priceSchema,
 				},
 			},
+			"rating":        bson.M{"bsonType": "int", "minimum": 1, "maximum": 5},
+			"rider_comment": bson.M{"bsonType": "string"},
 		},
 	}
 

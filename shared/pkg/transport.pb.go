@@ -711,6 +711,8 @@ type InitiatePaymentRequest struct {
 	Email          string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	Amount         int64                  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
 	CustomRedirect string                 `protobuf:"bytes,4,opt,name=custom_redirect,json=customRedirect,proto3" json:"custom_redirect,omitempty"`
+	TripRating     int64                  `protobuf:"varint,5,opt,name=trip_rating,json=tripRating,proto3" json:"trip_rating,omitempty"`
+	RiderComment   string                 `protobuf:"bytes,6,opt,name=rider_comment,json=riderComment,proto3" json:"rider_comment,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -769,6 +771,20 @@ func (x *InitiatePaymentRequest) GetAmount() int64 {
 func (x *InitiatePaymentRequest) GetCustomRedirect() string {
 	if x != nil {
 		return x.CustomRedirect
+	}
+	return ""
+}
+
+func (x *InitiatePaymentRequest) GetTripRating() int64 {
+	if x != nil {
+		return x.TripRating
+	}
+	return 0
+}
+
+func (x *InitiatePaymentRequest) GetRiderComment() string {
+	if x != nil {
+		return x.RiderComment
 	}
 	return ""
 }
@@ -864,12 +880,15 @@ const file_transport_proto_rawDesc = "" +
 	"\fride_fare_id\x18\x02 \x01(\tR\n" +
 	"rideFareId\",\n" +
 	"\x11StartTripResponse\x12\x17\n" +
-	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"\x88\x01\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"\xce\x01\n" +
 	"\x16InitiatePaymentRequest\x12\x17\n" +
 	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x16\n" +
 	"\x06amount\x18\x03 \x01(\x03R\x06amount\x12'\n" +
-	"\x0fcustom_redirect\x18\x04 \x01(\tR\x0ecustomRedirect\"<\n" +
+	"\x0fcustom_redirect\x18\x04 \x01(\tR\x0ecustomRedirect\x12\x1f\n" +
+	"\vtrip_rating\x18\x05 \x01(\x03R\n" +
+	"tripRating\x12#\n" +
+	"\rrider_comment\x18\x06 \x01(\tR\friderComment\"<\n" +
 	"\x17InitiatePaymentResponse\x12!\n" +
 	"\fcheckout_url\x18\x01 \x01(\tR\vcheckoutUrl2\xe8\x01\n" +
 	"\vTripService\x12H\n" +

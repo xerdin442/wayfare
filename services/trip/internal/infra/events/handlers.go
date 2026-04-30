@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
+	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/types"
 )
@@ -51,8 +52,64 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		return fmt.Errorf("Unknown event type received in trip update queue: %s", p.RoutingKey)
 	}
 
-	if err := h.repo.UpdateTrip(ctx, payload.TripID, updatedStatus, &payload.DriverID); err != nil {
+	updateData := &repo.TripUpdateData{
+		NewStatus:    updatedStatus,
+		DriverID:     payload.DriverID,
+		Rating:       payload.Rating,
+		RiderComment: payload.RiderComment,
+	}
+
+	updatedTrip, err := h.repo.UpdateTrip(ctx, payload.TripID, updateData)
+	if err != nil {
 		return err
+	}
+
+	if updatedStatus == types.TripStatusCompleted {
+		var publishErr error
+
+		// Notify participants that the trip has ended
+		gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+			Type: messaging.TripCmdCompleted,
+		})
+		if err != nil {
+			return fmt.Errorf("Failed to marshal websocket message")
+		}
+
+		publishErr = h.bus.PublishMessage(
+			ctx,
+			messaging.GatewayExchange,
+			messaging.AmqpEvent(fmt.Sprintf("user.%s", updatedTrip.DriverID.Hex())),
+			messaging.AmqpMessage{Data: gatewayData},
+		)
+
+		publishErr = h.bus.PublishMessage(
+			ctx,
+			messaging.GatewayExchange,
+			messaging.AmqpEvent(fmt.Sprintf("user.%s", updatedTrip.UserID.Hex())),
+			messaging.AmqpMessage{Data: gatewayData},
+		)
+
+		if publishErr != nil {
+			return fmt.Errorf("Failed to publish gateway event")
+		}
+
+		// Update driver completed trips count
+		tripServiceData, err := json.Marshal(messaging.DriverUpdateQueuePayload{
+			DriverID:        payload.DriverID,
+			TripCountUpdate: true,
+		})
+		if err != nil {
+			return fmt.Errorf("Failed to marshal driver_update queue payload: %v", err)
+		}
+
+		if err = h.bus.PublishMessage(
+			ctx,
+			messaging.ServicesExchange,
+			messaging.DriverCmdTripCountUpdate,
+			messaging.AmqpMessage{Data: tripServiceData},
+		); err != nil {
+			return fmt.Errorf("Failed to publish %s event: %v", messaging.DriverCmdTripCountUpdate, err)
+		}
 	}
 
 	return nil

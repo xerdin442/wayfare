@@ -21,6 +21,13 @@ type TripRepository struct {
 	tripColl     *mongo.Collection
 }
 
+type TripUpdateData struct {
+	DriverID     string
+	NewStatus    types.TripStatus
+	Rating       int64
+	RiderComment string
+}
+
 func NewTripRepository(db *mongo.Database) *TripRepository {
 	regionCollection, err := CreateRegionsCollection(db, "regions")
 	if err != nil {
@@ -176,25 +183,36 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 	return trip, nil
 }
 
-func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, newStatus types.TripStatus, driverID *string) error {
+func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, data *TripUpdateData) (*models.TripModel, error) {
 	tripIDHex, err := bson.ObjectIDFromHex(tripID)
 	if err != nil {
-		return fmt.Errorf("Invalid user ID: %v", err)
+		return nil, fmt.Errorf("Invalid user ID: %v", err)
 	}
 
-	updateData := bson.M{
-		"status":     newStatus,
-		"updated_at": time.Now(),
-	}
+	updateData := bson.M{}
 
-	if driverID != nil && *driverID != "" {
-		driverIDHex, err := bson.ObjectIDFromHex(*driverID)
+	if data.DriverID != "" {
+		driverIDHex, err := bson.ObjectIDFromHex(data.DriverID)
 		if err != nil {
-			return fmt.Errorf("Invalid driver ID: %v", err)
+			return nil, fmt.Errorf("Invalid driver ID: %v", err)
 		}
 
 		updateData["driver_id"] = driverIDHex
 	}
+
+	if data.NewStatus != "" {
+		updateData["status"] = data.NewStatus
+	}
+
+	if data.Rating != 0 {
+		updateData["rating"] = data.Rating
+	}
+
+	if data.RiderComment != "" {
+		updateData["rider_comment"] = data.RiderComment
+	}
+
+	updateData["updated_at"] = time.Now()
 
 	update := bson.M{
 		"$set": updateData,
@@ -206,8 +224,74 @@ func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, newStatu
 		update,
 	)
 	if updateErr != nil {
-		return fmt.Errorf("Failed to update trip document: %v", err)
+		return nil, fmt.Errorf("Failed to update trip document: %v", err)
 	}
 
-	return nil
+	return r.GetTripByID(ctx, tripID)
+}
+
+func (r *TripRepository) UpdateDriverRatings(ctx context.Context) error {
+	oneYearAgo := time.Now().AddDate(-1, 0, 0)
+
+	// Calculate driver rating using Bayesian Average: ((C * m) + S) / (C + N)
+	// C = Confidence value
+	// m = Global mean
+	// S = Sum of ratings
+	// N = Number of ratings
+
+	const GlobalMean = 3.0
+	const ConfidenceValue = 7.0
+
+	pipeline := mongo.Pipeline{
+		// Match trips that have a valid rating
+		{{Key: "$match", Value: bson.M{"rating": bson.M{"$gt": 0}}}},
+
+		// Group ratings within the past year and calculate Bayesian values
+		{{Key: "$group", Value: bson.M{
+			"_id": "$driver_id",
+			"numOfTrips": bson.M{
+				"$sum": bson.M{
+					"$cond": bson.A{bson.M{"$gt": bson.A{"$created_at", oneYearAgo}}, 1, 0},
+				},
+			},
+			"sumOfRatings": bson.M{
+				"$sum": bson.M{
+					"$cond": bson.A{bson.M{"$gt": bson.A{"$created_at", oneYearAgo}}, "$rating", 0},
+				},
+			},
+			"lifetimeAvg": bson.M{"$avg": "$rating"},
+		}}},
+
+		// Project final ratings using Bayesian formula
+		{{Key: "$project", Value: bson.M{
+			"lifetime_rating_avg": "$lifetimeAvg",
+			"current_rating": bson.M{
+				"$cond": bson.A{
+					bson.M{"$eq": bson.A{"$numOfTrips", 0}},
+					0.0,
+					bson.M{
+						"$divide": bson.A{
+							bson.M{"$add": bson.A{bson.M{"$multiply": bson.A{ConfidenceValue, GlobalMean}}, "$sumOfRatings"}},
+							bson.M{"$add": bson.A{ConfidenceValue, "$numOfTrips"}},
+						},
+					},
+				},
+			},
+			"updated_at": time.Now(),
+		}}},
+
+		// Update driver profiles with calculated ratings
+		{{Key: "$merge", Value: bson.M{
+			"into":           "drivers",
+			"on":             "_id",
+			"whenMatched":    "merge",
+			"whenNotMatched": "discard",
+		}}},
+	}
+
+	cursor, err := r.tripColl.Aggregate(ctx, pipeline)
+	if err != nil {
+		return fmt.Errorf("Failed to aggregate and update ratings: %v", err)
+	}
+	return cursor.Close(ctx)
 }

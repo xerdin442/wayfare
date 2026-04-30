@@ -19,6 +19,10 @@ type DriverRepository struct {
 	driverColl *mongo.Collection
 }
 
+type DriverUpdateData struct {
+	TripCountUpdate bool
+}
+
 func NewDriverRepository(db *mongo.Database) *DriverRepository {
 	driverCollection, err := CreateDriversCollection(db, "drivers")
 	if err != nil {
@@ -69,21 +73,54 @@ func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *pb.
 	}
 
 	driver := &models.DriverModel{
-		ID:             bson.NewObjectID(),
-		Name:           details.Name,
-		Email:          details.Email,
-		Password:       string(hashedPassword),
-		ProfilePicture: details.ProfileImage,
-		CarPackage:     types.CarPackage(details.CarPackage),
-		CarPlate:       details.CarPlate,
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
+		ID:                  bson.NewObjectID(),
+		Name:                details.Name,
+		Email:               details.Email,
+		Password:            string(hashedPassword),
+		ProfilePicture:      details.ProfileImage,
+		CarPackage:          types.CarPackage(details.CarPackage),
+		CarPlate:            details.CarPlate,
+		CurrentRating:       0.0,
+		TotalCompletedTrips: 0,
+		LifetimeRatingAvg:   0.0,
+		CreatedAt:           time.Now(),
+		UpdatedAt:           time.Now(),
 	}
 
-	_, insertErr := r.driverColl.InsertOne(ctx, driver)
-	if insertErr != nil {
-		return nil, fmt.Errorf("Failed to create driver account: %v", insertErr)
+	_, err = r.driverColl.InsertOne(ctx, driver)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create driver account: %v", err)
 	}
 
 	return driver, nil
+}
+
+func (r *DriverRepository) UpdateDriverDetails(ctx context.Context, driverID string, data *DriverUpdateData) error {
+	driverIDHex, err := bson.ObjectIDFromHex(driverID)
+	if err != nil {
+		return fmt.Errorf("Invalid driver ID: %v", err)
+	}
+
+	updateData := bson.M{
+		"$set": bson.M{
+			"updated_at": time.Now(),
+		},
+	}
+
+	if data.TripCountUpdate {
+		updateData["$inc"] = bson.M{
+			"total_completed_trips": 1,
+		}
+	}
+
+	_, err = r.driverColl.UpdateOne(
+		ctx,
+		bson.M{"_id": driverIDHex},
+		updateData,
+	)
+	if err != nil {
+		return fmt.Errorf("Failed to update driver trip count: %v", err)
+	}
+
+	return nil
 }

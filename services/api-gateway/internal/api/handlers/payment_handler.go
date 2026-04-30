@@ -113,7 +113,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 	}
 
 	// Publish webhook event to payment service
-	paymentServiceData, err := json.Marshal(messaging.PaymentQueuePayload{
+	paymentServiceData, err := json.Marshal(messaging.CheckoutPaymentPayload{
 		RiderID:  userID,
 		Provider: provider,
 		Data:     payload,

@@ -140,17 +140,20 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 		log.Warn().
 			Str("trip_owner_id", tripDetails.UserId).
 			Str("payment_request_initiator_id", userID).
-			Msg("Unauthorized access")
+			Msg("Unauthorized payment request")
 
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized access"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized payment request"})
 		return
 	}
 
 	// Generate checkout link
 	checkoutResponse, err := h.cfg.Clients.Payment.InitiatePayment(ctx, &pb.InitiatePaymentRequest{
-		TripId: tripID,
-		Email:  req.Email,
-		Amount: tripDetails.RideFareAmount,
+		TripId:         tripID,
+		Email:          req.Email,
+		Amount:         tripDetails.RideFareAmount,
+		CustomRedirect: req.CustomRedirect,
+		TripRating:     req.TripRating,
+		RiderComment:   req.RiderComment,
 	})
 	if err != nil {
 		tracing.HandleError(span, err)

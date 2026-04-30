@@ -33,10 +33,12 @@ func (s *DriverService) GetDriverProfile(ctx context.Context, req *pb.GetProfile
 
 	return &pb.DriverProfileResponse{
 		Driver: &pb.Driver{
-			Id:             driver.ID.Hex(),
-			Name:           driver.Name,
-			ProfilePicture: driver.ProfilePicture,
-			CarPlate:       driver.CarPlate,
+			Id:                  driver.ID.Hex(),
+			Name:                driver.Name,
+			ProfilePicture:      driver.ProfilePicture,
+			CarPlate:            driver.CarPlate,
+			CurrentRating:       driver.CurrentRating,
+			TotalCompletedTrips: driver.TotalCompletedTrips,
 		},
 	}, nil
 }

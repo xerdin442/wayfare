@@ -54,13 +54,35 @@ func (h *PaymentEventsHandler) sendTransactionStatus(ctx context.Context, userID
 	return nil
 }
 
+func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, tripID, riderComment string, rating int64) error {
+	tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
+		TripID:       tripID,
+		Rating:       rating,
+		RiderComment: riderComment,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to marshal trip_update queue payload")
+	}
+
+	if err := h.bus.PublishMessage(
+		ctx,
+		messaging.ServicesExchange,
+		messaging.TripCmdCompleted,
+		messaging.AmqpMessage{Data: tripServiceData},
+	); err != nil {
+		return fmt.Errorf("Failed to publish %s event", messaging.TripCmdCompleted)
+	}
+
+	return nil
+}
+
 func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
 	var msg messaging.AmqpMessage
 	if err := json.Unmarshal(p.Body, &msg); err != nil {
 		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
 	}
 
-	var payload messaging.PaymentQueuePayload
+	var payload messaging.CheckoutPaymentPayload
 	if err := json.Unmarshal(msg.Data, &payload); err != nil {
 		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
@@ -68,6 +90,11 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 	switch payload.Provider {
 	case types.ProviderPaystack:
 		data := payload.Data.(contracts.PaystackWebhookPayload)
+
+		var metadata contracts.PaymentMetadata
+		if err := json.Unmarshal([]byte(data.Data.Metadata), &metadata); err != nil {
+			return fmt.Errorf("Failed to unmarshal Paystack webhook metadata")
+		}
 
 		transaction, err := h.repo.GetTransactionByID(ctx, data.Data.Reference)
 		if err != nil {
@@ -104,8 +131,16 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 		if err := h.sendTransactionStatus(ctx, payload.RiderID, updatedStatus); err != nil {
 			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
 		}
+
+		// Mark trip as completed after successful payment
+		if data.Event == "charge.success" && data.Data.Status == "success" {
+			if err := h.markTripAsCompleted(ctx, metadata.TripID, metadata.RiderComment, metadata.TripRating); err != nil {
+				return err
+			}
+		}
 	case types.ProviderFlutterwave:
 		data := payload.Data.(contracts.FlutterwaveWebhookPayload)
+		metadata := data.Data.Meta
 
 		transaction, err := h.repo.GetTransactionByID(ctx, data.Data.TxRef)
 		if err != nil {
@@ -142,6 +177,13 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 		if err := h.sendTransactionStatus(ctx, payload.RiderID, updatedStatus); err != nil {
 			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
 		}
+
+		// Mark trip as completed after successful payment
+		if data.Event == "charge.completed" && data.Data.Status == "successful" {
+			if err := h.markTripAsCompleted(ctx, metadata.TripID, metadata.RiderComment, metadata.TripRating); err != nil {
+				return err
+			}
+		}
 	default:
 		log.Warn().Str("provider", string(payload.Provider)).Msg("Webhook received from unknown payment provider")
 		return fmt.Errorf("Unknown payment provider: %s", payload.Provider)
@@ -156,7 +198,7 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
 	}
 
-	var payload messaging.PaymentQueuePayload
+	var payload messaging.CashPaymentPayload
 	if err := json.Unmarshal(msg.Data, &payload); err != nil {
 		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
@@ -188,6 +230,16 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		if err := h.repo.UpdateTransaction(ctx, txnID, types.PaymentStatusSuccess, ""); err != nil {
 			return err
 		}
+	}
+
+	// Send transaction status to rider
+	if err := h.sendTransactionStatus(ctx, payload.RiderID, types.PaymentStatusSuccess); err != nil {
+		log.Warn().Err(err).Msg("Failed to send transaction status to rider")
+	}
+
+	// Mark trip as completed
+	if err := h.markTripAsCompleted(ctx, payload.TripID, payload.RiderComment, payload.TripRating); err != nil {
+		return err
 	}
 
 	return nil

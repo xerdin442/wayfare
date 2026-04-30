@@ -5,6 +5,7 @@ go 1.25.4
 require (
 	github.com/cloudinary/cloudinary-go/v2 v2.15.0
 	github.com/gin-gonic/gin v1.12.0
+	github.com/go-co-op/gocron/v2 v2.21.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
@@ -55,6 +56,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0 // indirect
+	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
@@ -73,6 +75,7 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.19.0 // indirect
+	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect

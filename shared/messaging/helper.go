@@ -36,10 +36,16 @@ type AmqpQueue string
 const (
 	GatewayQueue      AmqpQueue = "gateway_queue"
 	AssignDriverQueue AmqpQueue = "assign_driver_queue"
+	DriverUpdateQueue AmqpQueue = "driver_update_queue"
 	TripUpdateQueue   AmqpQueue = "trip_update_queue"
 	PaymentQueue      AmqpQueue = "payment_queue"
 	DeadLetterQueue   AmqpQueue = "dead_letter_queue"
 )
+
+type DriverUpdateQueuePayload struct {
+	DriverID        string `json:"driver_id"`
+	TripCountUpdate bool   `json:"trip_count_update,omitempty"`
+}
 
 type AssignDriverQueuePayload struct {
 	Trip     types.Trip `json:"trip"`
@@ -47,16 +53,24 @@ type AssignDriverQueuePayload struct {
 }
 
 type TripUpdateQueuePayload struct {
-	TripID   string `json:"trip_id"`
-	DriverID string `json:"driver_id,omitempty"`
+	TripID       string `json:"trip_id"`
+	DriverID     string `json:"driver_id,omitempty"`
+	Rating       int64  `json:"rating,omitempty"`
+	RiderComment string `json:"rider_comment,omitempty"`
 }
 
-type PaymentQueuePayload struct {
-	RiderID  string                `json:"rider_id,omitempty"`
-	Provider types.PaymentProvider `json:"provider,omitempty"`
-	Data     any                   `json:"data,omitempty"`
-	TripID   string                `json:"trip_id,omitempty"`
-	Amount   int64                 `json:"amount,omitempty"`
+type CashPaymentPayload struct {
+	TripID       string `json:"trip_id"`
+	RiderID      string `json:"rider_id"`
+	Amount       int64  `json:"amount"`
+	TripRating   int64  `json:"trip_rating"`
+	RiderComment string `json:"rider_comment,omitempty"`
+}
+
+type CheckoutPaymentPayload struct {
+	RiderID  string                `json:"rider_id"`
+	Provider types.PaymentProvider `json:"provider"`
+	Data     any                   `json:"data"`
 }
 
 type AmqpEvent string
@@ -69,6 +83,7 @@ const (
 	TripEventNoDriversFound      AmqpEvent = "trip.event.no_drivers_found"
 	TripEventDriverNotInterested AmqpEvent = "trip.event.driver_not_interested"
 	TripEventDriverNotAvailable  AmqpEvent = "trip.event.driver_not_available"
+	TripEventPaymentRequired     AmqpEvent = "trip.event.payment_required"
 
 	// Trip commands
 	TripCmdCompleted AmqpEvent = "trip.cmd.completed"
@@ -79,10 +94,12 @@ const (
 	DriverEventTripRequest AmqpEvent = "driver.event.trip_request"
 
 	// Driver commands
-	DriverCmdTripPickup     AmqpEvent = "driver.cmd.confirm_pickup"
-	DriverCmdTripAccept     AmqpEvent = "driver.cmd.trip_accept"
-	DriverCmdTripDecline    AmqpEvent = "driver.cmd.trip_decline"
-	DriverCmdLocationUpdate AmqpEvent = "driver.cmd.location_update"
+	DriverCmdTripPickup      AmqpEvent = "driver.cmd.confirm_pickup"
+	DriverCmdTripAccept      AmqpEvent = "driver.cmd.trip_accept"
+	DriverCmdTripDecline     AmqpEvent = "driver.cmd.trip_decline"
+	DriverCmdLocationUpdate  AmqpEvent = "driver.cmd.location_update"
+	DriverCmdEndTrip         AmqpEvent = "driver.cmd.end_trip"
+	DriverCmdTripCountUpdate AmqpEvent = "driver.cmd.trip_count_update"
 
 	// Payment events
 	PaymentEventWebhookReceived     AmqpEvent = "payment.event.webhook_received"

@@ -8,17 +8,20 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
+	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 )
 
 type DriverEventsHandler struct {
+	repo  *repo.DriverRepository
 	cache *redis.Client
 	bus   messaging.MessageBus
 }
 
-func NewDriverEventsHandler(b messaging.MessageBus, c *redis.Client) *DriverEventsHandler {
+func NewDriverEventsHandler(r *repo.DriverRepository, b messaging.MessageBus, c *redis.Client) *DriverEventsHandler {
 	return &DriverEventsHandler{
+		repo:  r,
 		cache: c,
 		bus:   b,
 	}
@@ -71,15 +74,16 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 		}
 	}
 
+	// No drivers found
 	if targetDriverID == "" {
 		log.Warn().Str("trip_id", payload.Trip.ID).Msg("No drivers available for this trip")
 
-		// Publish to trip service to update trip status
+		// Update trip status
 		tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
 			TripID: payload.Trip.ID,
 		})
 		if err != nil {
-			return fmt.Errorf("Could not parse event queue payload: %v", err)
+			return fmt.Errorf("Failed to marshal trip_update queue payload: %v", err)
 		}
 
 		if err := h.bus.PublishMessage(
@@ -96,7 +100,7 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 			Type: messaging.TripEventNoDriversFound,
 		})
 		if err != nil {
-			return fmt.Errorf("Could not parse event queue payload: %v", err)
+			return fmt.Errorf("Failed to marshal websocket message: %v", err)
 		}
 
 		if err := h.bus.PublishMessage(
@@ -105,7 +109,7 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 			messaging.AmqpEvent(fmt.Sprintf("user.%s", payload.Trip.UserID)),
 			messaging.AmqpMessage{Data: gatewayData},
 		); err != nil {
-			return fmt.Errorf("Failed to publish %s event: %v", messaging.TripEventNoDriversFound, err)
+			return fmt.Errorf("Failed to publish gateway event: %v", err)
 		}
 	}
 
@@ -115,7 +119,7 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 		Data: payload.Trip,
 	})
 	if err != nil {
-		return fmt.Errorf("Could not parse event queue payload: %v", err)
+		return fmt.Errorf("Failed to marshal websocket message: %v", err)
 	}
 
 	if err := h.bus.PublishMessage(
@@ -124,8 +128,26 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 		messaging.AmqpEvent(fmt.Sprintf("user.%s", targetDriverID)),
 		messaging.AmqpMessage{Data: data},
 	); err != nil {
-		return fmt.Errorf("Failed to publish %s event: %v", messaging.DriverEventTripRequest, err)
+		return fmt.Errorf("Failed to publish gateway event: %v", err)
 	}
 
 	return nil
+}
+
+func (h *DriverEventsHandler) HandleDriverUpdate(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
+	var msg messaging.AmqpMessage
+	if err := json.Unmarshal(p.Body, &msg); err != nil {
+		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
+	}
+
+	var payload messaging.DriverUpdateQueuePayload
+	if err := json.Unmarshal(msg.Data, &payload); err != nil {
+		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
+	}
+
+	updateData := &repo.DriverUpdateData{
+		TripCountUpdate: payload.TripCountUpdate,
+	}
+
+	return h.repo.UpdateDriverDetails(ctx, payload.DriverID, updateData)
 }
