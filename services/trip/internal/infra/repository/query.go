@@ -80,8 +80,7 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.Rid
 		})
 	}
 
-	_, err = r.rideFareColl.InsertMany(ctx, docs)
-	if err != nil {
+	if _, err := r.rideFareColl.InsertMany(ctx, docs); err != nil {
 		return fmt.Errorf("Failed to insert ride_fare documents: %v", err)
 	}
 
@@ -180,8 +179,7 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 		UpdatedAt: time.Now(),
 	}
 
-	_, err = r.tripColl.InsertOne(ctx, trip)
-	if err != nil {
+	if _, err = r.tripColl.InsertOne(ctx, trip); err != nil {
 		return nil, fmt.Errorf("Failed to insert trip document: %v", err)
 	}
 
@@ -191,7 +189,7 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, data *TripUpdateData) (*models.TripModel, error) {
 	tripIDHex, err := bson.ObjectIDFromHex(tripID)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid user ID: %v", err)
+		return nil, fmt.Errorf("Invalid trip ID: %v", err)
 	}
 
 	updateData := bson.M{}
@@ -223,12 +221,7 @@ func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, data *Tr
 		"$set": updateData,
 	}
 
-	_, updateErr := r.tripColl.UpdateOne(
-		ctx,
-		bson.M{"_id": tripIDHex},
-		update,
-	)
-	if updateErr != nil {
+	if _, err := r.tripColl.UpdateOne(ctx, bson.M{"_id": tripIDHex}, update); err != nil {
 		return nil, fmt.Errorf("Failed to update trip document: %v", err)
 	}
 

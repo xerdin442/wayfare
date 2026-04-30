@@ -87,8 +87,7 @@ func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *pb.
 		UpdatedAt:           time.Now(),
 	}
 
-	_, err = r.driverColl.InsertOne(ctx, driver)
-	if err != nil {
+	if _, err := r.driverColl.InsertOne(ctx, driver); err != nil {
 		return nil, fmt.Errorf("Failed to create driver account: %v", err)
 	}
 
@@ -113,12 +112,7 @@ func (r *DriverRepository) UpdateDriverDetails(ctx context.Context, driverID str
 		}
 	}
 
-	_, err = r.driverColl.UpdateOne(
-		ctx,
-		bson.M{"_id": driverIDHex},
-		updateData,
-	)
-	if err != nil {
+	if _, err := r.driverColl.UpdateOne(ctx, bson.M{"_id": driverIDHex}, updateData); err != nil {
 		return fmt.Errorf("Failed to update driver trip count: %v", err)
 	}
 
