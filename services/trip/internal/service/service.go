@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/paulmach/orb"
 	"github.com/twpayne/go-polyline"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
 	"github.com/xerdin442/wayfare/shared/contracts"
@@ -61,7 +62,7 @@ func (s *TripService) getTripRoute(pickup, destination *pb.Coordinate) (*contrac
 	return &osrmResp, nil
 }
 
-func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.Route, pickupCoords []float64) ([]*pb.RideFare, error) {
+func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.Route, pickupCoords orb.Point) ([]*pb.RideFare, error) {
 	// priceConfig := map[repo.CarPackage]{
 	// 	repo.PackageSedan:  {BaseFare: 50000, PricePerKm: 15000, PricePerMinute: 2000, MinFare: 150000},
 	// 	repo.PackageSUV:    {BaseFare: 100000, PricePerKm: 25000, PricePerMinute: 4000, MinFare: 250000},
@@ -78,7 +79,7 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 	distKm := route.Distance / 1000.0
 	durMin := route.Duration / 60.0
 
-	rideFares := make([]*pb.RideFare, len(priceConfig))
+	rideFares := make([]*pb.RideFare, 0, len(priceConfig))
 
 	// Estimate ride fare per package
 	for _, cfg := range priceConfig {
@@ -117,8 +118,8 @@ func (s *TripService) GetTripDetails(ctx context.Context, req *pb.TripDetailsReq
 
 func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripRequest) (*pb.PreviewTripResponse, error) {
 	// Extract coordinates
-	pickupCoords := []float64{req.Pickup.Longitude, req.Pickup.Latitude}
-	destinationCoords := []float64{req.Destination.Longitude, req.Destination.Latitude}
+	pickupCoords := orb.Point{req.Pickup.Longitude, req.Pickup.Latitude}
+	destinationCoords := orb.Point{req.Destination.Longitude, req.Destination.Latitude}
 
 	// Get trip route
 	route, err := s.getTripRoute(req.Pickup, req.Destination)

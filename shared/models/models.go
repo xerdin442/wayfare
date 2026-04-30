@@ -3,18 +3,19 @@ package models
 import (
 	"time"
 
+	"github.com/paulmach/orb"
 	"github.com/xerdin442/wayfare/shared/types"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type GeoPoint struct {
-	Type        string    `bson:"type"`
-	Coordinates []float64 `bson:"coordinates"`
+	Type        string    `bson:"type"` // Set as "Point"
+	Coordinates orb.Point `bson:"coordinates"`
 }
 
 type GeoPolygon struct {
-	Type        string        `bson:"type"`
-	Coordinates [][][]float64 `bson:"coordinates"`
+	Type        string      `bson:"type"` // Set as "Polygon"
+	Coordinates orb.Polygon `bson:"coordinates"`
 }
 
 type RouteDetails struct {

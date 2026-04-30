@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/paulmach/orb"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/models"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
@@ -63,7 +64,7 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.Rid
 		return fmt.Errorf("Invalid user ID: %v", err)
 	}
 
-	docs := make([]*models.RideFareModel, len(rideFares))
+	docs := make([]*models.RideFareModel, 0, len(rideFares))
 
 	for _, fare := range rideFares {
 		docs = append(docs, &models.RideFareModel{
@@ -79,15 +80,15 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.Rid
 		})
 	}
 
-	_, insertErr := r.rideFareColl.InsertMany(ctx, docs)
-	if insertErr != nil {
-		return fmt.Errorf("Failed to insert ride fares documents: %v", err)
+	_, err = r.rideFareColl.InsertMany(ctx, docs)
+	if err != nil {
+		return fmt.Errorf("Failed to insert ride_fare documents: %v", err)
 	}
 
 	return nil
 }
 
-func (r *TripRepository) GetPricingPerRegion(ctx context.Context, pickupCoords []float64) ([]*models.PricingModel, error) {
+func (r *TripRepository) GetPricingPerRegion(ctx context.Context, pickupCoords orb.Point) ([]*models.PricingModel, error) {
 	// Filter region based on pickup coordinates
 	filter := bson.M{
 		"boundary": bson.M{
@@ -108,13 +109,16 @@ func (r *TripRepository) GetPricingPerRegion(ctx context.Context, pickupCoords [
 
 	// Get available pricing categories for the region
 	cursor, err := r.pricingColl.Find(ctx, bson.M{"region_id": region.ID})
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return nil, fmt.Errorf("No pricing categories found. Invalid region value")
+	if err != nil {
+		return nil, fmt.Errorf("Error fetching pricing categories: %v", err)
 	}
 
 	var pricingModels []*models.PricingModel
 	if err := cursor.All(ctx, &pricingModels); err != nil {
 		return nil, fmt.Errorf("Error parsing pricing model documents: %v", err)
+	}
+	if len(pricingModels) == 0 {
+		return nil, fmt.Errorf("No pricing categories found for this region")
 	}
 
 	return pricingModels, nil
@@ -144,22 +148,22 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 		return nil, fmt.Errorf("Invalid user ID: %v", err)
 	}
 
-	fareIDHex, err := bson.ObjectIDFromHex(userID)
+	fareIDHex, err := bson.ObjectIDFromHex(fareID)
 	if err != nil {
 		return nil, fmt.Errorf("Invalid ride fare ID: %v", err)
 	}
 
-	cursor, err := r.rideFareColl.Find(ctx, bson.M{
+	var rideFare models.RideFareModel
+	err = r.rideFareColl.FindOne(ctx, bson.M{
 		"_id":     fareIDHex,
 		"user_id": userIDHex,
-	})
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return nil, fmt.Errorf("Invalid or expired ride fare")
-	}
+	}).Decode(&rideFare)
 
-	var rideFare models.RideFareModel
-	if err := cursor.All(ctx, &rideFare); err != nil {
-		return nil, fmt.Errorf("Error parsing ridefare model document: %v", err)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("Invalid or expired ride fare")
+		}
+		return nil, fmt.Errorf("Error fetching ride fare: %v", err)
 	}
 
 	trip := &models.TripModel{
@@ -175,8 +179,9 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	_, insertErr := r.tripColl.InsertOne(ctx, trip)
-	if insertErr != nil {
+
+	_, err = r.tripColl.InsertOne(ctx, trip)
+	if err != nil {
 		return nil, fmt.Errorf("Failed to insert trip document: %v", err)
 	}
 
