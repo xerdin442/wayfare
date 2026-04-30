@@ -20,9 +20,7 @@ type DriverRepository struct {
 }
 
 type DriverUpdateData struct {
-	TripCountUpdate   bool
-	CurrentRating     float64
-	LifetimeRatingAvg float64
+	TripCountUpdate bool
 }
 
 func NewDriverRepository(db *mongo.Database) *DriverRepository {
@@ -113,12 +111,6 @@ func (r *DriverRepository) UpdateDriverDetails(ctx context.Context, driverID str
 		updateData["$inc"] = bson.M{
 			"total_completed_trips": 1,
 		}
-	}
-	if data.CurrentRating != 0 {
-		updateData["current_rating"] = data.CurrentRating
-	}
-	if data.LifetimeRatingAvg != 0 {
-		updateData["lifetime_rating_avg"] = data.LifetimeRatingAvg
 	}
 
 	_, err = r.driverColl.UpdateOne(

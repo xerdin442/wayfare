@@ -67,17 +67,19 @@ func main() {
 	// Setup repository and service
 	repo := repo.NewDriverRepository(database)
 	svc := service.NewDriverService(repo)
+
 	h := events.NewDriverEventsHandler(repo, rmq, cache)
 
+	// Initialize event workers and register event handlers
 	w1 := messaging.NewEventWorker(rmq, messaging.AssignDriverQueue)
+	w2 := messaging.NewEventWorker(rmq, messaging.DriverUpdateQueue)
+
 	w1.RegisterHandler(
 		h.FindAndAssignDriver,
 		messaging.TripEventCreated,
 		messaging.TripEventDriverNotAvailable,
 		messaging.TripEventDriverNotInterested,
 	)
-
-	w2 := messaging.NewEventWorker(rmq, messaging.DriverUpdateQueue)
 	w2.RegisterHandler(h.HandleDriverUpdate, messaging.DriverCmdTripCountUpdate)
 
 	g.Go(func() error {

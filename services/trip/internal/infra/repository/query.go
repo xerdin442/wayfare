@@ -229,3 +229,69 @@ func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, data *Tr
 
 	return r.GetTripByID(ctx, tripID)
 }
+
+func (r *TripRepository) UpdateDriverRatings(ctx context.Context) error {
+	oneYearAgo := time.Now().AddDate(-1, 0, 0)
+
+	// Calculate driver rating using Bayesian Average: ((C * m) + S) / (C + N)
+	// C = Confidence value
+	// m = Global mean
+	// S = Sum of ratings
+	// N = Number of ratings
+
+	const GlobalMean = 3.0
+	const ConfidenceValue = 7.0
+
+	pipeline := mongo.Pipeline{
+		// Match trips that have a valid rating
+		{{Key: "$match", Value: bson.M{"rating": bson.M{"$gt": 0}}}},
+
+		// Group ratings within the past year and calculate Bayesian values
+		{{Key: "$group", Value: bson.M{
+			"_id": "$driver_id",
+			"numOfTrips": bson.M{
+				"$sum": bson.M{
+					"$cond": bson.A{bson.M{"$gt": bson.A{"$created_at", oneYearAgo}}, 1, 0},
+				},
+			},
+			"sumOfRatings": bson.M{
+				"$sum": bson.M{
+					"$cond": bson.A{bson.M{"$gt": bson.A{"$created_at", oneYearAgo}}, "$rating", 0},
+				},
+			},
+			"lifetimeAvg": bson.M{"$avg": "$rating"},
+		}}},
+
+		// Project final ratings using Bayesian formula
+		{{Key: "$project", Value: bson.M{
+			"lifetime_rating_avg": "$lifetimeAvg",
+			"current_rating": bson.M{
+				"$cond": bson.A{
+					bson.M{"$eq": bson.A{"$numOfTrips", 0}},
+					0.0,
+					bson.M{
+						"$divide": bson.A{
+							bson.M{"$add": bson.A{bson.M{"$multiply": bson.A{ConfidenceValue, GlobalMean}}, "$sumOfRatings"}},
+							bson.M{"$add": bson.A{ConfidenceValue, "$numOfTrips"}},
+						},
+					},
+				},
+			},
+			"updated_at": time.Now(),
+		}}},
+
+		// Update driver profiles with calculated ratings
+		{{Key: "$merge", Value: bson.M{
+			"into":           "drivers",
+			"on":             "_id",
+			"whenMatched":    "merge",
+			"whenNotMatched": "discard",
+		}}},
+	}
+
+	cursor, err := r.tripColl.Aggregate(ctx, pipeline)
+	if err != nil {
+		return fmt.Errorf("Failed to aggregate and update ratings: %v", err)
+	}
+	return cursor.Close(ctx)
+}

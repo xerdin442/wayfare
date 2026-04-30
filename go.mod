@@ -5,6 +5,7 @@ go 1.25.4
 require (
 	github.com/cloudinary/cloudinary-go/v2 v2.15.0
 	github.com/gin-gonic/gin v1.12.0
+	github.com/go-co-op/gocron/v2 v2.21.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
@@ -45,7 +46,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/gin-contrib/sse v1.1.1 // indirect
-	github.com/go-co-op/gocron/v2 v2.21.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

@@ -7,9 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/go-co-op/gocron/v2"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	tasks "github.com/xerdin442/wayfare/services/trip/internal/infra"
 	"github.com/xerdin442/wayfare/services/trip/internal/infra/events"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
 	"github.com/xerdin442/wayfare/services/trip/internal/secrets"
@@ -65,11 +67,13 @@ func main() {
 
 	repo := repo.NewTripRepository(database)
 	svc := service.NewTripService(repo, rmq)
-	h := events.NewTripEventsHandler(repo, rmq)
+
+	eventsHandler := events.NewTripEventsHandler(repo, rmq)
+	tasksHandler := tasks.NewTripTasksHandler(repo)
 
 	w := messaging.NewEventWorker(rmq, messaging.TripUpdateQueue)
 	w.RegisterHandler(
-		h.HandleTripUpdate,
+		eventsHandler.HandleTripUpdate,
 		messaging.TripEventDriverAssigned,
 		messaging.TripEventNoDriversFound,
 		messaging.DriverCmdTripPickup,
@@ -78,9 +82,36 @@ func main() {
 		messaging.TripCmdAborted,
 	)
 
+	// Initialize job scheduler
+	sh, err := gocron.NewScheduler()
+	defer sh.ShutdownWithContext(ctx)
+
+	// Register cron jobs
+	_, err = sh.NewJob(
+		gocron.DailyJob(
+			1,
+			gocron.NewAtTimes(
+				gocron.NewAtTime(23, 59, 0),
+			),
+		),
+		gocron.NewTask(func() error {
+			log.Info().Msg("Starting task to update driver ratings...")
+			return tasksHandler.UpdateDriverRatings(ctx)
+		}),
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to register cron job")
+	}
+
 	g.Go(func() error {
 		log.Info().Msg("Starting event worker...")
 		return w.Start()
+	})
+
+	g.Go(func() error {
+		log.Info().Msg("Starting job scheduler...")
+		sh.Start()
+		return nil
 	})
 
 	g.Go(func() error {
