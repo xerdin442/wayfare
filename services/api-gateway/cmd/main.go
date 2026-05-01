@@ -114,7 +114,7 @@ func main() {
 			Password:      env.ClickHousePassword,
 		}
 
-		return analytics.SetupAnalyticsProvider(ctx, cfg)
+		return analytics.SetupProvider(ctx, cfg)
 	})
 
 	g.Go(func() error {

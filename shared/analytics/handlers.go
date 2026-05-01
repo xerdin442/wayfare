@@ -2,10 +2,61 @@ package analytics
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/xerdin442/wayfare/shared/messaging"
+	"github.com/xerdin442/wayfare/shared/models"
 )
 
-func HandleTripLifecycleMetrics(ctx context.Context, p messaging.AmqpDeliveryPayload) error
+type AnalyticsEventHandler struct {
+	conn clickhouse.Conn
+}
 
-func HandlePaymentMetrics(ctx context.Context, p messaging.AmqpDeliveryPayload) error
+func NewAnalyticsEventHandler(conn clickhouse.Conn) *AnalyticsEventHandler {
+	return &AnalyticsEventHandler{conn: conn}
+}
+
+func (h *AnalyticsEventHandler) HandleAnalyticsEvent(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
+	var msg messaging.AmqpMessage
+	if err := json.Unmarshal(p.Body, &msg); err != nil {
+		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
+	}
+
+	var payload messaging.AnalyticsQueuePayload
+	if err := json.Unmarshal(msg.Data, &payload); err != nil {
+		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
+	}
+
+	ctx = clickhouse.Context(ctx, clickhouse.WithAsync(false))
+	var insertQuery string
+
+	switch p.RoutingKey {
+	case string(messaging.AnalyticsEventTripLifecycle):
+		e := payload.Data.(models.TripLifecycleEventModel)
+
+		insertQuery = fmt.Sprintf(
+			"INSERT INTO trip_lifecycle_events VALUES (%s, %s, %s, %s, %f, %f, %f, %d, now())",
+			e.TripID, e.RegionID, e.CarPackage, e.TripStatus,
+			e.Distance, e.PickupLat, e.PickupLng, e.Rating,
+		)
+	case string(messaging.AnalyticsEventPayment):
+		p := payload.Data.(models.PaymentEventModel)
+
+		insertQuery = fmt.Sprintf(
+			"INSERT INTO payment_events VALUES (%s, %s, %s, %s, %s, %s, %d, %d, %d, %d, now())",
+			p.TransactionRef, p.TripID, p.RegionID, p.DriverID,
+			p.PaymentProvider, p.PaymentStatus, p.Amount,
+			p.PlatformFee, p.DriverShare, p.DriverTip,
+		)
+	default:
+		return fmt.Errorf("Invalid routing key for analytics event: %s", p.RoutingKey)
+	}
+
+	if err := h.conn.Exec(ctx, insertQuery); err != nil {
+		return fmt.Errorf("Failed to insert analytics event: %v", err)
+	}
+
+	return nil
+}

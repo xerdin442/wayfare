@@ -75,6 +75,10 @@ type CheckoutPaymentPayload struct {
 	Data     any                   `json:"data"`
 }
 
+type AnalyticsQueuePayload struct {
+	Data any `json:"data"`
+}
+
 type AmqpEvent string
 
 const (

@@ -15,7 +15,7 @@ type AnalyticsConfig struct {
 	Password      string
 }
 
-func SetupAnalyticsProvider(ctx context.Context, cfg *AnalyticsConfig) error {
+func SetupProvider(ctx context.Context, cfg *AnalyticsConfig) error {
 	conn, err := clickhouse.Open(&clickhouse.Options{
 		Addr: []string{cfg.ConnectionUri},
 		Auth: clickhouse.Auth{
@@ -24,7 +24,9 @@ func SetupAnalyticsProvider(ctx context.Context, cfg *AnalyticsConfig) error {
 			Password: cfg.Password,
 		},
 		Settings: clickhouse.Settings{
-			"max_execution_time": 60,
+			"max_execution_time":    60,
+			"async_insert":          1,
+			"wait_for_async_insert": 1,
 		},
 		Compression: &clickhouse.Compression{
 			Method: clickhouse.CompressionLZ4,
@@ -37,11 +39,18 @@ func SetupAnalyticsProvider(ctx context.Context, cfg *AnalyticsConfig) error {
 
 	defer conn.Close()
 
-	// Create tables
+	if err := CreateAnalyticsTables(ctx, conn); err != nil {
+		return fmt.Errorf("Failed to create analytics event tables: %v", err)
+	}
 
+	h := NewAnalyticsEventHandler(conn)
 	w := messaging.NewEventWorker(cfg.Bus, messaging.AnalyticsQueue)
-	w.RegisterHandler(HandleTripLifecycleMetrics, messaging.AnalyticsEventTripLifecycle)
-	w.RegisterHandler(HandlePaymentMetrics, messaging.AnalyticsEventPayment)
+
+	w.RegisterHandler(
+		h.HandleAnalyticsEvent,
+		messaging.AnalyticsEventTripLifecycle,
+		messaging.AnalyticsEventPayment,
+	)
 
 	return w.Start()
 }
