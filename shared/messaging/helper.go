@@ -76,7 +76,7 @@ type CheckoutPaymentPayload struct {
 }
 
 type AnalyticsQueuePayload struct {
-	Data any `json:"data"`
+	Event any `json:"event"`
 }
 
 type AmqpEvent string
@@ -115,6 +115,5 @@ const (
 	PaymentEventCashReceived        AmqpEvent = "payment.event.cash_payment_received"
 
 	// Analytics events
-	AnalyticsEventTripLifecycle AmqpEvent = "analytics.event.trip_lifecycle"
-	AnalyticsEventPayment       AmqpEvent = "analytics.event.payment"
+	AnalyticsEventUpdate AmqpEvent = "analytics.event.update"
 )

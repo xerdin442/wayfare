@@ -11,6 +11,7 @@ import (
 	"github.com/paulmach/orb"
 	"github.com/twpayne/go-polyline"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
+	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/models"
@@ -208,6 +209,19 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 	msg := messaging.AmqpMessage{Data: data}
 	if err := s.queue.PublishMessage(ctx, messaging.ServicesExchange, messaging.TripEventCreated, msg); err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to publish %s event", messaging.TripEventCreated)
+	}
+
+	tripEvent := &models.TripEventModel{
+		TripID:     trip.ID.Hex(),
+		RegionID:   trip.RegionID.Hex(),
+		CarPackage: trip.Fare.CarPackage,
+		TripStatus: trip.Status,
+		Distance:   trip.Route.Distance,
+		PickupLat:  trip.Route.Pickup.Coordinates[1],
+		PickupLng:  trip.Route.Pickup.Coordinates[0],
+	}
+	if err := analytics.SendEvent(ctx, s.queue, tripEvent); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.StartTripResponse{

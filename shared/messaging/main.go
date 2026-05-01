@@ -252,10 +252,7 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 
 	if err := r.declareAndBindQueue(
 		AnalyticsQueue,
-		[]AmqpEvent{
-			AnalyticsEventTripLifecycle,
-			AnalyticsEventPayment,
-		},
+		[]AmqpEvent{AnalyticsEventUpdate},
 		AnalyticsExchange,
 	); err != nil {
 		return err

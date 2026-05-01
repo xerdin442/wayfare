@@ -7,9 +7,12 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
+	"github.com/shopspring/decimal"
 	repo "github.com/xerdin442/wayfare/services/payment/internal/infra/repository"
+	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
+	"github.com/xerdin442/wayfare/shared/models"
 	"github.com/xerdin442/wayfare/shared/types"
 )
 
@@ -107,7 +110,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return nil
 		}
 
-		var updatedStatus types.PaymentStatus
+		updatedStatus := types.PaymentStatusAborted
 		if transaction.Amount == data.Data.Amount {
 			if data.Event == "charge.success" && data.Data.Status == "success" {
 				updatedStatus = types.PaymentStatusSuccess
@@ -138,6 +141,20 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 				return err
 			}
 		}
+
+		// Update analytics
+		tripEvent := &models.TripEventModel{
+			TransactionRef:  data.Data.Reference,
+			PaymentProvider: payload.Provider,
+			PaymentStatus:   updatedStatus,
+			Amount:          decimal.NewFromInt(data.Data.Amount),
+			// DriverShare:     decimal.NewFromInt(payload.Amount),
+			// DriverTip:       decimal.Zero,
+			// PlatformFee:     decimal.Zero,
+		}
+		if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
+			return err
+		}
 	case types.ProviderFlutterwave:
 		data := payload.Data.(contracts.FlutterwaveWebhookPayload)
 		metadata := data.Data.Meta
@@ -152,7 +169,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return nil
 		}
 
-		var updatedStatus types.PaymentStatus
+		updatedStatus := types.PaymentStatusAborted
 		if transaction.Amount == data.Data.Amount && data.Event == "charge.completed" {
 			switch data.Data.Status {
 			case "successful":
@@ -184,6 +201,20 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 				return err
 			}
 		}
+
+		// Update analytics
+		tripEvent := &models.TripEventModel{
+			TransactionRef:  data.Data.TxRef,
+			PaymentProvider: payload.Provider,
+			PaymentStatus:   updatedStatus,
+			Amount:          decimal.NewFromInt(data.Data.Amount),
+			// DriverShare:     decimal.NewFromInt(payload.Amount),
+			// DriverTip:       decimal.Zero,
+			// PlatformFee:     decimal.Zero,
+		}
+		if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
+			return err
+		}
 	default:
 		log.Warn().Str("provider", string(payload.Provider)).Msg("Webhook received from unknown payment provider")
 		return fmt.Errorf("Unknown payment provider: %s", payload.Provider)
@@ -203,6 +234,8 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
 
+	var txnID string
+
 	// Check for pending transaction
 	existingTxn, err := h.repo.GetTransactionByTripID(ctx, payload.TripID)
 	if err != nil {
@@ -216,12 +249,13 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 
 	if existingTxn != nil {
 		// Update existing transaction
-		if err := h.repo.UpdateTransaction(ctx, existingTxn.ID.Hex(), types.PaymentStatusSuccess, ""); err != nil {
+		txnID = existingTxn.ID.Hex()
+		if err := h.repo.UpdateTransaction(ctx, txnID, types.PaymentStatusSuccess, ""); err != nil {
 			return err
 		}
 	} else {
 		// Create new transaction
-		txnID, err := h.repo.CreateTransaction(ctx, payload.TripID, payload.Amount)
+		txnID, err = h.repo.CreateTransaction(ctx, payload.TripID, payload.Amount)
 		if err != nil {
 			return err
 		}
@@ -239,6 +273,20 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 
 	// Mark trip as completed
 	if err := h.markTripAsCompleted(ctx, payload.TripID, payload.RiderComment, payload.TripRating); err != nil {
+		return err
+	}
+
+	// Update analytics
+	tripEvent := &models.TripEventModel{
+		TransactionRef:  txnID,
+		PaymentProvider: "none",
+		PaymentStatus:   types.PaymentStatusSuccess,
+		Amount:          decimal.NewFromInt(payload.Amount),
+		// DriverShare:     decimal.NewFromInt(payload.Amount),
+		// DriverTip:       decimal.Zero,
+		// PlatformFee:     decimal.Zero,
+	}
+	if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 		return err
 	}
 

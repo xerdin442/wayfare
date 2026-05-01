@@ -6,29 +6,18 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 )
 
-func CreateAnalyticsTables(ctx context.Context, conn clickhouse.Conn) error {
-	tripLifecycleTableQuery := `
-		CREATE TABLE IF NOT EXISTS trip_lifecycle_events (
-				trip_id          String,
-				region_id        String,
-				car_package      String,
-				trip_status      Enum('searching', 'aborted', 'matched', 'active', 'completed', 'cancelled'),
-				distance         Float64,
-				pickup_lat       Float64,
-				pickup_lng       Float64,
-				rating           UInt64,
-				timestamp        DateTime
-		) ENGINE = MergeTree()
-		PARTITION BY toYYYYMM(timestamp)
-		ORDER BY (trip_status, trip_id, region_id, timestamp)
-		TTL timestamp + INTERVAL 1 YEAR
-	`
-
-	paymentEventTableQuery := `
-		CREATE TABLE IF NOT EXISTS payment_events (
-			transaction_ref  String,
+func CreateAnalyticsTable(ctx context.Context, conn clickhouse.Conn) error {
+	queryDdl := `
+		CREATE TABLE IF NOT EXISTS trip_events (
 			trip_id          String,
 			region_id        String,
+			car_package      String,
+			trip_status      Enum('searching', 'aborted', 'matched', 'active', 'completed', 'cancelled'),
+			distance         Float64,
+			pickup_lat       Float64,
+			pickup_lng       Float64,
+			rating           UInt64,
+			transaction_ref  String,
 			driver_id        String,
 			payment_provider Enum('paystack', 'flutterwave', 'none'),
 			payment_status   Enum('pending', 'success', 'failed', 'aborted'),
@@ -39,15 +28,11 @@ func CreateAnalyticsTables(ctx context.Context, conn clickhouse.Conn) error {
 			timestamp        DateTime
 		) ENGINE = MergeTree()
 		PARTITION BY toYYYYMM(timestamp)
-		ORDER BY (payment_provider, payment_status, trip_id, region_id, timestamp)
+		ORDER BY (trip_id, region_id, transaction_ref, car_package, trip_status, payment_status, timestamp)
 		TTL timestamp + INTERVAL 1 YEAR
 	`
 
-	if err := conn.Exec(ctx, tripLifecycleTableQuery); err != nil {
-		return err
-	}
-
-	if err := conn.Exec(ctx, paymentEventTableQuery); err != nil {
+	if err := conn.Exec(ctx, queryDdl); err != nil {
 		return err
 	}
 
