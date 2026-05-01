@@ -111,7 +111,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 		}
 
 		updatedStatus := types.PaymentStatusAborted
-		if transaction.Amount == data.Data.Amount {
+		if transaction.Amount == data.Data.Amount/100 {
 			if data.Event == "charge.success" && data.Data.Status == "success" {
 				updatedStatus = types.PaymentStatusSuccess
 			} else if data.Event == "charge.failed" && data.Data.Status == "failed" {
@@ -147,7 +147,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			TransactionRef:  data.Data.Reference,
 			PaymentProvider: payload.Provider,
 			PaymentStatus:   updatedStatus,
-			Amount:          decimal.NewFromInt(data.Data.Amount),
+			Amount:          decimal.NewFromInt(data.Data.Amount / 100),
 			// DriverShare:     decimal.NewFromInt(payload.Amount),
 			// DriverTip:       decimal.Zero,
 			// PlatformFee:     decimal.Zero,
