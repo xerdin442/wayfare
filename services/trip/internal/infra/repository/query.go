@@ -58,10 +58,15 @@ func NewTripRepository(db *mongo.Database) *TripRepository {
 	}
 }
 
-func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.RideFare, route models.RouteDetails, userID string) error {
+func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.RideFare, route models.RouteDetails, userID, regionID string) error {
 	userIDHex, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
 		return fmt.Errorf("Invalid user ID: %v", err)
+	}
+
+	regionIDHex, err := bson.ObjectIDFromHex(regionID)
+	if err != nil {
+		return fmt.Errorf("Invalid region ID: %v", err)
 	}
 
 	docs := make([]*models.RideFareModel, 0, len(rideFares))
@@ -70,6 +75,7 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.Rid
 		docs = append(docs, &models.RideFareModel{
 			ID:               bson.NewObjectID(),
 			UserID:           userIDHex,
+			RegionID:         regionIDHex,
 			CarPackage:       types.CarPackage(fare.PackageSlug),
 			BasePrice:        fare.BasePrice,
 			TotalPriceInKobo: fare.TotalPriceInKobo,
@@ -166,9 +172,10 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 	}
 
 	trip := &models.TripModel{
-		ID:     bson.NewObjectID(),
-		UserID: userIDHex,
-		Status: types.TripStatusSearching,
+		ID:       bson.NewObjectID(),
+		UserID:   userIDHex,
+		RegionID: rideFare.RegionID,
+		Status:   types.TripStatusSearching,
 		Fare: models.RideFareSummary{
 			CarPackage:       rideFare.CarPackage,
 			BasePrice:        rideFare.BasePrice,

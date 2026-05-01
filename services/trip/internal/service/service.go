@@ -62,7 +62,7 @@ func (s *TripService) getTripRoute(pickup, destination *pb.Coordinate) (*contrac
 	return &osrmResp, nil
 }
 
-func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.Route, pickupCoords orb.Point) ([]*pb.RideFare, error) {
+func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.Route, pickupCoords orb.Point) (string, []*pb.RideFare, error) {
 	// priceConfig := map[repo.CarPackage]{
 	// 	repo.PackageSedan:  {BaseFare: 50000, PricePerKm: 15000, PricePerMinute: 2000, MinFare: 150000},
 	// 	repo.PackageSUV:    {BaseFare: 100000, PricePerKm: 25000, PricePerMinute: 4000, MinFare: 250000},
@@ -72,13 +72,14 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 	// Get pricing categories per package
 	priceConfig, err := s.repo.GetPricingPerRegion(ctx, pickupCoords)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to fetch pricing categories per region: %v", err)
+		return "", nil, fmt.Errorf("Failed to fetch pricing categories per region: %v", err)
 	}
 
 	// Convert OSRM metrics to standard units
 	distKm := route.Distance / 1000.0
 	durMin := route.Duration / 60.0
 
+	regionID := priceConfig[0].RegionID.Hex()
 	rideFares := make([]*pb.RideFare, 0, len(priceConfig))
 
 	// Estimate ride fare per package
@@ -98,7 +99,7 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 		})
 	}
 
-	return rideFares, nil
+	return regionID, rideFares, nil
 }
 
 func (s *TripService) GetTripDetails(ctx context.Context, req *pb.TripDetailsRequest) (*pb.TripDetailsResponse, error) {
@@ -113,6 +114,7 @@ func (s *TripService) GetTripDetails(ctx context.Context, req *pb.TripDetailsReq
 	return &pb.TripDetailsResponse{
 		RideFareAmount: trip.Fare.BasePrice,
 		UserId:         trip.UserID.Hex(),
+		RegionId:       trip.RegionID.Hex(),
 	}, nil
 }
 
@@ -128,7 +130,7 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	}
 
 	// Estimate ride fares
-	rideFares, err := s.estimateTripFarePerPackage(ctx, route.ToProto(), pickupCoords)
+	regionID, rideFares, err := s.estimateTripFarePerPackage(ctx, route.ToProto(), pickupCoords)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -150,7 +152,7 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	}
 
 	// Store generated ride fares
-	if err := s.repo.StoreRideFares(ctx, rideFares, routeDetails, req.UserId); err != nil {
+	if err := s.repo.StoreRideFares(ctx, rideFares, routeDetails, req.UserId, regionID); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
