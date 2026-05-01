@@ -250,6 +250,17 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		return err
 	}
 
+	if err := r.declareAndBindQueue(
+		AnalyticsQueue,
+		[]AmqpEvent{
+			AnalyticsEventTripLifecycle,
+			AnalyticsEventPayment,
+		},
+		AnalyticsExchange,
+	); err != nil {
+		return err
+	}
+
 	return nil
 }
 

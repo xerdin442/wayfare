@@ -57,7 +57,7 @@ k8s_yaml('./infra/development/k8s/api-gateway-deployment.yaml')
 k8s_resource(
   'api-gateway',
   port_forwards=8080,
-  resource_deps=['redis', 'rabbitmq'],
+  resource_deps=['redis', 'rabbitmq', 'clickhouse'],
   labels="services",
 )
 
