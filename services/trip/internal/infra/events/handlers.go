@@ -119,13 +119,17 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		}
 	}
 
-	actualDuration := payload.EndedAt.Sub(payload.PickupAt).Minutes()
+	var actualDuration decimal.Decimal
+	if !payload.EndedAt.IsZero() && updatedTrip.PickupAt.Before(payload.EndedAt) {
+		actualDuration = decimal.NewFromFloat(payload.EndedAt.Sub(updatedTrip.PickupAt).Minutes())
+	}
+
 	tripEvent := &models.TripEventModel{
 		TripID:             payload.TripID,
 		DriverID:           payload.DriverID,
 		TripStatus:         updatedStatus,
 		Rating:             payload.Rating,
-		ActualDurationMins: decimal.NewFromFloat(actualDuration),
+		ActualDurationMins: actualDuration,
 	}
 	if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 		return err
