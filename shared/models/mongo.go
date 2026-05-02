@@ -68,8 +68,8 @@ type RideFareModel struct {
 type TripModel struct {
 	ID           bson.ObjectID    `bson:"_id,omitempty"`
 	DriverID     bson.ObjectID    `bson:"driver_id,omitempty"`
-	RegionID     bson.ObjectID    `bson:"region_id"`
 	UserID       bson.ObjectID    `bson:"user_id"`
+	Region       string           `bson:"region"`
 	Status       types.TripStatus `bson:"status"`
 	Fare         RideFareSummary  `bson:"fare"`
 	Route        RouteDetails     `bson:"route"`

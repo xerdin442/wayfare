@@ -9,7 +9,7 @@ type TripEventModel struct {
 	TripID string `ch:"trip_id"`
 
 	// Trip lifecycle details
-	RegionID   string           `ch:"region_id"`
+	Region     string           `ch:"region"`
 	DriverID   string           `ch:"driver_id"`
 	CarPackage types.CarPackage `ch:"car_package"`
 	TripStatus types.TripStatus `ch:"trip_status"`

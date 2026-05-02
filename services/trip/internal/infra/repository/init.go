@@ -152,9 +152,10 @@ func CreateRideFaresColelction(db *mongo.Database, name string) (*mongo.Collecti
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"user_id", "car_package", "total_price_in_kobo", "expires_at", "route"},
+		"required": []string{"user_id", "region", "car_package", "total_price_in_kobo", "expires_at", "route"},
 		"properties": bson.M{
 			"user_id":             bson.M{"bsonType": "objectId"},
+			"region":              bson.M{"bsonType": "objectId"},
 			"car_package":         carPackageSchema,
 			"base_price":          priceSchema,
 			"total_price_in_kobo": priceSchema,
@@ -190,10 +191,11 @@ func CreateTripsColelction(db *mongo.Database, name string) (*mongo.Collection, 
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"user_id", "route", "status", "fare"},
+		"required": []string{"user_id", "region", "route", "status", "fare"},
 		"properties": bson.M{
 			"user_id":   bson.M{"bsonType": "objectId"},
 			"driver_id": bson.M{"bsonType": "objectId"},
+			"region":    bson.M{"bsonType": "string"},
 			"route":     routeSchema,
 			"status": bson.M{
 				"enum":        []string{"searching", "aborted", "matched", "active", "completed", "cancelled"},

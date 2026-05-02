@@ -115,7 +115,7 @@ func (s *TripService) GetTripDetails(ctx context.Context, req *pb.TripDetailsReq
 	return &pb.TripDetailsResponse{
 		RideFareAmount: trip.Fare.BasePrice,
 		UserId:         trip.UserID.Hex(),
-		RegionId:       trip.RegionID.Hex(),
+		Region:         trip.Region,
 	}, nil
 }
 
@@ -213,7 +213,7 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 
 	tripEvent := &models.TripEventModel{
 		TripID:     trip.ID.Hex(),
-		RegionID:   trip.RegionID.Hex(),
+		Region:     trip.Region,
 		CarPackage: trip.Fare.CarPackage,
 		TripStatus: trip.Status,
 		Distance:   trip.Route.Distance,

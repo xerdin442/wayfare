@@ -49,7 +49,7 @@ message TripDetailsRequest {
 message TripDetailsResponse {
   int64  ride_fare_amount = 1;
   string user_id          = 2;
-  string region_id        = 3;
+  string region           = 3;
 }
 
 message GetProfileRequest {

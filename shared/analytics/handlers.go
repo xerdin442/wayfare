@@ -35,7 +35,7 @@ func (h *AnalyticsEventHandler) HandleAnalyticsEvent(ctx context.Context, p mess
 	insertQuery := fmt.Sprintf(
 		`INSERT INTO trip_events
 		VALUES (%s, %s, %s, %s, %f, %f, %f, %d, %s, %s, %s, %s, %d, %d, %d, %d, now())`,
-		e.TripID, e.RegionID, e.CarPackage, e.TripStatus,
+		e.TripID, e.Region, e.CarPackage, e.TripStatus,
 		e.Distance, e.PickupLat, e.PickupLng, e.Rating,
 		e.TransactionRef, e.DriverID, e.PaymentProvider, e.PaymentStatus,
 		e.Amount, e.PlatformFee, e.DriverShare, e.DriverTip,

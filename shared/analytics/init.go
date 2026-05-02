@@ -10,7 +10,7 @@ func CreateAnalyticsTable(ctx context.Context, conn clickhouse.Conn) error {
 	queryDdl := `
 		CREATE TABLE IF NOT EXISTS trip_events (
 			trip_id          String,
-			region_id        String,
+			region           String,
 			car_package      String,
 			trip_status      Enum('searching', 'aborted', 'matched', 'active', 'completed', 'cancelled'),
 			distance         Float64,

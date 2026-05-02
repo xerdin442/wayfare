@@ -171,11 +171,23 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 		return nil, fmt.Errorf("Error fetching ride fare: %v", err)
 	}
 
+	var region models.RegionModel
+	err = r.regionColl.FindOne(ctx, bson.M{
+		"_id": rideFare.RegionID,
+	}).Decode(&region)
+
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("Region not found with ID: %v", rideFare.RegionID)
+		}
+		return nil, fmt.Errorf("Error fetching region: %v", err)
+	}
+
 	trip := &models.TripModel{
-		ID:       bson.NewObjectID(),
-		UserID:   userIDHex,
-		RegionID: rideFare.RegionID,
-		Status:   types.TripStatusSearching,
+		ID:     bson.NewObjectID(),
+		UserID: userIDHex,
+		Region: region.Name,
+		Status: types.TripStatusSearching,
 		Fare: models.RideFareSummary{
 			CarPackage:       rideFare.CarPackage,
 			BasePrice:        rideFare.BasePrice,
