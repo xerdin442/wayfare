@@ -45,6 +45,18 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
+		transferRecipientCode, err := h.createTransferRecipient(ctx, req.Name, &contracts.AccountDetails{
+			AccountNumber: req.AccountNumber,
+			AccountName:   req.AccountName,
+			BankName:      req.BankName,
+		})
+		if err != nil {
+			tracing.HandleError(span, err)
+			logger.Error().Err(err).Msg("Failed to create transfer recipient")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
 		file, err := req.ProfileImage.Open()
 		if err != nil {
 			tracing.HandleError(span, err)
@@ -70,12 +82,13 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		}
 
 		res, err := h.cfg.Clients.Driver.Signup(ctx, &pb.SignupDriverRequest{
-			Name:         req.Name,
-			Email:        req.Email,
-			Password:     req.Password,
-			ProfileImage: result.SecureURL,
-			CarPackage:   req.CarPackage,
-			CarPlate:     req.CarPlate,
+			Name:                  req.Name,
+			Email:                 req.Email,
+			Password:              req.Password,
+			ProfileImage:          result.SecureURL,
+			CarPackage:            req.CarPackage,
+			CarPlate:              req.CarPlate,
+			TransferRecipientCode: transferRecipientCode,
 		})
 		if err != nil {
 			tracing.HandleError(span, err)

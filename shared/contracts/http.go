@@ -35,9 +35,12 @@ type SignupDetails struct {
 
 type SignupDriverRequest struct {
 	SignupDetails
-	ProfileImage multipart.FileHeader `form:"profile_image" binding:"required"`
-	CarPackage   string               `form:"car_package" binding:"required"`
-	CarPlate     string               `form:"car_plate" binding:"required"`
+	ProfileImage  multipart.FileHeader `form:"profile_image" binding:"required"`
+	CarPackage    string               `form:"car_package" binding:"required"`
+	CarPlate      string               `form:"car_plate" binding:"required"`
+	AccountNumber string               `form:"account_number" binding:"required"`
+	AccountName   string               `form:"account_name" binding:"required"`
+	BankName      string               `form:"bank_name" binding:"required"`
 }
 
 type SignupRiderRequest struct {
