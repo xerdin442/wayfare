@@ -28,6 +28,7 @@ type AmqpExchange string
 const (
 	GatewayExchange    AmqpExchange = "gateway"
 	ServicesExchange   AmqpExchange = "services"
+	AnalyticsExchange  AmqpExchange = "analytics"
 	DeadLetterExchange AmqpExchange = "dlx"
 )
 
@@ -39,6 +40,7 @@ const (
 	DriverUpdateQueue AmqpQueue = "driver_update_queue"
 	TripUpdateQueue   AmqpQueue = "trip_update_queue"
 	PaymentQueue      AmqpQueue = "payment_queue"
+	AnalyticsQueue    AmqpQueue = "analytics_queue"
 	DeadLetterQueue   AmqpQueue = "dead_letter_queue"
 )
 
@@ -71,6 +73,10 @@ type CheckoutPaymentPayload struct {
 	RiderID  string                `json:"rider_id"`
 	Provider types.PaymentProvider `json:"provider"`
 	Data     any                   `json:"data"`
+}
+
+type AnalyticsQueuePayload struct {
+	Event any `json:"event"`
 }
 
 type AmqpEvent string
@@ -107,4 +113,7 @@ const (
 	PaymentEventFailed              AmqpEvent = "payment.event.failed"
 	PaymentEventCashOptionPreferred AmqpEvent = "payment.event.cash_option_preferred"
 	PaymentEventCashReceived        AmqpEvent = "payment.event.cash_payment_received"
+
+	// Analytics events
+	AnalyticsEventUpdate AmqpEvent = "analytics.event.update"
 )

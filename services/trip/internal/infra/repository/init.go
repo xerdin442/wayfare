@@ -102,8 +102,7 @@ func CreateRegionsCollection(db *mongo.Database, name string) (*mongo.Collection
 		Keys: bson.D{{Key: "boundary", Value: "2dsphere"}},
 	}
 
-	_, err := collection.Indexes().CreateOne(ctx, spatialIndex)
-	if err != nil {
+	if _, err := collection.Indexes().CreateOne(ctx, spatialIndex); err != nil {
 		return nil, err
 	}
 
@@ -141,8 +140,7 @@ func CreatePricingColelction(db *mongo.Database, name string) (*mongo.Collection
 		Keys: bson.D{{Key: "region_id", Value: 1}},
 	}
 
-	_, err := collection.Indexes().CreateOne(ctx, regionIndex)
-	if err != nil {
+	if _, err := collection.Indexes().CreateOne(ctx, regionIndex); err != nil {
 		return nil, err
 	}
 
@@ -180,8 +178,7 @@ func CreateRideFaresColelction(db *mongo.Database, name string) (*mongo.Collecti
 		Keys:    bson.D{{Key: "expires_at", Value: 1}},
 		Options: options.Index().SetExpireAfterSeconds(0),
 	}
-	_, err := collection.Indexes().CreateOne(ctx, fareExpirationIndex)
-	if err != nil {
+	if _, err := collection.Indexes().CreateOne(ctx, fareExpirationIndex); err != nil {
 		return nil, err
 	}
 
@@ -226,12 +223,12 @@ func CreateTripsColelction(db *mongo.Database, name string) (*mongo.Collection, 
 
 	collection := db.Collection(name)
 
-	// Create 2dsphere index for spatial queries on trip routes
-	routeIndex := mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "route.pickup", Value: "2dsphere"},
-			{Key: "route.destination", Value: "2dsphere"},
-		},
+	// Create 2dsphere indices for spatial queries on trip routes
+	pickupIndex := mongo.IndexModel{
+		Keys: bson.D{{Key: "route.pickup", Value: "2dsphere"}},
+	}
+	destinationIndex := mongo.IndexModel{
+		Keys: bson.D{{Key: "route.destination", Value: "2dsphere"}},
 	}
 
 	// Create search index
@@ -242,8 +239,9 @@ func CreateTripsColelction(db *mongo.Database, name string) (*mongo.Collection, 
 		},
 	}
 
-	_, err := collection.Indexes().CreateMany(ctx, []mongo.IndexModel{routeIndex, searchIndex})
-	if err != nil {
+	if _, err := collection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		pickupIndex, destinationIndex, searchIndex,
+	}); err != nil {
 		return nil, err
 	}
 

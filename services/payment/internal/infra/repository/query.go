@@ -79,9 +79,8 @@ func (r *PaymentRepository) CreateTransaction(ctx context.Context, tripID string
 		UpdatedAt: time.Now().UTC(),
 	}
 
-	_, insertErr := r.txnColl.InsertOne(ctx, txn)
-	if insertErr != nil {
-		return "", fmt.Errorf("Failed to insert transaction document: %v", insertErr)
+	if _, err = r.txnColl.InsertOne(ctx, txn); err != nil {
+		return "", fmt.Errorf("Failed to insert transaction document: %v", err)
 	}
 
 	return txn.ID.Hex(), nil
@@ -106,13 +105,8 @@ func (r *PaymentRepository) UpdateTransaction(ctx context.Context, txnID string,
 		"$set": updateData,
 	}
 
-	_, updateErr := r.txnColl.UpdateOne(
-		ctx,
-		bson.M{"_id": txnIDHex},
-		update,
-	)
-	if updateErr != nil {
-		return fmt.Errorf("Failed to update transaction document: %v", updateErr)
+	if _, err = r.txnColl.UpdateOne(ctx, bson.M{"_id": txnIDHex}, update); err != nil {
+		return fmt.Errorf("Failed to update transaction document: %v", err)
 	}
 
 	return nil

@@ -23,6 +23,9 @@ k8s_resource('prometheus', port_forwards=['9090:9090'], labels="infra")
 k8s_yaml('./infra/development/k8s/elasticsearch.yaml')
 k8s_resource('elasticsearch', port_forwards=['9200:9200'], labels="infra")
 
+k8s_yaml('./infra/development/k8s/clickhouse.yaml')
+k8s_resource('clickhouse', port_forwards=['8123:8123', '9000:9000'], labels="infra")
+
 k8s_yaml('./infra/development/k8s/jaeger.yaml')
 k8s_resource(
   'jaeger',
@@ -54,7 +57,7 @@ k8s_yaml('./infra/development/k8s/api-gateway-deployment.yaml')
 k8s_resource(
   'api-gateway',
   port_forwards=8080,
-  resource_deps=['redis', 'rabbitmq'],
+  resource_deps=['redis', 'rabbitmq', 'clickhouse'],
   labels="services",
 )
 

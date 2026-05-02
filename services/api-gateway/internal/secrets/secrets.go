@@ -21,6 +21,9 @@ type Secrets struct {
 	CloudinaryApiKey       string
 	PaystackSecretKey      string
 	FlutterwaveVerifHash   string
+	ClickHouseUri          string
+	ClickHouseUsername     string
+	ClickHousePassword     string
 }
 
 func Load() *Secrets {
@@ -37,6 +40,9 @@ func Load() *Secrets {
 		CloudinaryApiKey:       getStr("CLOUDINARY_API_KEY"),
 		PaystackSecretKey:      getStr("PAYSTACK_SECRET_KEY"),
 		FlutterwaveVerifHash:   getStr("FLUTTERWAVE_VERIF_HASH"),
+		ClickHouseUri:          getStr("CLICKHOUSE_URI"),
+		ClickHouseUsername:     getStr("ROOT_USERNAME"),
+		ClickHousePassword:     getStr("ROOT_PASSWORD"),
 	}
 }
 

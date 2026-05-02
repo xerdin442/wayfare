@@ -77,9 +77,9 @@ func (r *RiderRepository) CreateRiderAccount(ctx context.Context, details *pb.Si
 		UpdatedAt:      time.Now(),
 	}
 
-	_, insertErr := r.riderColl.InsertOne(ctx, rider)
-	if insertErr != nil {
-		return nil, fmt.Errorf("Failed to create rider account: %v", insertErr)
+	_, err = r.riderColl.InsertOne(ctx, rider)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create rider account: %v", err)
 	}
 
 	return rider, nil

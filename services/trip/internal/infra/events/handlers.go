@@ -6,8 +6,10 @@ import (
 	"fmt"
 
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
+	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
+	"github.com/xerdin442/wayfare/shared/models"
 	"github.com/xerdin442/wayfare/shared/types"
 )
 
@@ -110,6 +112,16 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		); err != nil {
 			return fmt.Errorf("Failed to publish %s event: %v", messaging.DriverCmdTripCountUpdate, err)
 		}
+	}
+
+	tripEvent := &models.TripEventModel{
+		TripID:     payload.TripID,
+		DriverID:   payload.DriverID,
+		TripStatus: updatedStatus,
+		Rating:     payload.Rating,
+	}
+	if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
+		return err
 	}
 
 	return nil

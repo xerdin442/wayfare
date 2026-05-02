@@ -13,6 +13,7 @@ import (
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/client"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/events"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/secrets"
+	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/metrics"
 	"github.com/xerdin442/wayfare/shared/storage"
@@ -101,6 +102,19 @@ func main() {
 	g.Go(func() error {
 		log.Info().Msg("Starting event worker...")
 		return w.Start()
+	})
+
+	g.Go(func() error {
+		log.Info().Msg("Setting up analytics provider...")
+
+		cfg := &analytics.AnalyticsConfig{
+			Bus:           rmq,
+			ConnectionUri: env.ClickHouseUri,
+			Username:      env.ClickHouseUsername,
+			Password:      env.ClickHousePassword,
+		}
+
+		return analytics.SetupProvider(ctx, cfg)
 	})
 
 	g.Go(func() error {

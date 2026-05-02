@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/paulmach/orb"
 	"github.com/twpayne/go-polyline"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
+	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/models"
@@ -61,7 +63,7 @@ func (s *TripService) getTripRoute(pickup, destination *pb.Coordinate) (*contrac
 	return &osrmResp, nil
 }
 
-func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.Route, pickupCoords []float64) ([]*pb.RideFare, error) {
+func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.Route, pickupCoords orb.Point) (string, []*pb.RideFare, error) {
 	// priceConfig := map[repo.CarPackage]{
 	// 	repo.PackageSedan:  {BaseFare: 50000, PricePerKm: 15000, PricePerMinute: 2000, MinFare: 150000},
 	// 	repo.PackageSUV:    {BaseFare: 100000, PricePerKm: 25000, PricePerMinute: 4000, MinFare: 250000},
@@ -71,14 +73,15 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 	// Get pricing categories per package
 	priceConfig, err := s.repo.GetPricingPerRegion(ctx, pickupCoords)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to fetch pricing categories per region: %v", err)
+		return "", nil, fmt.Errorf("Failed to fetch pricing categories per region: %v", err)
 	}
 
 	// Convert OSRM metrics to standard units
 	distKm := route.Distance / 1000.0
 	durMin := route.Duration / 60.0
 
-	rideFares := make([]*pb.RideFare, len(priceConfig))
+	regionID := priceConfig[0].RegionID.Hex()
+	rideFares := make([]*pb.RideFare, 0, len(priceConfig))
 
 	// Estimate ride fare per package
 	for _, cfg := range priceConfig {
@@ -97,7 +100,7 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 		})
 	}
 
-	return rideFares, nil
+	return regionID, rideFares, nil
 }
 
 func (s *TripService) GetTripDetails(ctx context.Context, req *pb.TripDetailsRequest) (*pb.TripDetailsResponse, error) {
@@ -112,13 +115,14 @@ func (s *TripService) GetTripDetails(ctx context.Context, req *pb.TripDetailsReq
 	return &pb.TripDetailsResponse{
 		RideFareAmount: trip.Fare.BasePrice,
 		UserId:         trip.UserID.Hex(),
+		RegionId:       trip.RegionID.Hex(),
 	}, nil
 }
 
 func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripRequest) (*pb.PreviewTripResponse, error) {
 	// Extract coordinates
-	pickupCoords := []float64{req.Pickup.Longitude, req.Pickup.Latitude}
-	destinationCoords := []float64{req.Destination.Longitude, req.Destination.Latitude}
+	pickupCoords := orb.Point{req.Pickup.Longitude, req.Pickup.Latitude}
+	destinationCoords := orb.Point{req.Destination.Longitude, req.Destination.Latitude}
 
 	// Get trip route
 	route, err := s.getTripRoute(req.Pickup, req.Destination)
@@ -127,7 +131,7 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	}
 
 	// Estimate ride fares
-	rideFares, err := s.estimateTripFarePerPackage(ctx, route.ToProto(), pickupCoords)
+	regionID, rideFares, err := s.estimateTripFarePerPackage(ctx, route.ToProto(), pickupCoords)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -149,7 +153,7 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	}
 
 	// Store generated ride fares
-	if err := s.repo.StoreRideFares(ctx, rideFares, routeDetails, req.UserId); err != nil {
+	if err := s.repo.StoreRideFares(ctx, rideFares, routeDetails, req.UserId, regionID); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -205,6 +209,19 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 	msg := messaging.AmqpMessage{Data: data}
 	if err := s.queue.PublishMessage(ctx, messaging.ServicesExchange, messaging.TripEventCreated, msg); err != nil {
 		return nil, status.Errorf(codes.Internal, "Failed to publish %s event", messaging.TripEventCreated)
+	}
+
+	tripEvent := &models.TripEventModel{
+		TripID:     trip.ID.Hex(),
+		RegionID:   trip.RegionID.Hex(),
+		CarPackage: trip.Fare.CarPackage,
+		TripStatus: trip.Status,
+		Distance:   trip.Route.Distance,
+		PickupLat:  trip.Route.Pickup.Coordinates[1],
+		PickupLng:  trip.Route.Pickup.Coordinates[0],
+	}
+	if err := analytics.SendEvent(ctx, s.queue, tripEvent); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.StartTripResponse{

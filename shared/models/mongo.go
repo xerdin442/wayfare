@@ -3,18 +3,19 @@ package models
 import (
 	"time"
 
+	"github.com/paulmach/orb"
 	"github.com/xerdin442/wayfare/shared/types"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type GeoPoint struct {
-	Type        string    `bson:"type"`
-	Coordinates []float64 `bson:"coordinates"`
+	Type        string    `bson:"type"` // Set as "Point"
+	Coordinates orb.Point `bson:"coordinates"`
 }
 
 type GeoPolygon struct {
-	Type        string        `bson:"type"`
-	Coordinates [][][]float64 `bson:"coordinates"`
+	Type        string      `bson:"type"` // Set as "Polygon"
+	Coordinates orb.Polygon `bson:"coordinates"`
 }
 
 type RouteDetails struct {
@@ -54,6 +55,7 @@ type PricingModel struct {
 type RideFareModel struct {
 	ID               bson.ObjectID    `bson:"_id,omitempty"`
 	UserID           bson.ObjectID    `bson:"user_id"`
+	RegionID         bson.ObjectID    `bson:"region_id"`
 	CarPackage       types.CarPackage `bson:"car_package"`
 	BasePrice        int64            `bson:"base_price"`
 	TotalPriceInKobo int64            `bson:"total_price_in_kobo"`
@@ -66,6 +68,7 @@ type RideFareModel struct {
 type TripModel struct {
 	ID           bson.ObjectID    `bson:"_id,omitempty"`
 	DriverID     bson.ObjectID    `bson:"driver_id,omitempty"`
+	RegionID     bson.ObjectID    `bson:"region_id"`
 	UserID       bson.ObjectID    `bson:"user_id"`
 	Status       types.TripStatus `bson:"status"`
 	Fare         RideFareSummary  `bson:"fare"`

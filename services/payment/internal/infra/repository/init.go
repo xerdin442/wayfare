@@ -43,8 +43,7 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 		Keys: bson.D{{Key: "trip_id", Value: 1}},
 	}
 
-	_, err := collection.Indexes().CreateOne(ctx, tripIndex)
-	if err != nil {
+	if _, err := collection.Indexes().CreateOne(ctx, tripIndex); err != nil {
 		return nil, err
 	}
 
