@@ -25,6 +25,8 @@ type TripRepository struct {
 type TripUpdateData struct {
 	DriverID     string
 	NewStatus    types.TripStatus
+	PickupAt     time.Time
+	EndedAt      time.Time
 	Rating       int64
 	RiderComment string
 }
@@ -225,13 +227,17 @@ func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, data *Tr
 	if data.NewStatus != "" {
 		updateData["status"] = data.NewStatus
 	}
-
 	if data.Rating != 0 {
 		updateData["rating"] = data.Rating
 	}
-
 	if data.RiderComment != "" {
 		updateData["rider_comment"] = data.RiderComment
+	}
+	if !data.PickupAt.IsZero() {
+		updateData["pickup_at"] = data.PickupAt
+	}
+	if !data.EndedAt.IsZero() {
+		updateData["ended_at"] = data.EndedAt
 	}
 
 	updateData["updated_at"] = time.Now()

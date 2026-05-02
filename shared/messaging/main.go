@@ -230,6 +230,7 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 			TripEventDriverAssigned,
 			TripEventNoDriversFound,
 			DriverCmdTripPickup,
+			DriverCmdEndTrip,
 			TripCmdCancelled,
 			TripCmdCompleted,
 			TripCmdAborted,

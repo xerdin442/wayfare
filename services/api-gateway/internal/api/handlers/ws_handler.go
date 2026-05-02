@@ -183,7 +183,8 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 
 			// Update trip status
 			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
-				TripID: payloadData.Trip.ID,
+				TripID:   payloadData.Trip.ID,
+				PickupAt: time.Now(),
 			})
 			if err != nil {
 				tracing.HandleError(span, err)
@@ -224,6 +225,28 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 			}
 		case messaging.DriverCmdEndTrip:
 			payloadData := payload.Data.(contracts.TripUpdateRequest)
+
+			// Update trip status
+			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
+				TripID:  payloadData.Trip.ID,
+				EndedAt: time.Now(),
+			})
+			if err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to marshal trip_update queue payload")
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				ctx,
+				messaging.ServicesExchange,
+				messaging.DriverCmdEndTrip,
+				messaging.AmqpMessage{Data: tripServiceData},
+			); err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msgf("Failed to publish %s event", messaging.DriverCmdEndTrip)
+				return
+			}
 
 			// Notify rider to make payment
 			gatewayData, err := json.Marshal(contracts.WebsocketMessage{

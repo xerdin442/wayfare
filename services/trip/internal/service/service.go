@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/paulmach/orb"
+	"github.com/shopspring/decimal"
 	"github.com/twpayne/go-polyline"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
 	"github.com/xerdin442/wayfare/shared/analytics"
@@ -212,13 +213,14 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 	}
 
 	tripEvent := &models.TripEventModel{
-		TripID:     trip.ID.Hex(),
-		Region:     trip.Region,
-		CarPackage: trip.Fare.CarPackage,
-		TripStatus: trip.Status,
-		Distance:   trip.Route.Distance,
-		PickupLat:  trip.Route.Pickup.Coordinates[1],
-		PickupLng:  trip.Route.Pickup.Coordinates[0],
+		TripID:                trip.ID.Hex(),
+		Region:                trip.Region,
+		CarPackage:            trip.Fare.CarPackage,
+		TripStatus:            trip.Status,
+		PredictedDurationMins: decimal.NewFromFloat(trip.Route.Duration).Div(decimal.NewFromInt(60)),
+		DistanceKm:            decimal.NewFromFloat(trip.Route.Distance).Div(decimal.NewFromInt(1000)),
+		PickupLat:             trip.Route.Pickup.Coordinates[1],
+		PickupLng:             trip.Route.Pickup.Coordinates[0],
 	}
 	if err := analytics.SendEvent(ctx, s.queue, tripEvent); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())

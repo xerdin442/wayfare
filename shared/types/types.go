@@ -18,12 +18,13 @@ const (
 type TripStatus string
 
 const (
-	TripStatusSearching TripStatus = "searching"
-	TripStatusAborted   TripStatus = "aborted"
-	TripStatusMatched   TripStatus = "matched"
-	TripStatusActive    TripStatus = "active"
-	TripStatusCompleted TripStatus = "completed"
-	TripStatusCancelled TripStatus = "cancelled"
+	TripStatusSearching       TripStatus = "searching"
+	TripStatusAborted         TripStatus = "aborted"
+	TripStatusMatched         TripStatus = "matched"
+	TripStatusActive          TripStatus = "active"
+	TripStatusAwaitingPayment TripStatus = "awaiting_payment"
+	TripStatusCompleted       TripStatus = "completed"
+	TripStatusCancelled       TripStatus = "cancelled"
 )
 
 type PaymentStatus string

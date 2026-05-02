@@ -73,6 +73,8 @@ type TripModel struct {
 	Status       types.TripStatus `bson:"status"`
 	Fare         RideFareSummary  `bson:"fare"`
 	Route        RouteDetails     `bson:"route"`
+	PickupAt     time.Time        `bson:"pickup_at,omitempty"`
+	EndedAt      time.Time        `bson:"ended_at,omitempty"`
 	Rating       int64            `bson:"rating,omitempty"`
 	RiderComment string           `bson:"rider_comment,omitempty"`
 	CreatedAt    time.Time        `bson:"created_at"`

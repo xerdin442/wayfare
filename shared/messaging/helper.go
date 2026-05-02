@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"context"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/xerdin442/wayfare/shared/types"
@@ -55,10 +56,12 @@ type AssignDriverQueuePayload struct {
 }
 
 type TripUpdateQueuePayload struct {
-	TripID       string `json:"trip_id"`
-	DriverID     string `json:"driver_id,omitempty"`
-	Rating       int64  `json:"rating,omitempty"`
-	RiderComment string `json:"rider_comment,omitempty"`
+	TripID       string    `json:"trip_id"`
+	DriverID     string    `json:"driver_id,omitempty"`
+	PickupAt     time.Time `json:"pickup_at,omitempty"`
+	EndedAt      time.Time `json:"ended_at,omitempty"`
+	Rating       int64     `json:"rating,omitempty"`
+	RiderComment string    `json:"rider_comment,omitempty"`
 }
 
 type CashPaymentPayload struct {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/shopspring/decimal"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
 	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
@@ -46,6 +47,8 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		updatedStatus = types.TripStatusMatched
 	case messaging.DriverCmdTripPickup:
 		updatedStatus = types.TripStatusActive
+	case messaging.DriverCmdEndTrip:
+		updatedStatus = types.TripStatusAwaitingPayment
 	case messaging.TripCmdCancelled:
 		updatedStatus = types.TripStatusCancelled
 	case messaging.TripCmdCompleted:
@@ -57,6 +60,8 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 	updateData := &repo.TripUpdateData{
 		NewStatus:    updatedStatus,
 		DriverID:     payload.DriverID,
+		PickupAt:     payload.PickupAt,
+		EndedAt:      payload.EndedAt,
 		Rating:       payload.Rating,
 		RiderComment: payload.RiderComment,
 	}
@@ -114,11 +119,13 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		}
 	}
 
+	actualDuration := payload.EndedAt.Sub(payload.PickupAt).Minutes()
 	tripEvent := &models.TripEventModel{
-		TripID:     payload.TripID,
-		DriverID:   payload.DriverID,
-		TripStatus: updatedStatus,
-		Rating:     payload.Rating,
+		TripID:             payload.TripID,
+		DriverID:           payload.DriverID,
+		TripStatus:         updatedStatus,
+		Rating:             payload.Rating,
+		ActualDurationMins: decimal.NewFromFloat(actualDuration),
 	}
 	if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 		return err

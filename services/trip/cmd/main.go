@@ -77,6 +77,7 @@ func main() {
 		messaging.TripEventDriverAssigned,
 		messaging.TripEventNoDriversFound,
 		messaging.DriverCmdTripPickup,
+		messaging.DriverCmdEndTrip,
 		messaging.TripCmdCancelled,
 		messaging.TripCmdCompleted,
 		messaging.TripCmdAborted,
