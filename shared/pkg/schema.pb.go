@@ -178,14 +178,13 @@ func (x *Route) GetGeometry() []*Geometry {
 }
 
 type RideFare struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	PackageSlug      string                 `protobuf:"bytes,2,opt,name=package_slug,json=packageSlug,proto3" json:"package_slug,omitempty"`
-	BasePrice        int64                  `protobuf:"varint,3,opt,name=base_price,json=basePrice,proto3" json:"base_price,omitempty"`
-	TotalPriceInKobo int64                  `protobuf:"varint,4,opt,name=total_price_in_kobo,json=totalPriceInKobo,proto3" json:"total_price_in_kobo,omitempty"`
-	Route            *Route                 `protobuf:"bytes,5,opt,name=route,proto3" json:"route,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	PackageSlug   string                 `protobuf:"bytes,2,opt,name=package_slug,json=packageSlug,proto3" json:"package_slug,omitempty"`
+	Amount        int64                  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	Route         *Route                 `protobuf:"bytes,4,opt,name=route,proto3" json:"route,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RideFare) Reset() {
@@ -232,16 +231,9 @@ func (x *RideFare) GetPackageSlug() string {
 	return ""
 }
 
-func (x *RideFare) GetBasePrice() int64 {
+func (x *RideFare) GetAmount() int64 {
 	if x != nil {
-		return x.BasePrice
-	}
-	return 0
-}
-
-func (x *RideFare) GetTotalPriceInKobo() int64 {
-	if x != nil {
-		return x.TotalPriceInKobo
+		return x.Amount
 	}
 	return 0
 }
@@ -503,14 +495,12 @@ const file_schema_proto_rawDesc = "" +
 	"\x05Route\x12\x1a\n" +
 	"\bdistance\x18\x01 \x01(\x01R\bdistance\x12\x1a\n" +
 	"\bduration\x18\x02 \x01(\x01R\bduration\x12-\n" +
-	"\bgeometry\x18\x03 \x03(\v2\x11.wayfare.GeometryR\bgeometry\"\xb1\x01\n" +
+	"\bgeometry\x18\x03 \x03(\v2\x11.wayfare.GeometryR\bgeometry\"{\n" +
 	"\bRideFare\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
-	"\fpackage_slug\x18\x02 \x01(\tR\vpackageSlug\x12\x1d\n" +
-	"\n" +
-	"base_price\x18\x03 \x01(\x03R\tbasePrice\x12-\n" +
-	"\x13total_price_in_kobo\x18\x04 \x01(\x03R\x10totalPriceInKobo\x12$\n" +
-	"\x05route\x18\x05 \x01(\v2\x0e.wayfare.RouteR\x05route\"\xcd\x01\n" +
+	"\fpackage_slug\x18\x02 \x01(\tR\vpackageSlug\x12\x16\n" +
+	"\x06amount\x18\x03 \x01(\x03R\x06amount\x12$\n" +
+	"\x05route\x18\x04 \x01(\v2\x0e.wayfare.RouteR\x05route\"\xcd\x01\n" +
 	"\x06Driver\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +

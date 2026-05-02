@@ -59,11 +59,10 @@ type Coordinate struct {
 }
 
 type RideFare struct {
-	ID               string     `json:"id"`
-	PackageSlug      CarPackage `json:"packageSlug"`
-	BasePrice        int64      `json:"basePrice"`
-	TotalPriceInKobo int64      `json:"totalPriceInKobo,omitempty"`
-	Route            Route      `json:"route"`
+	ID          string     `json:"id"`
+	PackageSlug CarPackage `json:"packageSlug"`
+	Amount      int64      `json:"amount"`
+	Route       Route      `json:"route"`
 }
 
 type Trip struct {

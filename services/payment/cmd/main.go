@@ -66,7 +66,7 @@ func main() {
 
 	// Setup repository and service
 	repo := repo.NewPaymentRepository(database)
-	svc := service.NewPaymentService(repo, cache, env)
+	svc := service.NewPaymentService(repo, cache, rmq, env)
 	h := events.NewPaymentEventsHandler(repo, rmq, cache)
 
 	w := messaging.NewEventWorker(rmq, messaging.PaymentQueue)

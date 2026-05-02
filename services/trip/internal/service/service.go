@@ -86,18 +86,20 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 
 	// Estimate ride fare per package
 	for _, cfg := range priceConfig {
-		distanceCost := int64(distKm * float64(cfg.PerKmKobo))
-		timeCost := int64(durMin * float64(cfg.PerMinuteKobo))
-		totalCost := cfg.BaseFeeKobo + distanceCost + timeCost
+		distanceCost := int64(distKm * float64(cfg.PerKm))
+		timeCost := int64(durMin * float64(cfg.PerMinute))
+		totalCost := cfg.BaseFee + distanceCost + timeCost
 
 		// Apply minimum fare if total cost is below fare threshold
-		estimatedPrice := max(totalCost, cfg.MinFareKobo)
+		estimatedPrice := max(totalCost, cfg.MinFare)
+
+		// Round up to nearest hundred
+		rideAmount := ((estimatedPrice + 99) / 100) * 100
 
 		rideFares = append(rideFares, &pb.RideFare{
-			PackageSlug:      string(cfg.CarPackage),
-			BasePrice:        estimatedPrice / 100,
-			TotalPriceInKobo: estimatedPrice,
-			Route:            route,
+			PackageSlug: string(cfg.CarPackage),
+			Amount:      rideAmount,
+			Route:       route,
 		})
 	}
 
@@ -114,7 +116,7 @@ func (s *TripService) GetTripDetails(ctx context.Context, req *pb.TripDetailsReq
 	}
 
 	return &pb.TripDetailsResponse{
-		RideFareAmount: trip.Fare.BasePrice,
+		RideFareAmount: trip.RideFare,
 		UserId:         trip.UserID.Hex(),
 		Region:         trip.Region,
 	}, nil
@@ -178,10 +180,9 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 			UserID: trip.UserID.Hex(),
 			Status: trip.Status,
 			SelectedFare: types.RideFare{
-				ID:               req.RideFareId,
-				PackageSlug:      trip.Fare.CarPackage,
-				BasePrice:        trip.Fare.BasePrice,
-				TotalPriceInKobo: trip.Fare.TotalPriceInKobo,
+				ID:          req.RideFareId,
+				PackageSlug: trip.CarPackage,
+				Amount:      trip.RideFare,
 			},
 			Route: types.Route{
 				Distance: trip.Route.Distance,
@@ -215,7 +216,7 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 	tripEvent := &models.TripEventModel{
 		TripID:                trip.ID.Hex(),
 		Region:                trip.Region,
-		CarPackage:            trip.Fare.CarPackage,
+		CarPackage:            trip.CarPackage,
 		TripStatus:            trip.Status,
 		PredictedDurationMins: decimal.NewFromFloat(trip.Route.Duration).Div(decimal.NewFromInt(60)),
 		DistanceKm:            decimal.NewFromFloat(trip.Route.Distance).Div(decimal.NewFromInt(1000)),

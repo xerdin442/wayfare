@@ -26,12 +26,6 @@ type RouteDetails struct {
 	Polyline    string   `bson:"polyline,omitempty"`
 }
 
-type RideFareSummary struct {
-	CarPackage       types.CarPackage `bson:"car_package"`
-	BasePrice        int64            `bson:"base_price"`
-	TotalPriceInKobo int64            `bson:"total_price_in_kobo"`
-}
-
 type RegionModel struct {
 	ID        bson.ObjectID `bson:"_id,omitempty"`
 	Name      string        `bson:"name"`
@@ -41,28 +35,27 @@ type RegionModel struct {
 }
 
 type PricingModel struct {
-	ID            bson.ObjectID    `bson:"_id,omitempty"`
-	RegionID      bson.ObjectID    `bson:"region_id"`
-	CarPackage    types.CarPackage `bson:"car_package"`
-	BaseFeeKobo   int64            `bson:"base_fee_kobo"`
-	PerKmKobo     int64            `bson:"per_km_kobo"`
-	PerMinuteKobo int64            `bson:"per_minute_kobo"`
-	MinFareKobo   int64            `bson:"min_fare_kobo"`
-	CreatedAt     time.Time        `bson:"created_at"`
-	UpdatedAt     time.Time        `bson:"updated_at"`
+	ID         bson.ObjectID    `bson:"_id,omitempty"`
+	RegionID   bson.ObjectID    `bson:"region_id"`
+	CarPackage types.CarPackage `bson:"car_package"`
+	BaseFee    int64            `bson:"base_fee"`
+	PerKm      int64            `bson:"per_km"`
+	PerMinute  int64            `bson:"per_minute"`
+	MinFare    int64            `bson:"min_fare"`
+	CreatedAt  time.Time        `bson:"created_at"`
+	UpdatedAt  time.Time        `bson:"updated_at"`
 }
 
 type RideFareModel struct {
-	ID               bson.ObjectID    `bson:"_id,omitempty"`
-	UserID           bson.ObjectID    `bson:"user_id"`
-	RegionID         bson.ObjectID    `bson:"region_id"`
-	CarPackage       types.CarPackage `bson:"car_package"`
-	BasePrice        int64            `bson:"base_price"`
-	TotalPriceInKobo int64            `bson:"total_price_in_kobo"`
-	ExpiresAt        time.Time        `bson:"expires_at"`
-	Route            RouteDetails     `bson:"route"`
-	CreatedAt        time.Time        `bson:"created_at"`
-	UpdatedAt        time.Time        `bson:"updated_at"`
+	ID         bson.ObjectID    `bson:"_id,omitempty"`
+	UserID     bson.ObjectID    `bson:"user_id"`
+	RegionID   bson.ObjectID    `bson:"region_id"`
+	CarPackage types.CarPackage `bson:"car_package"`
+	Amount     int64            `bson:"amount"`
+	ExpiresAt  time.Time        `bson:"expires_at"`
+	Route      RouteDetails     `bson:"route"`
+	CreatedAt  time.Time        `bson:"created_at"`
+	UpdatedAt  time.Time        `bson:"updated_at"`
 }
 
 type TripModel struct {
@@ -71,7 +64,8 @@ type TripModel struct {
 	UserID       bson.ObjectID    `bson:"user_id"`
 	Region       string           `bson:"region"`
 	Status       types.TripStatus `bson:"status"`
-	Fare         RideFareSummary  `bson:"fare"`
+	RideFare     int64            `bson:"ride_fare"`
+	CarPackage   types.CarPackage `bson:"car_package"`
 	Route        RouteDetails     `bson:"route"`
 	PickupAt     time.Time        `bson:"pickup_at,omitempty"`
 	EndedAt      time.Time        `bson:"ended_at,omitempty"`
@@ -92,6 +86,9 @@ type DriverModel struct {
 	CurrentRating       float64          `bson:"current_rating"`
 	TotalCompletedTrips int64            `bson:"total_completed_trips"`
 	LifetimeRatingAvg   float64          `bson:"lifetime_rating_avg"`
+	AvailableBalance    int64            `bson:"available_balance"`
+	PendingBalance      int64            `bson:"pending_balance"`
+	OutstandingReturns  int64            `bson:"outstanding_returns"`
 	CreatedAt           time.Time        `bson:"created_at"`
 	UpdatedAt           time.Time        `bson:"updated_at"`
 }

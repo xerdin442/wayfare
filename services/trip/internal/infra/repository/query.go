@@ -75,16 +75,15 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.Rid
 
 	for _, fare := range rideFares {
 		docs = append(docs, &models.RideFareModel{
-			ID:               bson.NewObjectID(),
-			UserID:           userIDHex,
-			RegionID:         regionIDHex,
-			CarPackage:       types.CarPackage(fare.PackageSlug),
-			BasePrice:        fare.BasePrice,
-			TotalPriceInKobo: fare.TotalPriceInKobo,
-			ExpiresAt:        time.Now().Add(15 * time.Minute), // Documents are dropped after 15mins
-			Route:            route,
-			CreatedAt:        time.Now(),
-			UpdatedAt:        time.Now(),
+			ID:         bson.NewObjectID(),
+			UserID:     userIDHex,
+			RegionID:   regionIDHex,
+			CarPackage: types.CarPackage(fare.PackageSlug),
+			Amount:     fare.Amount,
+			ExpiresAt:  time.Now().Add(15 * time.Minute), // Documents are dropped after 15mins
+			Route:      route,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
 		})
 	}
 
@@ -186,18 +185,15 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 	}
 
 	trip := &models.TripModel{
-		ID:     bson.NewObjectID(),
-		UserID: userIDHex,
-		Region: region.Name,
-		Status: types.TripStatusSearching,
-		Fare: models.RideFareSummary{
-			CarPackage:       rideFare.CarPackage,
-			BasePrice:        rideFare.BasePrice,
-			TotalPriceInKobo: rideFare.TotalPriceInKobo,
-		},
-		Route:     rideFare.Route,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:         bson.NewObjectID(),
+		UserID:     userIDHex,
+		Region:     region.Name,
+		Status:     types.TripStatusSearching,
+		RideFare:   rideFare.Amount,
+		CarPackage: rideFare.CarPackage,
+		Route:      rideFare.Route,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
 	}
 
 	if _, err = r.tripColl.InsertOne(ctx, trip); err != nil {

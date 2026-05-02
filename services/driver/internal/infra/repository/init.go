@@ -17,6 +17,7 @@ func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection
 			"name", "email", "password", "profile_picture",
 			"car_package", "car_plate", "current_rating",
 			"total_completed_trips", "lifetime_rating_avg",
+			"available_balance", "pending_balance", "outstanding_returns",
 		},
 		"properties": bson.M{
 			"name":     bson.M{"bsonType": "string"},
@@ -31,6 +32,9 @@ func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection
 			"current_rating":        bson.M{"bsonType": "double", "minimum": 0, "maximum": 5},
 			"total_completed_trips": bson.M{"bsonType": "int"},
 			"lifetime_rating_avg":   bson.M{"bsonType": "double", "minimum": 0, "maximum": 5},
+			"available_balance":     bson.M{"bsonType": "long"},
+			"pending_balance":       bson.M{"bsonType": "long"},
+			"outstanding_returns":   bson.M{"bsonType": "long"},
 		},
 	}
 

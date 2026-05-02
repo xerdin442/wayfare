@@ -49,11 +49,6 @@ var carPackageSchema = bson.M{
 	"description": "must be one of the approved car packages",
 }
 
-var priceSchema = bson.M{
-	"bsonType": "long",
-	"minimum":  1,
-}
-
 func CreateRegionsCollection(db *mongo.Database, name string) (*mongo.Collection, error) {
 	ctx := context.Background()
 
@@ -114,14 +109,14 @@ func CreatePricingColelction(db *mongo.Database, name string) (*mongo.Collection
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"region_id", "car_package", "base_fee_kobo", "per_km_kobo", "per_minute_kobo", "min_fare_kobo"},
+		"required": []string{"region_id", "car_package", "base_fee", "per_km", "per_minute", "min_fare"},
 		"properties": bson.M{
-			"region_id":       bson.M{"bsonType": "objectId"},
-			"car_package":     carPackageSchema,
-			"base_fee_kobo":   priceSchema,
-			"per_km_kobo":     priceSchema,
-			"per_minute_kobo": priceSchema,
-			"min_fare_kobo":   priceSchema,
+			"region_id":   bson.M{"bsonType": "objectId"},
+			"car_package": carPackageSchema,
+			"base_fee":    bson.M{"bsonType": "long"},
+			"per_km":      bson.M{"bsonType": "long"},
+			"per_minute":  bson.M{"bsonType": "long"},
+			"min_fare":    bson.M{"bsonType": "long"},
 		},
 	}
 
@@ -152,15 +147,14 @@ func CreateRideFaresColelction(db *mongo.Database, name string) (*mongo.Collecti
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"user_id", "region", "car_package", "total_price_in_kobo", "expires_at", "route"},
+		"required": []string{"user_id", "region_id", "car_package", "amount", "expires_at", "route"},
 		"properties": bson.M{
-			"user_id":             bson.M{"bsonType": "objectId"},
-			"region":              bson.M{"bsonType": "objectId"},
-			"car_package":         carPackageSchema,
-			"base_price":          priceSchema,
-			"total_price_in_kobo": priceSchema,
-			"expires_at":          bson.M{"bsonType": "date"},
-			"route":               routeSchema,
+			"user_id":     bson.M{"bsonType": "objectId"},
+			"region_id":   bson.M{"bsonType": "objectId"},
+			"car_package": carPackageSchema,
+			"amount":      bson.M{"bsonType": "long"},
+			"expires_at":  bson.M{"bsonType": "date"},
+			"route":       routeSchema,
 		},
 	}
 
@@ -191,25 +185,18 @@ func CreateTripsColelction(db *mongo.Database, name string) (*mongo.Collection, 
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"user_id", "region", "route", "status", "fare"},
+		"required": []string{"user_id", "region", "route", "status", "ride_fare", "car_package"},
 		"properties": bson.M{
 			"user_id":   bson.M{"bsonType": "objectId"},
 			"driver_id": bson.M{"bsonType": "objectId"},
 			"region":    bson.M{"bsonType": "string"},
 			"route":     routeSchema,
 			"status": bson.M{
-				"enum":        []string{"searching", "aborted", "matched", "active", "completed", "cancelled"},
+				"enum":        []string{"searching", "aborted", "matched", "active", "awaiting_payment", "completed", "cancelled"},
 				"description": "must be a valid trip status value",
 			},
-			"fare": bson.M{
-				"bsonType": "object",
-				"required": []string{"car_package", "base_price", "total_price_in_kobo"},
-				"properties": bson.M{
-					"car_package":         carPackageSchema,
-					"base_price":          priceSchema,
-					"total_price_in_kobo": priceSchema,
-				},
-			},
+			"ride_fare":     bson.M{"bsonType": "long"},
+			"car_package":   carPackageSchema,
 			"pickup_at":     bson.M{"bsonType": "date"},
 			"ended_at":      bson.M{"bsonType": "date"},
 			"rating":        bson.M{"bsonType": "int", "minimum": 1, "maximum": 5},

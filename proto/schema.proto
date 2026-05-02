@@ -20,11 +20,10 @@ message Route {
 }
 
 message RideFare {
-  string id                  = 1;
-  string package_slug        = 2;
-  int64  base_price          = 3;
-  int64  total_price_in_kobo = 4;
-  Route  route               = 5;
+  string id           = 1;
+  string package_slug = 2;
+  int64  amount       = 3;
+  Route  route        = 4;
 }
 
 message Driver {
