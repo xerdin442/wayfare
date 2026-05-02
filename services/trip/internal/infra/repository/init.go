@@ -201,6 +201,7 @@ func CreateTripsColelction(db *mongo.Database, name string) (*mongo.Collection, 
 			"ended_at":      bson.M{"bsonType": "date"},
 			"rating":        bson.M{"bsonType": "int", "minimum": 1, "maximum": 5},
 			"rider_comment": bson.M{"bsonType": "string"},
+			"driver_tip":    bson.M{"bsonType": "long"},
 		},
 	}
 

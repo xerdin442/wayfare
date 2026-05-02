@@ -1,6 +1,7 @@
 package base
 
 import (
+	"net/http"
 	"sync"
 
 	"github.com/redis/go-redis/v9"
@@ -19,4 +20,5 @@ type Config struct {
 	Queue       messaging.MessageBus
 	Uploader    *storage.FileUploadConfig
 	Tracer      trace.Tracer
+	HttpClient  *http.Client
 }

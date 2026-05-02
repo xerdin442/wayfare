@@ -52,6 +52,11 @@ func (s *DriverService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Au
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	// Check if driver has outstanding returns
+	if driver.OutstandingReturns > 0 {
+		return nil, status.Error(codes.PermissionDenied, "Please, clear your outstanding returns to continue using Wayfare")
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(driver.Password), []byte(req.Password)); err != nil {
 		return nil, status.Error(codes.Unauthenticated, "Incorrect password")
 	}

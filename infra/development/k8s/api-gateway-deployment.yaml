@@ -93,6 +93,26 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: FLUTTERWAVE_VERIF_HASH
+            - name: PAYSTACK_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: PAYSTACK_API_URL                  
+            - name: CLICKHOUSE_URI
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: CLICKHOUSE_URI 
+            - name: CLICKHOUSE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: ROOT_USERNAME 
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: ROOT_PASSWORD
 ---
 apiVersion: v1
 kind: Service

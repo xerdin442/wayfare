@@ -83,6 +83,10 @@ func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *pb.
 		CurrentRating:       0.0,
 		TotalCompletedTrips: 0,
 		LifetimeRatingAvg:   0.0,
+		AvailableBalance:    0,
+		PendingPayout:       0,
+		PendingReturns:      0,
+		OutstandingReturns:  0,
 		CreatedAt:           time.Now(),
 		UpdatedAt:           time.Now(),
 	}

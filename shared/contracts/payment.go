@@ -71,3 +71,55 @@ type PaystackWebhookPayload struct {
 		Metadata  string `json:"metadata"`
 	} `json:"data"`
 }
+
+type PaystackBankResponse struct {
+	Status  bool   `json:"status"`
+	Message string `json:"message"`
+	Data    []struct {
+		ID   int64  `json:"id"`
+		Name string `json:"name"`
+		Slug string `json:"slug"`
+		Code string `json:"code"`
+	} `json:"data"`
+}
+
+type AccountDetails struct {
+	AccountNumber string `json:"account_number"`
+	AccountName   string `json:"account_name"`
+	BankName      string `json:"bank_name"`
+}
+
+type AccountVerificationResponse struct {
+	Status  bool   `json:"status"`
+	Message string `json:"message"`
+	Data    struct {
+		AccountNumber string `json:"account_number"`
+		AccountName   string `json:"account_name"`
+	} `json:"data"`
+}
+
+type CreateTransferRecipientPayload struct {
+	Type          string `json:"type"`
+	Name          string `json:"name"`
+	AccountNumber string `json:"account_number"`
+	BankCode      string `json:"bank_code"`
+}
+
+type TransferRecipientResponse struct {
+	Status  bool   `json:"status"`
+	Message string `json:"message"`
+	Data    struct {
+		ID            int64  `json:"id"`
+		Active        bool   `json:"active"`
+		RecipientCode string `json:"recipient_code"`
+	} `json:"data"`
+}
+
+// type TransferPayload struct {
+// 	Status  bool   `json:"status"`
+// 	Message string `json:"message"`
+// 	Data    struct {
+// 		Active        bool   `json:"active"`
+// 		RecipientCode string `json:"recipient_code"`
+// 	} `json:"data"`
+// }

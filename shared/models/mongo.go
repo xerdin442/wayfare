@@ -71,26 +71,29 @@ type TripModel struct {
 	EndedAt      time.Time        `bson:"ended_at,omitempty"`
 	Rating       int64            `bson:"rating,omitempty"`
 	RiderComment string           `bson:"rider_comment,omitempty"`
+	DriverTip    int64            `bson:"driver_tip,omitempty"`
 	CreatedAt    time.Time        `bson:"created_at"`
 	UpdatedAt    time.Time        `bson:"updated_at"`
 }
 
 type DriverModel struct {
-	ID                  bson.ObjectID    `bson:"_id,omitempty"`
-	Name                string           `bson:"name"`
-	Email               string           `bson:"email"`
-	Password            string           `bson:"password"`
-	ProfilePicture      string           `bson:"profile_picture"`
-	CarPackage          types.CarPackage `bson:"car_package"`
-	CarPlate            string           `bson:"car_plate"`
-	CurrentRating       float64          `bson:"current_rating"`
-	TotalCompletedTrips int64            `bson:"total_completed_trips"`
-	LifetimeRatingAvg   float64          `bson:"lifetime_rating_avg"`
-	AvailableBalance    int64            `bson:"available_balance"`
-	PendingBalance      int64            `bson:"pending_balance"`
-	OutstandingReturns  int64            `bson:"outstanding_returns"`
-	CreatedAt           time.Time        `bson:"created_at"`
-	UpdatedAt           time.Time        `bson:"updated_at"`
+	ID                    bson.ObjectID    `bson:"_id,omitempty"`
+	Name                  string           `bson:"name"`
+	Email                 string           `bson:"email"`
+	Password              string           `bson:"password"`
+	ProfilePicture        string           `bson:"profile_picture"`
+	CarPackage            types.CarPackage `bson:"car_package"`
+	CarPlate              string           `bson:"car_plate"`
+	CurrentRating         float64          `bson:"current_rating"`
+	TotalCompletedTrips   int64            `bson:"total_completed_trips"`
+	LifetimeRatingAvg     float64          `bson:"lifetime_rating_avg"`
+	AvailableBalance      int64            `bson:"available_balance"`
+	PendingPayout         int64            `bson:"pending_payout"`
+	PendingReturns        int64            `bson:"pending_returns"`
+	OutstandingReturns    int64            `bson:"outstanding_returns"`
+	TransferRecipientCode string           `bson:"transfer_recipient_code"`
+	CreatedAt             time.Time        `bson:"created_at"`
+	UpdatedAt             time.Time        `bson:"updated_at"`
 }
 
 type RiderModel struct {

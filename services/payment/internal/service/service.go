@@ -110,7 +110,7 @@ func (s *PaymentService) generatePaystackCheckout(ctx context.Context, req *cont
 
 	httpResp, err := s.sendApiRequest(
 		ctx,
-		s.env.PaystackApiUrl,
+		fmt.Sprintf("%s/transaction/initialize", s.env.PaystackApiUrl),
 		s.env.PaystackSecretKey,
 		bytes.NewBuffer(payload),
 	)
@@ -134,7 +134,7 @@ func (s *PaymentService) generateFlutterwaveCheckout(ctx context.Context, req *c
 
 	httpResp, err := s.sendApiRequest(
 		ctx,
-		s.env.FlutterwaveApiUrl,
+		fmt.Sprintf("%s/v3/payments", s.env.FlutterwaveApiUrl),
 		s.env.FlutterwaveSecretKey,
 		bytes.NewBuffer(payload),
 	)
