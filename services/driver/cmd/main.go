@@ -7,11 +7,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/go-co-op/gocron/v2"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/driver/internal/infra/events"
 	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
+	"github.com/xerdin442/wayfare/services/driver/internal/infra/tasks"
 	"github.com/xerdin442/wayfare/services/driver/internal/secrets"
 	"github.com/xerdin442/wayfare/services/driver/internal/server"
 	"github.com/xerdin442/wayfare/services/driver/internal/service"
@@ -68,19 +70,61 @@ func main() {
 	repo := repo.NewDriverRepository(database)
 	svc := service.NewDriverService(repo)
 
-	h := events.NewDriverEventsHandler(repo, rmq, cache)
+	eventsHandler := events.NewDriverEventsHandler(repo, rmq, cache)
+	tasksHandler := tasks.NewDriverTasksHandler(repo)
 
 	// Initialize event workers and register event handlers
 	w1 := messaging.NewEventWorker(rmq, messaging.AssignDriverQueue)
 	w2 := messaging.NewEventWorker(rmq, messaging.DriverUpdateQueue)
 
 	w1.RegisterHandler(
-		h.FindAndAssignDriver,
+		eventsHandler.FindAndAssignDriver,
 		messaging.TripEventCreated,
 		messaging.TripEventDriverNotAvailable,
 		messaging.TripEventDriverNotInterested,
 	)
-	w2.RegisterHandler(h.HandleDriverUpdate, messaging.DriverCmdDetailsUpdate)
+	w2.RegisterHandler(
+		eventsHandler.HandleDriverUpdate,
+		messaging.DriverCmdDetailsUpdate,
+	)
+
+	// Initialize job scheduler
+	sh, err := gocron.NewScheduler()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize job scheduler")
+	}
+	defer sh.ShutdownWithContext(ctx)
+
+	// Register cron jobs
+	_, err = sh.NewJob(
+		gocron.DailyJob(
+			1,
+			gocron.NewAtTimes(
+				gocron.NewAtTime(23, 59, 0),
+			),
+		),
+		gocron.NewTask(func() error {
+			return tasksHandler.ResetDriverBalance(ctx)
+		}),
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to register balance reset job")
+	}
+
+	_, err = sh.NewJob(
+		gocron.DailyJob(
+			1,
+			gocron.NewAtTimes(
+				gocron.NewAtTime(1, 0, 0),
+			),
+		),
+		gocron.NewTask(func() error {
+			return tasksHandler.ProcessDriverPayouts(ctx)
+		}),
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to register driver payout job")
+	}
 
 	g.Go(func() error {
 		log.Info().Msg("Starting event worker 1...")
@@ -90,6 +134,12 @@ func main() {
 	g.Go(func() error {
 		log.Info().Msg("Starting event worker 2...")
 		return w2.Start()
+	})
+
+	g.Go(func() error {
+		log.Info().Msg("Starting job scheduler...")
+		sh.Start()
+		return nil
 	})
 
 	g.Go(func() error {

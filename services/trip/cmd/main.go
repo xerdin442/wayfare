@@ -85,6 +85,9 @@ func main() {
 
 	// Initialize job scheduler
 	sh, err := gocron.NewScheduler()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize job scheduler")
+	}
 	defer sh.ShutdownWithContext(ctx)
 
 	// Register cron jobs
@@ -96,12 +99,11 @@ func main() {
 			),
 		),
 		gocron.NewTask(func() error {
-			log.Info().Msg("Starting task to update driver ratings...")
 			return tasksHandler.HandleDriverUpdate(ctx)
 		}),
 	)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to register cron job")
+		log.Fatal().Err(err).Msg("Failed to register driver update job")
 	}
 
 	g.Go(func() error {
