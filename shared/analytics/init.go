@@ -30,7 +30,7 @@ func CreateAnalyticsTable(ctx context.Context, conn clickhouse.Conn) error {
 			timestamp        				DateTime
 		) ENGINE = MergeTree()
 		PARTITION BY toYYYYMM(timestamp)
-		ORDER BY (trip_id, region, transaction_ref, car_package, trip_status, payment_status, timestamp)
+		ORDER BY (trip_id, driver_id, transaction_ref, timestamp)
 		TTL timestamp + INTERVAL 1 YEAR
 	`
 
