@@ -218,6 +218,8 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		DriverUpdateQueue,
 		[]AmqpEvent{
 			DriverCmdTripCountUpdate,
+			DriverCmdBalanceUpdate,
+			DriverCmdOutstandingReturnsUpdate,
 		},
 		ServicesExchange,
 	); err != nil {

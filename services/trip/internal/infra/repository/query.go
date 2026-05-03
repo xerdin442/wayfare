@@ -29,6 +29,7 @@ type TripUpdateData struct {
 	EndedAt      time.Time
 	Rating       int64
 	RiderComment string
+	DriverTip    int64
 }
 
 func NewTripRepository(db *mongo.Database) *TripRepository {
@@ -234,6 +235,9 @@ func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, data *Tr
 	}
 	if !data.EndedAt.IsZero() {
 		updateData["ended_at"] = data.EndedAt
+	}
+	if data.DriverTip != 0 {
+		updateData["driver_tip"] = data.DriverTip
 	}
 
 	updateData["updated_at"] = time.Now()

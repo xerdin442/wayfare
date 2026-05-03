@@ -57,11 +57,12 @@ func (h *PaymentEventsHandler) sendTransactionStatus(ctx context.Context, userID
 	return nil
 }
 
-func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, tripID, riderComment string, rating int64) error {
+func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, p messaging.TripUpdateQueuePayload) error {
 	tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
-		TripID:       tripID,
-		Rating:       rating,
-		RiderComment: riderComment,
+		TripID:       p.TripID,
+		Rating:       p.Rating,
+		RiderComment: p.RiderComment,
+		DriverTip:    p.DriverTip,
 	})
 	if err != nil {
 		return fmt.Errorf("Failed to marshal trip_update queue payload")
@@ -78,6 +79,8 @@ func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, tripID, 
 
 	return nil
 }
+
+func (h *PaymentEventsHandler) calculateTakeRate() error {}
 
 func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
 	var msg messaging.AmqpMessage
@@ -137,7 +140,13 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 
 		// Mark trip as completed after successful payment
 		if data.Event == "charge.success" && data.Data.Status == "success" {
-			if err := h.markTripAsCompleted(ctx, metadata.TripID, metadata.RiderComment, metadata.TripRating); err != nil {
+			tripServicePayload := messaging.TripUpdateQueuePayload{
+				TripID:       metadata.TripID,
+				RiderComment: metadata.RiderComment,
+				Rating:       metadata.TripRating,
+				DriverTip:    metadata.DriverTip,
+			}
+			if err := h.markTripAsCompleted(ctx, tripServicePayload); err != nil {
 				return err
 			}
 		}
@@ -149,7 +158,6 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			PaymentStatus:   updatedStatus,
 			Amount:          decimal.NewFromInt(data.Data.Amount / 100),
 			// DriverShare:     decimal.NewFromInt(payload.Amount),
-			// DriverTip:       decimal.Zero,
 			// PlatformFee:     decimal.Zero,
 		}
 		if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
@@ -197,7 +205,13 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 
 		// Mark trip as completed after successful payment
 		if data.Event == "charge.completed" && data.Data.Status == "successful" {
-			if err := h.markTripAsCompleted(ctx, metadata.TripID, metadata.RiderComment, metadata.TripRating); err != nil {
+			tripServicePayload := messaging.TripUpdateQueuePayload{
+				TripID:       metadata.TripID,
+				RiderComment: metadata.RiderComment,
+				Rating:       metadata.TripRating,
+				DriverTip:    metadata.DriverTip,
+			}
+			if err := h.markTripAsCompleted(ctx, tripServicePayload); err != nil {
 				return err
 			}
 		}
@@ -209,7 +223,6 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			PaymentStatus:   updatedStatus,
 			Amount:          decimal.NewFromInt(data.Data.Amount),
 			// DriverShare:     decimal.NewFromInt(payload.Amount),
-			// DriverTip:       decimal.Zero,
 			// PlatformFee:     decimal.Zero,
 		}
 		if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
@@ -272,7 +285,12 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 	}
 
 	// Mark trip as completed
-	if err := h.markTripAsCompleted(ctx, payload.TripID, payload.RiderComment, payload.TripRating); err != nil {
+	tripServicePayload := messaging.TripUpdateQueuePayload{
+		TripID:       payload.TripID,
+		RiderComment: payload.RiderComment,
+		Rating:       payload.TripRating,
+	}
+	if err := h.markTripAsCompleted(ctx, tripServicePayload); err != nil {
 		return err
 	}
 
@@ -283,7 +301,6 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		PaymentStatus:   types.PaymentStatusSuccess,
 		Amount:          decimal.NewFromInt(payload.Amount),
 		// DriverShare:     decimal.NewFromInt(payload.Amount),
-		// DriverTip:       decimal.Zero,
 		// PlatformFee:     decimal.Zero,
 	}
 	if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {

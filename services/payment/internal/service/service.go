@@ -183,6 +183,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 		TripID:       req.TripId,
 		TripRating:   req.TripRating,
 		RiderComment: req.RiderComment,
+		DriverTip:    req.DriverTip * 100,
 	}
 
 	paystackMetadata, err := json.Marshal(paymentMetadata)

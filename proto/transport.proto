@@ -117,6 +117,7 @@ message InitiatePaymentRequest {
   string custom_redirect = 4;
   int64  trip_rating     = 5;
   string rider_comment   = 6;
+  int64  driver_tip      = 7;
 }
 
 message InitiatePaymentResponse {

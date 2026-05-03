@@ -154,6 +154,7 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 		CustomRedirect: req.CustomRedirect,
 		TripRating:     req.TripRating,
 		RiderComment:   req.RiderComment,
+		DriverTip:      req.DriverTip,
 	})
 	if err != nil {
 		tracing.HandleError(span, err)

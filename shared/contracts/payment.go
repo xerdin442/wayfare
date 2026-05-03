@@ -11,6 +11,7 @@ type PaymentMetadata struct {
 	TripID       string `json:"trip_id"`
 	TripRating   int64  `json:"trip_rating"`
 	RiderComment string `json:"rider_comment,omitempty"`
+	DriverTip    int64  `json:"driver_tip,omitempty"`
 }
 
 type FlutterwaveCustomer struct {

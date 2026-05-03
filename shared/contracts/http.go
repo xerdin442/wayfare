@@ -67,4 +67,5 @@ type InitiatePaymentRequest struct {
 	CustomRedirect string `json:"customRedirect" binding:"required"`
 	TripRating     int64  `json:"tripRating" binding:"required,min=1,max=5"`
 	RiderComment   string `json:"riderComment,omitempty"`
+	DriverTip      int64  `json:"driverTip,omitempty"` // Naira amount
 }

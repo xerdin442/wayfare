@@ -64,6 +64,7 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		EndedAt:      payload.EndedAt,
 		Rating:       payload.Rating,
 		RiderComment: payload.RiderComment,
+		DriverTip:    payload.DriverTip,
 	}
 
 	updatedTrip, err := h.repo.UpdateTrip(ctx, payload.TripID, updateData)
@@ -130,6 +131,7 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		TripStatus:         updatedStatus,
 		Rating:             payload.Rating,
 		ActualDurationMins: actualDuration,
+		DriverTip:          decimal.NewFromInt(payload.DriverTip),
 	}
 	if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 		return err

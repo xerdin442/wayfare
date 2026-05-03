@@ -80,7 +80,12 @@ func main() {
 		messaging.TripEventDriverNotAvailable,
 		messaging.TripEventDriverNotInterested,
 	)
-	w2.RegisterHandler(h.HandleDriverUpdate, messaging.DriverCmdTripCountUpdate)
+	w2.RegisterHandler(
+		h.HandleDriverUpdate,
+		messaging.DriverCmdTripCountUpdate,
+		messaging.DriverCmdBalanceUpdate,
+		messaging.DriverCmdOutstandingReturnsUpdate,
+	)
 
 	g.Go(func() error {
 		log.Info().Msg("Starting event worker 1...")
