@@ -20,7 +20,10 @@ type DriverRepository struct {
 }
 
 type DriverUpdateData struct {
-	TripCountUpdate bool
+	TripCountUpdate      bool
+	SplitAmount          int64
+	BalanceUpdate        bool
+	PendingReturnsUpdate bool
 }
 
 func NewDriverRepository(db *mongo.Database) *DriverRepository {
@@ -116,9 +119,19 @@ func (r *DriverRepository) UpdateDriverDetails(ctx context.Context, driverID str
 			"total_completed_trips": 1,
 		}
 	}
+	if data.BalanceUpdate {
+		updateData["$inc"] = bson.M{
+			"available_balance": data.SplitAmount,
+		}
+	}
+	if data.PendingReturnsUpdate {
+		updateData["$inc"] = bson.M{
+			"pending_returns": data.SplitAmount,
+		}
+	}
 
 	if _, err := r.driverColl.UpdateOne(ctx, bson.M{"_id": driverIDHex}, updateData); err != nil {
-		return fmt.Errorf("Failed to update driver trip count: %v", err)
+		return fmt.Errorf("Failed to update driver details: %v", err)
 	}
 
 	return nil

@@ -97,7 +97,7 @@ func main() {
 		),
 		gocron.NewTask(func() error {
 			log.Info().Msg("Starting task to update driver ratings...")
-			return tasksHandler.HandleDriverRatingsUpdate(ctx)
+			return tasksHandler.HandleDriverUpdate(ctx)
 		}),
 	)
 	if err != nil {

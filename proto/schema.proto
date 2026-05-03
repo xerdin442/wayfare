@@ -33,6 +33,7 @@ message Driver {
   string car_plate             = 4;
   double current_rating        = 5;
   int64  total_completed_trips = 6;
+  string tier                  = 7;
 }
 
 message Rider {

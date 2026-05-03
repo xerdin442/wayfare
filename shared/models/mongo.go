@@ -92,6 +92,7 @@ type DriverModel struct {
 	PendingReturns        int64            `bson:"pending_returns"`
 	OutstandingReturns    int64            `bson:"outstanding_returns"`
 	TransferRecipientCode string           `bson:"transfer_recipient_code"`
+	Tier                  types.DriverTier `bson:"tier"`
 	CreatedAt             time.Time        `bson:"created_at"`
 	UpdatedAt             time.Time        `bson:"updated_at"`
 }

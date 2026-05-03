@@ -38,7 +38,7 @@ func (h *AnalyticsEventHandler) HandleAnalyticsEvent(ctx context.Context, p mess
 		e.TripID, e.Region, e.CarPackage, e.TripStatus, e.PredictedDurationMins,
 		e.ActualDurationMins, e.DistanceKm, e.PickupLat, e.PickupLng, e.Rating,
 		e.TransactionRef, e.DriverID, e.PaymentProvider, e.PaymentStatus,
-		e.Amount, e.PlatformFee, e.DriverShare, e.DriverTip,
+		e.Amount, e.PlatformFee, e.DriverSplit, e.DriverTip,
 	)
 
 	if err := h.conn.Exec(ctx, insertQuery); err != nil {

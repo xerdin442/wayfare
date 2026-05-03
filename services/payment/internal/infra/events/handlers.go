@@ -63,6 +63,7 @@ func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, p messag
 		Rating:       p.Rating,
 		RiderComment: p.RiderComment,
 		DriverTip:    p.DriverTip,
+		CashPayment:  p.CashPayment,
 	})
 	if err != nil {
 		return fmt.Errorf("Failed to marshal trip_update queue payload")
@@ -79,8 +80,6 @@ func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, p messag
 
 	return nil
 }
-
-func (h *PaymentEventsHandler) calculateTakeRate() error {}
 
 func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
 	var msg messaging.AmqpMessage
@@ -157,8 +156,6 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			PaymentProvider: payload.Provider,
 			PaymentStatus:   updatedStatus,
 			Amount:          decimal.NewFromInt(data.Data.Amount / 100),
-			// DriverShare:     decimal.NewFromInt(payload.Amount),
-			// PlatformFee:     decimal.Zero,
 		}
 		if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 			return err
@@ -222,8 +219,6 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			PaymentProvider: payload.Provider,
 			PaymentStatus:   updatedStatus,
 			Amount:          decimal.NewFromInt(data.Data.Amount),
-			// DriverShare:     decimal.NewFromInt(payload.Amount),
-			// PlatformFee:     decimal.Zero,
 		}
 		if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 			return err
@@ -289,6 +284,7 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		TripID:       payload.TripID,
 		RiderComment: payload.RiderComment,
 		Rating:       payload.TripRating,
+		CashPayment:  true,
 	}
 	if err := h.markTripAsCompleted(ctx, tripServicePayload); err != nil {
 		return err
@@ -299,9 +295,7 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		TransactionRef:  txnID,
 		PaymentProvider: "none",
 		PaymentStatus:   types.PaymentStatusSuccess,
-		Amount:          decimal.NewFromInt(payload.Amount),
-		// DriverShare:     decimal.NewFromInt(payload.Amount),
-		// PlatformFee:     decimal.Zero,
+		Amount:          decimal.NewFromInt(payload.Amount / 100),
 	}
 	if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 		return err

@@ -66,7 +66,6 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		RiderComment: payload.RiderComment,
 		DriverTip:    payload.DriverTip,
 	}
-
 	updatedTrip, err := h.repo.UpdateTrip(ctx, payload.TripID, updateData)
 	if err != nil {
 		return err
@@ -101,11 +100,19 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 			return fmt.Errorf("Failed to publish gateway event")
 		}
 
-		// Update driver completed trips count
-		tripServiceData, err := json.Marshal(messaging.DriverUpdateQueuePayload{
+		// Update driver details
+		queuePayload := messaging.DriverUpdateQueuePayload{
 			DriverID:        payload.DriverID,
 			TripCountUpdate: true,
-		})
+			RideFare:        updatedTrip.RideFare,
+		}
+		if payload.CashPayment {
+			queuePayload.PendingReturnsUpdate = true
+		} else {
+			queuePayload.BalanceUpdate = true
+		}
+
+		driverServiceData, err := json.Marshal(queuePayload)
 		if err != nil {
 			return fmt.Errorf("Failed to marshal driver_update queue payload: %v", err)
 		}
@@ -113,13 +120,14 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		if err = h.bus.PublishMessage(
 			ctx,
 			messaging.ServicesExchange,
-			messaging.DriverCmdTripCountUpdate,
-			messaging.AmqpMessage{Data: tripServiceData},
+			messaging.DriverCmdDetailsUpdate,
+			messaging.AmqpMessage{Data: driverServiceData},
 		); err != nil {
-			return fmt.Errorf("Failed to publish %s event: %v", messaging.DriverCmdTripCountUpdate, err)
+			return fmt.Errorf("Failed to publish %s event: %v", messaging.DriverCmdDetailsUpdate, err)
 		}
 	}
 
+	// Update analytics
 	var actualDuration decimal.Decimal
 	if !payload.EndedAt.IsZero() && updatedTrip.PickupAt.Before(payload.EndedAt) {
 		actualDuration = decimal.NewFromFloat(payload.EndedAt.Sub(updatedTrip.PickupAt).Minutes())
@@ -131,7 +139,7 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		TripStatus:         updatedStatus,
 		Rating:             payload.Rating,
 		ActualDurationMins: actualDuration,
-		DriverTip:          decimal.NewFromInt(payload.DriverTip),
+		DriverTip:          decimal.NewFromInt(payload.DriverTip / 100),
 	}
 	if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 		return err

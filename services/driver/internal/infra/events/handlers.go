@@ -8,9 +8,13 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
+	"github.com/shopspring/decimal"
 	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
+	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
+	"github.com/xerdin442/wayfare/shared/models"
+	"github.com/xerdin442/wayfare/shared/types"
 )
 
 type DriverEventsHandler struct {
@@ -25,6 +29,28 @@ func NewDriverEventsHandler(r *repo.DriverRepository, b messaging.MessageBus, c 
 		cache: c,
 		bus:   b,
 	}
+}
+
+func (h *DriverEventsHandler) calculateDriverSplit(ctx context.Context, driverID string, rideFare int64) (int64, error) {
+	driver, err := h.repo.GetDriverByID(ctx, driverID)
+	if err != nil {
+		return 0, err
+	}
+
+	var splitRate float64
+	switch driver.Tier {
+	case types.TierGold:
+		splitRate = 0.88
+	case types.TierSilver:
+		splitRate = 0.85
+	case types.TierBronze:
+		splitRate = 0.80
+	default:
+		splitRate = 0.80
+	}
+
+	driverSplit := int64(float64(rideFare) * splitRate)
+	return ((driverSplit + 5) / 10) * 10, nil
 }
 
 func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
@@ -145,9 +171,26 @@ func (h *DriverEventsHandler) HandleDriverUpdate(ctx context.Context, p messagin
 		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
 
-	updateData := &repo.DriverUpdateData{
-		TripCountUpdate: payload.TripCountUpdate,
+	splitAmount, err := h.calculateDriverSplit(ctx, payload.DriverID, payload.RideFare)
+	if err != nil {
+		return err
 	}
 
-	return h.repo.UpdateDriverDetails(ctx, payload.DriverID, updateData)
+	updateData := &repo.DriverUpdateData{
+		SplitAmount:          splitAmount,
+		TripCountUpdate:      payload.TripCountUpdate,
+		BalanceUpdate:        payload.BalanceUpdate,
+		PendingReturnsUpdate: payload.PendingReturnsUpdate,
+	}
+	if err := h.repo.UpdateDriverDetails(ctx, payload.DriverID, updateData); err != nil {
+		return err
+	}
+
+	// Update analytics
+	tripEvent := &models.TripEventModel{
+		DriverID:    payload.DriverID,
+		DriverSplit: decimal.NewFromInt(splitAmount / 100),
+		PlatformFee: decimal.NewFromInt((payload.RideFare - splitAmount) / 100),
+	}
+	return analytics.SendEvent(ctx, h.bus, tripEvent)
 }

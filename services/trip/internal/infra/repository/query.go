@@ -119,6 +119,7 @@ func (r *TripRepository) GetPricingPerRegion(ctx context.Context, pickupCoords o
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching pricing categories: %v", err)
 	}
+	defer cursor.Close(ctx)
 
 	var pricingModels []*models.PricingModel
 	if err := cursor.All(ctx, &pricingModels); err != nil {
@@ -253,7 +254,7 @@ func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, data *Tr
 	return r.GetTripByID(ctx, tripID)
 }
 
-func (r *TripRepository) UpdateDriverRatings(ctx context.Context) error {
+func (r *TripRepository) UpdateDriverRatingAndTier(ctx context.Context) error {
 	oneYearAgo := time.Now().AddDate(-1, 0, 0)
 
 	// Calculate driver rating using Bayesian Average: ((C * m) + S) / (C + N)
@@ -296,6 +297,19 @@ func (r *TripRepository) UpdateDriverRatings(ctx context.Context) error {
 						"$divide": bson.A{
 							bson.M{"$add": bson.A{bson.M{"$multiply": bson.A{ConfidenceValue, GlobalMean}}, "$sumOfRatings"}},
 							bson.M{"$add": bson.A{ConfidenceValue, "$numOfTrips"}},
+						},
+					},
+				},
+			},
+			"tier": bson.M{
+				"$cond": bson.A{
+					bson.M{"$gte": bson.A{"$numOfTrips", 1000}},
+					types.TierGold,
+					bson.M{
+						"$cond": bson.A{
+							bson.M{"$gte": bson.A{"$numOfTrips", 300}},
+							types.TierSilver,
+							types.TierBronze,
 						},
 					},
 				},

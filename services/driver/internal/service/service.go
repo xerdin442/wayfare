@@ -39,6 +39,7 @@ func (s *DriverService) GetDriverProfile(ctx context.Context, req *pb.GetProfile
 			CarPlate:            driver.CarPlate,
 			CurrentRating:       driver.CurrentRating,
 			TotalCompletedTrips: driver.TotalCompletedTrips,
+			Tier:                string(driver.Tier),
 		},
 	}, nil
 }

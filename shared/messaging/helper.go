@@ -46,10 +46,11 @@ const (
 )
 
 type DriverUpdateQueuePayload struct {
-	DriverID            string `json:"driver_id"`
-	TripCountUpdate     bool   `json:"trip_count_update,omitempty"`
-	BalanceUpdateAmount int64  `json:"balance_update_amount,omitempty"`
-	OutstandingReturns  int64  `json:"outstanding_returns,omitempty"`
+	DriverID             string `json:"driver_id"`
+	TripCountUpdate      bool   `json:"trip_count_update,omitempty"`
+	RideFare             int64  `json:"ride_fare,omitempty"`
+	BalanceUpdate        bool   `json:"balance_update,omitempty"`
+	PendingReturnsUpdate bool   `json:"pending_returns_update,omitempty"`
 }
 
 type AssignDriverQueuePayload struct {
@@ -65,6 +66,7 @@ type TripUpdateQueuePayload struct {
 	Rating       int64     `json:"rating,omitempty"`
 	RiderComment string    `json:"rider_comment,omitempty"`
 	DriverTip    int64     `json:"driver_tip,omitempty"`
+	CashPayment  bool      `json:"cash_payment,omitempty"`
 }
 
 type CashPaymentPayload struct {
@@ -106,14 +108,12 @@ const (
 	DriverEventTripRequest AmqpEvent = "driver.event.trip_request"
 
 	// Driver commands
-	DriverCmdTripPickup               AmqpEvent = "driver.cmd.confirm_pickup"
-	DriverCmdTripAccept               AmqpEvent = "driver.cmd.trip_accept"
-	DriverCmdTripDecline              AmqpEvent = "driver.cmd.trip_decline"
-	DriverCmdLocationUpdate           AmqpEvent = "driver.cmd.location_update"
-	DriverCmdEndTrip                  AmqpEvent = "driver.cmd.end_trip"
-	DriverCmdTripCountUpdate          AmqpEvent = "driver.cmd.trip_count_update"
-	DriverCmdBalanceUpdate            AmqpEvent = "driver.cmd.balance_update"
-	DriverCmdOutstandingReturnsUpdate AmqpEvent = "driver.cmd.outstanding_returns_update"
+	DriverCmdTripPickup     AmqpEvent = "driver.cmd.confirm_pickup"
+	DriverCmdTripAccept     AmqpEvent = "driver.cmd.trip_accept"
+	DriverCmdTripDecline    AmqpEvent = "driver.cmd.trip_decline"
+	DriverCmdLocationUpdate AmqpEvent = "driver.cmd.location_update"
+	DriverCmdEndTrip        AmqpEvent = "driver.cmd.end_trip"
+	DriverCmdDetailsUpdate  AmqpEvent = "driver.cmd.details_update"
 
 	// Payment events
 	PaymentEventWebhookReceived     AmqpEvent = "payment.event.webhook_received"

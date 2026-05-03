@@ -43,6 +43,14 @@ const (
 	ProviderFlutterwave PaymentProvider = "flutterwave"
 )
 
+type DriverTier string
+
+const (
+	TierBronze DriverTier = "bronze"
+	TierSilver DriverTier = "silver"
+	TierGold   DriverTier = "gold"
+)
+
 type Route struct {
 	Distance float64     `json:"distance"`
 	Duration float64     `json:"duration"`

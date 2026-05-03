@@ -25,7 +25,7 @@ func CreateAnalyticsTable(ctx context.Context, conn clickhouse.Conn) error {
 			payment_status   				Enum('pending', 'success', 'failed', 'aborted'),
 			amount           				Decimal(10, 2),
 			platform_fee     				Decimal(10, 2),
-			driver_share     				Decimal(10, 2),
+			driver_split     				Decimal(10, 2),
 			driver_tip       				Decimal(10, 2),
 			timestamp        				DateTime
 		) ENGINE = MergeTree()
