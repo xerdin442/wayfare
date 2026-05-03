@@ -30,10 +30,11 @@ const (
 type PaymentStatus string
 
 const (
-	PaymentStatusPending PaymentStatus = "pending"
-	PaymentStatusSuccess PaymentStatus = "success"
-	PaymentStatusFailed  PaymentStatus = "failed"
-	PaymentStatusAborted PaymentStatus = "aborted"
+	PaymentStatusPending  PaymentStatus = "pending"
+	PaymentStatusSuccess  PaymentStatus = "success"
+	PaymentStatusFailed   PaymentStatus = "failed"
+	PaymentStatusReversed PaymentStatus = "reversed"
+	PaymentStatusAborted  PaymentStatus = "aborted"
 )
 
 type PaymentProvider string
@@ -41,6 +42,13 @@ type PaymentProvider string
 const (
 	ProviderPaystack    PaymentProvider = "paystack"
 	ProviderFlutterwave PaymentProvider = "flutterwave"
+)
+
+type TransactionType string
+
+const (
+	TransactionCheckout TransactionType = "checkout"
+	TransactionPayout   TransactionType = "payout"
 )
 
 type DriverTier string
@@ -96,4 +104,31 @@ type Rider struct {
 	Name           string `json:"name"`
 	Email          string `json:"email"`
 	ProfilePicture string `json:"profilePicture"`
+}
+
+type PaymentMetadata struct {
+	TripID       string `json:"trip_id"`
+	TripRating   int64  `json:"trip_rating"`
+	RiderComment string `json:"rider_comment,omitempty"`
+	DriverTip    int64  `json:"driver_tip,omitempty"`
+}
+
+type PaystackWebhookPayload struct {
+	Event string `json:"event"`
+	Data  struct {
+		Reference string `json:"reference"`
+		Status    string `json:"status"`
+		Amount    int64  `json:"amount"`
+		Metadata  string `json:"metadata"`
+	} `json:"data"`
+}
+
+type FlutterwaveWebhookPayload struct {
+	Event string `json:"event"`
+	Data  struct {
+		Status string          `json:"status"`
+		Amount int64           `json:"amount"`
+		TxRef  string          `json:"tx_ref"`
+		Meta   PaymentMetadata `json:"meta"`
+	} `json:"data"`
 }

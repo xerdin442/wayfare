@@ -109,10 +109,12 @@ type RiderModel struct {
 
 type TransactionModel struct {
 	ID        bson.ObjectID         `bson:"_id,omitempty"`
-	TripID    bson.ObjectID         `bson:"trip_id"`
+	TripID    bson.ObjectID         `bson:"trip_id,omitempty"`
+	DriverID  bson.ObjectID         `bson:"driver_id,omitempty"`
 	Provider  types.PaymentProvider `bson:"provider,omitempty"`
 	Amount    int64                 `bson:"amount"`
 	Status    types.PaymentStatus   `bson:"status"`
+	Type      types.TransactionType `bson:"type"`
 	CreatedAt time.Time             `bson:"created_at"`
 	UpdatedAt time.Time             `bson:"updated_at"`
 }

@@ -23,6 +23,7 @@ type TripEventModel struct {
 
 	// Payment details
 	TransactionRef  string                `ch:"transaction_ref"`
+	TransactionType types.TransactionType `ch:"transaction_type"`
 	PaymentProvider types.PaymentProvider `ch:"payment_provider"`
 	PaymentStatus   types.PaymentStatus   `ch:"payment_status"`
 	Amount          decimal.Decimal       `ch:"amount"`

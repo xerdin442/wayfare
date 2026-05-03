@@ -7,7 +7,6 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/xerdin442/wayfare/shared/messaging"
-	"github.com/xerdin442/wayfare/shared/models"
 )
 
 type AnalyticsEventHandler struct {
@@ -28,20 +27,25 @@ func (h *AnalyticsEventHandler) HandleAnalyticsEvent(ctx context.Context, p mess
 	if err := json.Unmarshal(msg.Data, &payload); err != nil {
 		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
+	e := payload.Event
 
 	ctx = clickhouse.Context(ctx, clickhouse.WithAsync(false))
-	e := payload.Event.(models.TripEventModel)
 
-	insertQuery := fmt.Sprintf(
-		`INSERT INTO trip_events
-		VALUES (%s, %s, %s, %s, %d, %d, %d, %f, %f, %d, %s, %s, %s, %s, %d, %d, %d, %d, now())`,
+	insertQuery := `
+		INSERT INTO trip_events (
+			trip_id, region, car_package, trip_status, predicted_duration_mins,
+			actual_duration_mins, distance_km, pickup_lat, pickup_lng, rating,
+			transaction_ref, transaction_type, driver_id, payment_provider, payment_status,
+			amount, platform_fee, driver_split, driver_tip, timestamp
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+	`
+
+	if err := h.conn.Exec(ctx, insertQuery,
 		e.TripID, e.Region, e.CarPackage, e.TripStatus, e.PredictedDurationMins,
 		e.ActualDurationMins, e.DistanceKm, e.PickupLat, e.PickupLng, e.Rating,
-		e.TransactionRef, e.DriverID, e.PaymentProvider, e.PaymentStatus,
+		e.TransactionRef, e.TransactionType, e.DriverID, e.PaymentProvider, e.PaymentStatus,
 		e.Amount, e.PlatformFee, e.DriverSplit, e.DriverTip,
-	)
-
-	if err := h.conn.Exec(ctx, insertQuery); err != nil {
+	); err != nil {
 		return fmt.Errorf("Failed to insert analytics event: %v", err)
 	}
 

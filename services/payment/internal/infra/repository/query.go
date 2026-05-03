@@ -17,6 +17,13 @@ type PaymentRepository struct {
 	txnColl *mongo.Collection
 }
 
+type CreateTransactionData struct {
+	TripID   string
+	DriverID string
+	Amount   int64
+	Type     types.TransactionType
+}
+
 func NewPaymentRepository(db *mongo.Database) *PaymentRepository {
 	txnCollection, err := CreateTransactionsCollection(db, "transactions")
 	if err != nil {
@@ -64,22 +71,43 @@ func (r *PaymentRepository) GetTransactionByTripID(ctx context.Context, tripID s
 	return &transaction, nil
 }
 
-func (r *PaymentRepository) CreateTransaction(ctx context.Context, tripID string, amount int64) (string, error) {
-	tripIDHex, err := bson.ObjectIDFromHex(tripID)
-	if err != nil {
-		return "", fmt.Errorf("Invalid trip ID: %v", err)
-	}
-
+func (r *PaymentRepository) CreateTransaction(ctx context.Context, data *CreateTransactionData) (string, error) {
 	txn := &models.TransactionModel{
 		ID:        bson.NewObjectID(),
-		TripID:    tripIDHex,
-		Amount:    amount,
+		Amount:    data.Amount,
+		Type:      data.Type,
 		Status:    types.PaymentStatusPending,
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
-	if _, err = r.txnColl.InsertOne(ctx, txn); err != nil {
+	if data.TripID != "" {
+		tripIDHex, err := bson.ObjectIDFromHex(data.TripID)
+		if err != nil {
+			return "", fmt.Errorf("Invalid trip ID: %v", err)
+		}
+
+		if data.Type != types.TransactionCheckout {
+			return "", fmt.Errorf("Invalid payload type for checkout transaction: %v", data.Type)
+		}
+
+		txn.TripID = tripIDHex
+	}
+
+	if data.DriverID != "" {
+		driverIDHex, err := bson.ObjectIDFromHex(data.DriverID)
+		if err != nil {
+			return "", fmt.Errorf("Invalid driver ID: %v", err)
+		}
+
+		if data.Type != types.TransactionPayout {
+			return "", fmt.Errorf("Invalid payload type for payout transaction: %v", data.Type)
+		}
+
+		txn.DriverID = driverIDHex
+	}
+
+	if _, err := r.txnColl.InsertOne(ctx, txn); err != nil {
 		return "", fmt.Errorf("Failed to insert transaction document: %v", err)
 	}
 

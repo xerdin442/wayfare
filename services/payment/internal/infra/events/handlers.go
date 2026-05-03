@@ -92,16 +92,20 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
 
+	var tripServicePayload messaging.TripUpdateQueuePayload
+	var tripEvent *models.TripEventModel
+	var updatedStatus types.PaymentStatus
+
 	switch payload.Provider {
 	case types.ProviderPaystack:
-		data := payload.Data.(contracts.PaystackWebhookPayload)
+		webhook := payload.PaystackWebhook
 
-		var metadata contracts.PaymentMetadata
-		if err := json.Unmarshal([]byte(data.Data.Metadata), &metadata); err != nil {
+		var metadata types.PaymentMetadata
+		if err := json.Unmarshal([]byte(webhook.Data.Metadata), &metadata); err != nil {
 			return fmt.Errorf("Failed to unmarshal Paystack webhook metadata")
 		}
 
-		transaction, err := h.repo.GetTransactionByID(ctx, data.Data.Reference)
+		transaction, err := h.repo.GetTransactionByID(ctx, webhook.Data.Reference)
 		if err != nil {
 			log.Warn().Err(err).Msg("Invalid transaction reference from Paystack webhook")
 			return err
@@ -112,11 +116,11 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return nil
 		}
 
-		updatedStatus := types.PaymentStatusAborted
-		if transaction.Amount == data.Data.Amount/100 {
-			if data.Event == "charge.success" && data.Data.Status == "success" {
+		updatedStatus = types.PaymentStatusAborted
+		if transaction.Amount == webhook.Data.Amount/100 {
+			if webhook.Event == "charge.success" && webhook.Data.Status == "success" {
 				updatedStatus = types.PaymentStatusSuccess
-			} else if data.Event == "charge.failed" && data.Data.Status == "failed" {
+			} else if webhook.Event == "charge.failed" && webhook.Data.Status == "failed" {
 				updatedStatus = types.PaymentStatusFailed
 			}
 		} else {
@@ -137,34 +141,28 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
 		}
 
-		// Mark trip as completed after successful payment
-		if data.Event == "charge.success" && data.Data.Status == "success" {
-			tripServicePayload := messaging.TripUpdateQueuePayload{
+		if updatedStatus == types.PaymentStatusSuccess {
+			tripServicePayload = messaging.TripUpdateQueuePayload{
 				TripID:       metadata.TripID,
 				RiderComment: metadata.RiderComment,
 				Rating:       metadata.TripRating,
 				DriverTip:    metadata.DriverTip,
 			}
-			if err := h.markTripAsCompleted(ctx, tripServicePayload); err != nil {
-				return err
-			}
 		}
 
-		// Update analytics
-		tripEvent := &models.TripEventModel{
-			TransactionRef:  data.Data.Reference,
+		tripEvent = &models.TripEventModel{
+			TransactionRef:  webhook.Data.Reference,
 			PaymentProvider: payload.Provider,
 			PaymentStatus:   updatedStatus,
-			Amount:          decimal.NewFromInt(data.Data.Amount / 100),
+			Amount:          decimal.NewFromInt(webhook.Data.Amount / 100),
+			TransactionType: types.TransactionCheckout,
 		}
-		if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
-			return err
-		}
-	case types.ProviderFlutterwave:
-		data := payload.Data.(contracts.FlutterwaveWebhookPayload)
-		metadata := data.Data.Meta
 
-		transaction, err := h.repo.GetTransactionByID(ctx, data.Data.TxRef)
+	case types.ProviderFlutterwave:
+		webhook := payload.FlutterwaveWebhook
+		metadata := webhook.Data.Meta
+
+		transaction, err := h.repo.GetTransactionByID(ctx, webhook.Data.TxRef)
 		if err != nil {
 			return err
 		}
@@ -174,9 +172,9 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return nil
 		}
 
-		updatedStatus := types.PaymentStatusAborted
-		if transaction.Amount == data.Data.Amount && data.Event == "charge.completed" {
-			switch data.Data.Status {
+		updatedStatus = types.PaymentStatusAborted
+		if transaction.Amount == webhook.Data.Amount && webhook.Event == "charge.completed" {
+			switch webhook.Data.Status {
 			case "successful":
 				updatedStatus = types.PaymentStatusSuccess
 			case "failed":
@@ -200,32 +198,38 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
 		}
 
-		// Mark trip as completed after successful payment
-		if data.Event == "charge.completed" && data.Data.Status == "successful" {
-			tripServicePayload := messaging.TripUpdateQueuePayload{
+		if updatedStatus == types.PaymentStatusSuccess {
+			tripServicePayload = messaging.TripUpdateQueuePayload{
 				TripID:       metadata.TripID,
 				RiderComment: metadata.RiderComment,
 				Rating:       metadata.TripRating,
 				DriverTip:    metadata.DriverTip,
 			}
-			if err := h.markTripAsCompleted(ctx, tripServicePayload); err != nil {
-				return err
-			}
 		}
 
-		// Update analytics
-		tripEvent := &models.TripEventModel{
-			TransactionRef:  data.Data.TxRef,
+		tripEvent = &models.TripEventModel{
+			TransactionRef:  webhook.Data.TxRef,
 			PaymentProvider: payload.Provider,
 			PaymentStatus:   updatedStatus,
-			Amount:          decimal.NewFromInt(data.Data.Amount),
+			Amount:          decimal.NewFromInt(webhook.Data.Amount),
+			TransactionType: types.TransactionCheckout,
 		}
-		if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
-			return err
-		}
+
 	default:
 		log.Warn().Str("provider", string(payload.Provider)).Msg("Webhook received from unknown payment provider")
 		return fmt.Errorf("Unknown payment provider: %s", payload.Provider)
+	}
+
+	if updatedStatus == types.PaymentStatusSuccess {
+		if err := h.markTripAsCompleted(ctx, tripServicePayload); err != nil {
+			return err
+		}
+	}
+
+	if tripEvent != nil {
+		if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -263,7 +267,11 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		}
 	} else {
 		// Create new transaction
-		txnID, err = h.repo.CreateTransaction(ctx, payload.TripID, payload.Amount)
+		txnID, err = h.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
+			TripID: payload.TripID,
+			Amount: payload.Amount,
+			Type:   types.TransactionCheckout,
+		})
 		if err != nil {
 			return err
 		}
@@ -296,6 +304,7 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		PaymentProvider: "none",
 		PaymentStatus:   types.PaymentStatusSuccess,
 		Amount:          decimal.NewFromInt(payload.Amount / 100),
+		TransactionType: types.TransactionCheckout,
 	}
 	if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 		return err

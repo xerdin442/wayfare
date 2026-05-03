@@ -165,7 +165,11 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 		txnID = existingTxn.ID.Hex()
 	} else {
 		// Create new transaction
-		txnID, err = s.repo.CreateTransaction(ctx, req.TripId, req.Amount)
+		txnID, err = s.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
+			TripID: req.TripId,
+			Amount: req.Amount,
+			Type:   types.TransactionCheckout,
+		})
 		if err != nil {
 			return &pb.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
 		}
@@ -179,7 +183,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 		return nil, status.Error(codes.Internal, "Error occurred during payment processing")
 	}
 
-	paymentMetadata := &contracts.PaymentMetadata{
+	paymentMetadata := &types.PaymentMetadata{
 		TripID:       req.TripId,
 		TripRating:   req.TripRating,
 		RiderComment: req.RiderComment,
