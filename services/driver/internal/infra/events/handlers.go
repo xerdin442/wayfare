@@ -176,21 +176,33 @@ func (h *DriverEventsHandler) HandleDriverUpdate(ctx context.Context, p messagin
 		return err
 	}
 
-	updateData := &repo.DriverUpdateData{
-		SplitAmount:          splitAmount,
-		TripCountUpdate:      payload.TripCountUpdate,
-		BalanceUpdate:        payload.BalanceUpdate,
-		PendingReturnsUpdate: payload.PendingReturnsUpdate,
-	}
-	if err := h.repo.UpdateDriverDetails(ctx, payload.DriverID, updateData); err != nil {
-		return err
+	if payload.RecipientCode != "" {
+		if err := h.repo.ResetPendingPayout(ctx, payload.RecipientCode); err != nil {
+			return err
+		}
+	} else {
+		updateData := &repo.DriverUpdateData{
+			SplitAmount:             splitAmount,
+			TripCountUpdate:         payload.TripCountUpdate,
+			BalanceUpdate:           payload.BalanceUpdate,
+			PendingReturnsUpdate:    payload.PendingReturnsUpdate,
+			OutstandingReturnsReset: payload.OutstandingReturnsReset,
+		}
+		if err := h.repo.UpdateDriverDetails(ctx, payload.DriverID, updateData); err != nil {
+			return err
+		}
+
+		if !payload.OutstandingReturnsReset {
+			tripEvent := &models.TripEventModel{
+				DriverID:    payload.DriverID,
+				DriverSplit: decimal.NewFromInt(splitAmount / 100),
+				PlatformFee: decimal.NewFromInt((payload.RideFare - splitAmount) / 100),
+			}
+			if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
+				return err
+			}
+		}
 	}
 
-	// Update analytics
-	tripEvent := &models.TripEventModel{
-		DriverID:    payload.DriverID,
-		DriverSplit: decimal.NewFromInt(splitAmount / 100),
-		PlatformFee: decimal.NewFromInt((payload.RideFare - splitAmount) / 100),
-	}
-	return analytics.SendEvent(ctx, h.bus, tripEvent)
+	return nil
 }

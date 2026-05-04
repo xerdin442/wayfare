@@ -40,7 +40,7 @@ type PaymentService struct {
 	httpClient *http.Client
 }
 
-func NewPaymentService(r *repo.PaymentRepository, c *redis.Client, b messaging.MessageBus, s *secrets.Secrets) *PaymentService {
+func NewPaymentService(r *repo.PaymentRepository, b messaging.MessageBus, c *redis.Client, s *secrets.Secrets) *PaymentService {
 	return &PaymentService{
 		repo:       r,
 		cache:      c,
@@ -261,7 +261,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 					log.Warn().Msg("Paystack gateway is unavailable. Redirecting requests to backup gateway...")
 
 					// Mark primary payment gateway as unavailable
-					if err := s.cache.Set(ctx, gatewayStatusKey, "unavailable", 10*time.Minute).Err(); err != nil {
+					if err := s.cache.Set(ctx, gatewayStatusKey, "unavailable", 30*time.Minute).Err(); err != nil {
 						log.Error().Err(err).Msg("Error setting gateway status")
 					}
 

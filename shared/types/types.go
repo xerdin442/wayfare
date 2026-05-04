@@ -120,6 +120,10 @@ type PaystackWebhookPayload struct {
 		Status    string `json:"status"`
 		Amount    int64  `json:"amount"`
 		Metadata  string `json:"metadata"`
+		Recipient struct {
+			Email         string `json:"email"`
+			RecipientCode string `json:"recipient_code"`
+		} `json:"recipient"`
 	} `json:"data"`
 }
 

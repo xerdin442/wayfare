@@ -18,10 +18,10 @@ type PaymentRepository struct {
 }
 
 type CreateTransactionData struct {
-	TripID   string
-	DriverID string
-	Amount   int64
-	Type     types.TransactionType
+	TripID              string
+	DriverRecipientCode string
+	Amount              int64
+	Type                types.TransactionType
 }
 
 func NewPaymentRepository(db *mongo.Database) *PaymentRepository {
@@ -94,17 +94,12 @@ func (r *PaymentRepository) CreateTransaction(ctx context.Context, data *CreateT
 		txn.TripID = tripIDHex
 	}
 
-	if data.DriverID != "" {
-		driverIDHex, err := bson.ObjectIDFromHex(data.DriverID)
-		if err != nil {
-			return "", fmt.Errorf("Invalid driver ID: %v", err)
-		}
-
+	if data.DriverRecipientCode != "" {
 		if data.Type != types.TransactionPayout {
 			return "", fmt.Errorf("Invalid payload type for payout transaction: %v", data.Type)
 		}
 
-		txn.DriverID = driverIDHex
+		txn.DriverRecipientCode = data.DriverRecipientCode
 	}
 
 	if _, err := r.txnColl.InsertOne(ctx, txn); err != nil {
@@ -138,4 +133,24 @@ func (r *PaymentRepository) UpdateTransaction(ctx context.Context, txnID string,
 	}
 
 	return nil
+}
+
+func (r *PaymentRepository) GetRecentPayoutTransactions(ctx context.Context) ([]*models.TransactionModel, error) {
+	filter := bson.M{
+		"type":       types.TransactionPayout,
+		"created_at": bson.M{"$gte": time.Now().Add(-6 * time.Hour)},
+	}
+
+	cursor, err := r.txnColl.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to fetch recent payout transactions: %v", err)
+	}
+	defer cursor.Close(ctx)
+
+	var transactions []*models.TransactionModel
+	if err := cursor.All(ctx, &transactions); err != nil {
+		return nil, fmt.Errorf("Failed to decode payout transactions: %v", err)
+	}
+
+	return transactions, nil
 }

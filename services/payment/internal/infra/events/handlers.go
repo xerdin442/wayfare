@@ -1,32 +1,41 @@
 package events
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"github.com/shopspring/decimal"
 	repo "github.com/xerdin442/wayfare/services/payment/internal/infra/repository"
+	"github.com/xerdin442/wayfare/services/payment/internal/secrets"
 	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/models"
+	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
 )
 
 type PaymentEventsHandler struct {
-	repo  *repo.PaymentRepository
-	bus   messaging.MessageBus
-	cache *redis.Client
+	repo       *repo.PaymentRepository
+	bus        messaging.MessageBus
+	cache      *redis.Client
+	env        *secrets.Secrets
+	httpClient *http.Client
 }
 
-func NewPaymentEventsHandler(r *repo.PaymentRepository, b messaging.MessageBus, c *redis.Client) *PaymentEventsHandler {
+func NewPaymentEventsHandler(r *repo.PaymentRepository, b messaging.MessageBus, c *redis.Client, s *secrets.Secrets) *PaymentEventsHandler {
 	return &PaymentEventsHandler{
-		repo:  r,
-		bus:   b,
-		cache: c,
+		repo:       r,
+		bus:        b,
+		cache:      c,
+		env:        s,
+		httpClient: tracing.NewHttpClient(),
 	}
 }
 
@@ -324,13 +333,26 @@ func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messagi
 		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
 
+	// Check payment gateway status
+	gatewayStatusKey := "gateway:paystack:status"
+	n, err := h.cache.Exists(ctx, gatewayStatusKey).Result()
+	if err != nil {
+		return fmt.Errorf("Error fetching gateway status from cache")
+	}
+
+	if n > 0 {
+		log.Error().Msg("Failed to process driver payout. Paystack API is currently unavailable")
+		return fmt.Errorf("Payment gateway is currently unavailable")
+	}
+
+	// Configure request details
 	var transfers []*contracts.TransferDetails
 	for _, d := range payoutPayload.Drivers {
 		// Create new payout transaction
 		txnID, err := h.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
-			DriverID: d.ID.Hex(),
-			Amount:   d.PendingPayout,
-			Type:     types.TransactionPayout,
+			DriverRecipientCode: d.TransferRecipientCode,
+			Amount:              d.PendingPayout,
+			Type:                types.TransactionPayout,
 		})
 		if err != nil {
 			return err
@@ -340,15 +362,57 @@ func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messagi
 			Amount:    d.PendingPayout,
 			Recipient: d.TransferRecipientCode,
 			Reference: txnID,
-			Reason:    "WAYFARE - Driver Payout",
+			Reason:    "WAYFARE INC. - Driver Payout",
 		})
 	}
 
-	transferPayload := contracts.BulkTransferPayload{
+	transferPayload, err := json.Marshal(contracts.BulkTransferPayload{
 		Currency:  "NGN",
 		Source:    "balance",
 		Transfers: transfers,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to marshal bulk transfer payload. %s", err.Error())
 	}
+
+	req, err := http.NewRequestWithContext(
+		ctx,
+		"POST",
+		h.env.PaystackApiUrl+"/transfer/bulk",
+		bytes.NewBuffer(transferPayload),
+	)
+	if err != nil {
+		return fmt.Errorf("Error configuring new HTTP request. %s", err.Error())
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+h.env.PaystackSecretKey)
+
+	response, err := h.httpClient.Do(req)
+	if err != nil {
+		log.Error().Err(err).Msg("Error sending bulk transfer request to Paystack API")
+		return fmt.Errorf("Error sending bulk transfer request")
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode >= 500 {
+		// Mark payment gateway as unavailable
+		if err := h.cache.Set(ctx, gatewayStatusKey, "unavailable", 30*time.Minute).Err(); err != nil {
+			log.Error().Err(err).Msg("Error setting gateway status")
+		}
+
+		// Update all newly created payout transactions
+		for _, t := range transfers {
+			if err := h.repo.UpdateTransaction(ctx, t.Reference, types.PaymentStatusAborted, types.ProviderPaystack); err != nil {
+				return err
+			}
+		}
+
+		return fmt.Errorf("Payment gateway is currently unavailable")
+	}
+
+	// 15-sec wait to handle queue retries and respect Paystack bulk transfer rate limits
+	time.Sleep(15 * time.Second)
 
 	return nil
 }

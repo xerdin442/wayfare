@@ -115,7 +115,8 @@ func main() {
 		gocron.DailyJob(
 			1,
 			gocron.NewAtTimes(
-				gocron.NewAtTime(1, 0, 0),
+				gocron.NewAtTime(1, 0, 0), // First attempt
+				gocron.NewAtTime(4, 0, 0), // Retry attempt
 			),
 		),
 		gocron.NewTask(func() error {

@@ -20,10 +20,11 @@ type DriverRepository struct {
 }
 
 type DriverUpdateData struct {
-	TripCountUpdate      bool
-	SplitAmount          int64
-	BalanceUpdate        bool
-	PendingReturnsUpdate bool
+	TripCountUpdate         bool
+	SplitAmount             int64
+	BalanceUpdate           bool
+	PendingReturnsUpdate    bool
+	OutstandingReturnsReset bool
 }
 
 func NewDriverRepository(db *mongo.Database) *DriverRepository {
@@ -129,6 +130,11 @@ func (r *DriverRepository) UpdateDriverDetails(ctx context.Context, driverID str
 			"pending_returns": data.SplitAmount,
 		}
 	}
+	if data.OutstandingReturnsReset {
+		updateData["$set"] = bson.M{
+			"outstanding_returns": 0,
+		}
+	}
 
 	if _, err := r.driverColl.UpdateOne(ctx, bson.M{"_id": driverIDHex}, updateData); err != nil {
 		return fmt.Errorf("Failed to update driver details: %v", err)
@@ -181,4 +187,20 @@ func (r *DriverRepository) GetDriversForPayout(ctx context.Context) ([]*models.D
 	}
 
 	return drivers, nil
+}
+
+func (r *DriverRepository) ResetPendingPayout(ctx context.Context, recipientCode string) error {
+	filter := bson.M{"transfer_recipient_code": recipientCode}
+	update := bson.M{
+		"$set": bson.M{
+			"pending_payout": 0,
+			"updated_at":     time.Now(),
+		},
+	}
+
+	if _, err := r.driverColl.UpdateOne(ctx, filter, update); err != nil {
+		return fmt.Errorf("Failed to reset pending payout for recipient %s: %v", recipientCode, err)
+	}
+
+	return nil
 }

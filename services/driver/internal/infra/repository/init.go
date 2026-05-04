@@ -55,5 +55,16 @@ func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection
 
 	collection := db.Collection(name)
 
+	recipientCodeIndex := mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "email", Value: 1},
+			{Key: "transfer_recipient_code", Value: 1},
+		},
+	}
+
+	if _, err := collection.Indexes().CreateOne(ctx, recipientCodeIndex); err != nil {
+		return nil, err
+	}
+
 	return collection, nil
 }

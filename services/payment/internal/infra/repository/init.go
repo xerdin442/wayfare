@@ -15,8 +15,8 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 		"bsonType": "object",
 		"required": []string{"amount", "status", "type"},
 		"properties": bson.M{
-			"trip_id":   bson.M{"bsonType": "objectId"},
-			"driver_id": bson.M{"bsonType": "objectId"},
+			"trip_id":               bson.M{"bsonType": "objectId"},
+			"driver_recipient_code": bson.M{"bsonType": "string"},
 			"type": bson.M{
 				"enum":        []string{"checkout", "payout"},
 				"description": "must be a valid transaction type",
@@ -45,7 +45,10 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 
 	// Create search index
 	tripIndex := mongo.IndexModel{
-		Keys: bson.D{{Key: "trip_id", Value: 1}},
+		Keys: bson.D{
+			{Key: "trip_id", Value: 1},
+			{Key: "driver_recipient_code", Value: 1},
+		},
 	}
 
 	if _, err := collection.Indexes().CreateOne(ctx, tripIndex); err != nil {

@@ -47,11 +47,13 @@ const (
 )
 
 type DriverUpdateQueuePayload struct {
-	DriverID             string `json:"driver_id"`
-	TripCountUpdate      bool   `json:"trip_count_update,omitempty"`
-	RideFare             int64  `json:"ride_fare,omitempty"`
-	BalanceUpdate        bool   `json:"balance_update,omitempty"`
-	PendingReturnsUpdate bool   `json:"pending_returns_update,omitempty"`
+	DriverID                string `json:"driver_id,omitempty"`
+	RecipientCode           string `json:"recipient_code,omitempty"`
+	TripCountUpdate         bool   `json:"trip_count_update,omitempty"`
+	RideFare                int64  `json:"ride_fare,omitempty"`
+	BalanceUpdate           bool   `json:"balance_update,omitempty"`
+	PendingReturnsUpdate    bool   `json:"pending_returns_update,omitempty"`
+	OutstandingReturnsReset bool   `json:"outstanding_returns_reset,omitempty"`
 }
 
 type AssignDriverQueuePayload struct {
@@ -87,6 +89,7 @@ type CheckoutPaymentPayload struct {
 
 type DriverPayoutPayload struct {
 	Drivers []*models.DriverModel `json:"drivers"`
+	Retry   bool                  `json:"retry,omitempty"`
 }
 
 type AnalyticsQueuePayload struct {
