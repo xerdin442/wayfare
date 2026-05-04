@@ -109,6 +109,33 @@ func (r *PaymentRepository) CreateTransaction(ctx context.Context, data *CreateT
 	return txn.ID.Hex(), nil
 }
 
+func (r *PaymentRepository) CreateBatchTransactions(ctx context.Context, data []CreateTransactionData) ([]string, error) {
+	var txns []*models.TransactionModel
+	for _, d := range data {
+		txns = append(txns, &models.TransactionModel{
+			ID:                  bson.NewObjectID(),
+			Amount:              d.Amount,
+			Type:                d.Type,
+			Status:              types.PaymentStatusPending,
+			DriverRecipientCode: d.DriverRecipientCode,
+			CreatedAt:           time.Now(),
+			UpdatedAt:           time.Now(),
+		})
+	}
+
+	result, err := r.txnColl.InsertMany(ctx, txns)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to insert batch transactions: %v", err)
+	}
+
+	var ids []string
+	for _, id := range result.InsertedIDs {
+		ids = append(ids, id.(bson.ObjectID).Hex())
+	}
+
+	return ids, nil
+}
+
 func (r *PaymentRepository) UpdateTransaction(ctx context.Context, txnID string, status types.PaymentStatus, provider types.PaymentProvider) error {
 	txnIDHex, err := bson.ObjectIDFromHex(txnID)
 	if err != nil {
@@ -130,6 +157,36 @@ func (r *PaymentRepository) UpdateTransaction(ctx context.Context, txnID string,
 
 	if _, err = r.txnColl.UpdateOne(ctx, bson.M{"_id": txnIDHex}, update); err != nil {
 		return fmt.Errorf("Failed to update transaction document: %v", err)
+	}
+
+	return nil
+}
+
+func (r *PaymentRepository) UpdateBatchTransactions(ctx context.Context, txnIDs []string, status types.PaymentStatus, provider types.PaymentProvider) error {
+	var idsHex []bson.ObjectID
+	for _, id := range txnIDs {
+		hex, err := bson.ObjectIDFromHex(id)
+		if err != nil {
+			return fmt.Errorf("Invalid transaction ID in batch: %v", err)
+		}
+		idsHex = append(idsHex, hex)
+	}
+
+	updateData := bson.M{
+		"status":     status,
+		"updated_at": time.Now().UTC(),
+	}
+
+	if provider != "" {
+		updateData["provider"] = provider
+	}
+
+	update := bson.M{
+		"$set": updateData,
+	}
+
+	if _, err := r.txnColl.UpdateMany(ctx, bson.M{"_id": bson.M{"$in": idsHex}}, update); err != nil {
+		return fmt.Errorf("Failed to update batch transactions: %v", err)
 	}
 
 	return nil

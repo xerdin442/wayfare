@@ -345,23 +345,28 @@ func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messagi
 		return fmt.Errorf("Payment gateway is currently unavailable")
 	}
 
-	// Configure request details
-	var transfers []*contracts.TransferDetails
+	// Create payout transactions
+	var txnData []repo.CreateTransactionData
 	for _, d := range payoutPayload.Drivers {
-		// Create new payout transaction
-		txnID, err := h.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
+		txnData = append(txnData, repo.CreateTransactionData{
 			DriverRecipientCode: d.TransferRecipientCode,
 			Amount:              d.PendingPayout,
 			Type:                types.TransactionPayout,
 		})
-		if err != nil {
-			return err
-		}
+	}
 
+	txnIDs, err := h.repo.CreateBatchTransactions(ctx, txnData)
+	if err != nil {
+		return err
+	}
+
+	// Configure bulk transfer payload
+	var transfers []*contracts.TransferDetails
+	for i, d := range payoutPayload.Drivers {
 		transfers = append(transfers, &contracts.TransferDetails{
 			Amount:    d.PendingPayout,
 			Recipient: d.TransferRecipientCode,
-			Reference: txnID,
+			Reference: txnIDs[i],
 			Reason:    "WAYFARE INC. - Driver Payout",
 		})
 	}
@@ -375,6 +380,7 @@ func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messagi
 		return fmt.Errorf("Failed to marshal bulk transfer payload. %s", err.Error())
 	}
 
+	// Configure request details
 	req, err := http.NewRequestWithContext(
 		ctx,
 		"POST",
@@ -402,16 +408,14 @@ func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messagi
 		}
 
 		// Update all newly created payout transactions
-		for _, t := range transfers {
-			if err := h.repo.UpdateTransaction(ctx, t.Reference, types.PaymentStatusAborted, types.ProviderPaystack); err != nil {
-				return err
-			}
+		if err := h.repo.UpdateBatchTransactions(ctx, txnIDs, types.PaymentStatusAborted, types.ProviderPaystack); err != nil {
+			return err
 		}
 
 		return fmt.Errorf("Payment gateway is currently unavailable")
 	}
 
-	// 15-sec wait to handle queue retries and respect Paystack bulk transfer rate limits
+	// 15-sec wait to handle queue retries and Paystack API rate limits
 	time.Sleep(15 * time.Second)
 
 	return nil
