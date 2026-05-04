@@ -85,6 +85,10 @@ type CheckoutPaymentPayload struct {
 	FlutterwaveWebhook *types.FlutterwaveWebhookPayload `json:"flutterwave_webhook,omitempty"`
 }
 
+type DriverPayoutPayload struct {
+	Drivers []*models.DriverModel `json:"drivers"`
+}
+
 type AnalyticsQueuePayload struct {
 	Event *models.TripEventModel `json:"event"`
 }
@@ -123,6 +127,9 @@ const (
 	PaymentEventFailed              AmqpEvent = "payment.event.failed"
 	PaymentEventCashOptionPreferred AmqpEvent = "payment.event.cash_option_preferred"
 	PaymentEventCashReceived        AmqpEvent = "payment.event.cash_payment_received"
+
+	// Payment commands
+	PaymentCmdDriverPayout AmqpEvent = "payment.cmd.driver_payout"
 
 	// Analytics events
 	AnalyticsEventUpdate AmqpEvent = "analytics.event.update"

@@ -243,6 +243,7 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		[]AmqpEvent{
 			PaymentEventWebhookReceived,
 			PaymentEventCashReceived,
+			PaymentCmdDriverPayout,
 		},
 		ServicesExchange,
 	); err != nil {

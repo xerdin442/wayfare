@@ -266,7 +266,7 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 			return err
 		}
 	} else {
-		// Create new transaction
+		// Create new checkout transaction
 		txnID, err = h.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
 			TripID: payload.TripID,
 			Amount: payload.Amount,
@@ -308,6 +308,46 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 	}
 	if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
+	var msg messaging.AmqpMessage
+	if err := json.Unmarshal(p.Body, &msg); err != nil {
+		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
+	}
+
+	var payoutPayload messaging.DriverPayoutPayload
+	if err := json.Unmarshal(msg.Data, &payoutPayload); err != nil {
+		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
+	}
+
+	var transfers []*contracts.TransferDetails
+	for _, d := range payoutPayload.Drivers {
+		// Create new payout transaction
+		txnID, err := h.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
+			DriverID: d.ID.Hex(),
+			Amount:   d.PendingPayout,
+			Type:     types.TransactionPayout,
+		})
+		if err != nil {
+			return err
+		}
+
+		transfers = append(transfers, &contracts.TransferDetails{
+			Amount:    d.PendingPayout,
+			Recipient: d.TransferRecipientCode,
+			Reference: txnID,
+			Reason:    "WAYFARE - Driver Payout",
+		})
+	}
+
+	transferPayload := contracts.BulkTransferPayload{
+		Currency:  "NGN",
+		Source:    "balance",
+		Transfers: transfers,
 	}
 
 	return nil

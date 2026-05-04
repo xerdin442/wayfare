@@ -71,7 +71,7 @@ func main() {
 	svc := service.NewDriverService(repo)
 
 	eventsHandler := events.NewDriverEventsHandler(repo, rmq, cache)
-	tasksHandler := tasks.NewDriverTasksHandler(repo)
+	tasksHandler := tasks.NewDriverTasksHandler(repo, rmq)
 
 	// Initialize event workers and register event handlers
 	w1 := messaging.NewEventWorker(rmq, messaging.AssignDriverQueue)

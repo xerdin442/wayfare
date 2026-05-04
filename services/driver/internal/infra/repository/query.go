@@ -167,3 +167,18 @@ func (r *DriverRepository) BatchResetBalances(ctx context.Context) error {
 	_, err := r.driverColl.UpdateMany(ctx, bson.M{}, pipeline)
 	return err
 }
+
+func (r *DriverRepository) GetDriversForPayout(ctx context.Context) ([]*models.DriverModel, error) {
+	cursor, err := r.driverColl.Find(ctx, bson.M{"pending_payout": bson.M{"$gt": 0}})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to fetch drivers for payout: %v", err)
+	}
+	defer cursor.Close(ctx)
+
+	var drivers []*models.DriverModel
+	if err := cursor.All(ctx, &drivers); err != nil {
+		return nil, fmt.Errorf("Failed to decode drivers: %v", err)
+	}
+
+	return drivers, nil
+}
