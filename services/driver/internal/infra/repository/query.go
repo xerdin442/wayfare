@@ -136,3 +136,34 @@ func (r *DriverRepository) UpdateDriverDetails(ctx context.Context, driverID str
 
 	return nil
 }
+
+func (r *DriverRepository) BatchResetBalances(ctx context.Context) error {
+	pipeline := mongo.Pipeline{
+		bson.D{{Key: "$set", Value: bson.D{
+			// Transfer earnings to payout if they exceed 2000 naira
+			{Key: "pending_payout", Value: bson.D{{Key: "$cond", Value: bson.A{
+				bson.D{{Key: "$gt", Value: bson.A{"$available_balance", 200000}}},
+				bson.D{{Key: "$add", Value: bson.A{"$pending_payout", "$available_balance"}}},
+				"$pending_payout",
+			}}}},
+			// Reset balance if earnings were transferred to payout
+			{Key: "available_balance", Value: bson.D{{Key: "$cond", Value: bson.A{
+				bson.D{{Key: "$gt", Value: bson.A{"$available_balance", 200000}}},
+				0,
+				"$available_balance",
+			}}}},
+			// Update outstanding returns if there are any pending returns
+			{Key: "outstanding_returns", Value: bson.D{{Key: "$cond", Value: bson.A{
+				bson.D{{Key: "$gt", Value: bson.A{"$pending_returns", 0}}},
+				bson.D{{Key: "$add", Value: bson.A{"$outstanding_returns", "$pending_returns"}}},
+				"$outstanding_returns",
+			}}}},
+			// Reset pending returns
+			{Key: "pending_returns", Value: 0},
+			{Key: "updated_at", Value: time.Now()},
+		}}},
+	}
+
+	_, err := r.driverColl.UpdateMany(ctx, bson.M{}, pipeline)
+	return err
+}

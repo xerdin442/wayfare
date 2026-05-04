@@ -91,11 +91,15 @@ type TransferRecipientResponse struct {
 	} `json:"data"`
 }
 
-// type TransferPayload struct {
-// 	Status  bool   `json:"status"`
-// 	Message string `json:"message"`
-// 	Data    struct {
-// 		Active        bool   `json:"active"`
-// 		RecipientCode string `json:"recipient_code"`
-// 	} `json:"data"`
-// }
+type TransferDetails struct {
+	Amount    int64  `json:"amount"`
+	Recipient string `json:"recipient"`
+	Reference string `json:"reference"`
+	Reason    string `json:"reason"`
+}
+
+type BulkTransferPayload struct {
+	Currency  string             `json:"currency"`
+	Source    string             `json:"source"`
+	Transfers []*TransferDetails `json:"transfers"`
+}

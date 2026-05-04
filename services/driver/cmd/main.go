@@ -104,7 +104,7 @@ func main() {
 			),
 		),
 		gocron.NewTask(func() error {
-			return tasksHandler.ResetDriverBalance(ctx)
+			return tasksHandler.ResetDriverBalances(ctx)
 		}),
 	)
 	if err != nil {

@@ -16,8 +16,8 @@ func NewDriverTasksHandler(r *repo.DriverRepository) *DriverTasksHandler {
 	}
 }
 
-func (h *DriverTasksHandler) ResetDriverBalance(ctx context.Context) error {
-	return nil
+func (h *DriverTasksHandler) ResetDriverBalances(ctx context.Context) error {
+	return h.repo.BatchResetBalances(ctx)
 }
 
 func (h *DriverTasksHandler) ProcessDriverPayouts(ctx context.Context) error {
