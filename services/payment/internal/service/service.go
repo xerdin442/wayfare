@@ -102,6 +102,10 @@ func (s *PaymentService) sendApiRequest(ctx context.Context, url, secretKey stri
 	return body, nil
 }
 
+func (s *PaymentService) isGatewayUnavailable(err error) bool {
+	return errors.Is(err, ErrGatewayUnavailable) || errors.Is(err, ErrApiRequestFailure)
+}
+
 func (s *PaymentService) generatePaystackCheckout(ctx context.Context, req *contracts.PaystackCheckoutRequest) (string, error) {
 	payload, err := json.Marshal(req)
 	if err != nil {
@@ -150,14 +154,128 @@ func (s *PaymentService) generateFlutterwaveCheckout(ctx context.Context, req *c
 	return checkoutInfo.Data.Link, nil
 }
 
+func (s *PaymentService) buildCheckoutPayloads(req *pb.InitiatePaymentRequest, txnID string) (
+	*contracts.PaystackCheckoutRequest,
+	*contracts.FlutterwaveCheckoutRequest,
+	error,
+) {
+	metadata := &types.PaymentMetadata{
+		TripID:       req.TripId,
+		UserID:       req.UserId,
+		TripRating:   req.TripRating,
+		RiderComment: req.RiderComment,
+		DriverTip:    req.DriverTip * 100,
+	}
+
+	paystackMetadata, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	paystackPayload := &contracts.PaystackCheckoutRequest{
+		Email:       req.Email,
+		Amount:      req.Amount,
+		Reference:   txnID,
+		Channels:    []string{"card", "apple_pay", "bank_transfer"},
+		CallbackUrl: req.CustomRedirect,
+		Metadata:    string(paystackMetadata),
+	}
+
+	flutterwavePayload := &contracts.FlutterwaveCheckoutRequest{
+		Amount:      req.Amount / 100,
+		TxRef:       txnID,
+		RedirectUrl: req.CustomRedirect,
+		Meta:        metadata,
+		Customer: &contracts.FlutterwaveCustomer{
+			Email: req.Email,
+		},
+	}
+
+	return paystackPayload, flutterwavePayload, nil
+}
+
+func (s *PaymentService) resolvePaymentProvider(ctx context.Context, cacheKey string) types.PaymentProvider {
+	n, err := s.cache.Exists(ctx, cacheKey).Result()
+	if err != nil {
+		log.Error().Err(err).Msg("Error fetching gateway status")
+		return types.ProviderPaystack
+	}
+
+	if n > 0 {
+		return types.ProviderFlutterwave
+	}
+
+	return types.ProviderPaystack
+}
+
+func (s *PaymentService) generateCheckoutUrl(
+	ctx context.Context,
+	provider types.PaymentProvider,
+	paystackPayload *contracts.PaystackCheckoutRequest,
+	flutterwavePayload *contracts.FlutterwaveCheckoutRequest,
+) (string, error) {
+	var url string
+	var err error
+
+	for i := range 3 {
+		switch provider {
+		case types.ProviderPaystack:
+			url, err = s.generatePaystackCheckout(ctx, paystackPayload)
+
+		case types.ProviderFlutterwave:
+			url, err = s.generateFlutterwaveCheckout(ctx, flutterwavePayload)
+		}
+
+		if err == nil {
+			break
+		}
+
+		if s.isGatewayUnavailable(err) {
+			// Abort payment attempt if fallback gateway is also unavailble
+			if i == 2 && provider == types.ProviderFlutterwave {
+				log.Warn().Msg("All payment gateways are currently unavailable!")
+
+				// Update transaction details
+				if err := s.repo.UpdateTransaction(
+					ctx,
+					flutterwavePayload.TxRef,
+					types.PaymentStatusAborted,
+					types.ProviderFlutterwave,
+				); err != nil {
+					return "", err
+				}
+
+				// Update analytics
+				tripEvent := &models.TripEventModel{
+					TransactionRef:  flutterwavePayload.TxRef,
+					PaymentProvider: types.ProviderFlutterwave,
+					PaymentStatus:   types.PaymentStatusAborted,
+					Amount:          decimal.NewFromInt(flutterwavePayload.Amount),
+				}
+				if err := analytics.SendEvent(ctx, s.bus, tripEvent); err != nil {
+					return "", err
+				}
+
+				return "", err
+			}
+
+			log.Warn().Int("attempt", i+1).Msgf("%v gateway is currently unavailable. retrying...", provider)
+			continue
+		}
+	}
+
+	return url, err
+}
+
 func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePaymentRequest) (*pb.InitiatePaymentResponse, error) {
+	const gatewayStatusKey = "gateway:paystack:status"
 	var checkoutUrl string
 	var txnID string
 
 	// Check for pending transaction from unfinished checkout session
 	existingTxn, err := s.repo.GetTransactionByTripID(ctx, req.TripId)
 	if err != nil {
-		return &pb.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	if existingTxn != nil {
@@ -171,145 +289,42 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 			Type:   types.TransactionCheckout,
 		})
 		if err != nil {
-			return &pb.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
+			return nil, status.Error(codes.Internal, err.Error())
 		}
 	}
 
-	// Check health status of primary payment gateway
-	gatewayStatusKey := "gateway:paystack:status"
-	n, err := s.cache.Exists(ctx, gatewayStatusKey).Result()
+	// Select payment provider
+	provider := s.resolvePaymentProvider(ctx, gatewayStatusKey)
+
+	// Configure checkout request payloads
+	paystackPayload, flutterwavePayload, err := s.buildCheckoutPayloads(req, txnID)
 	if err != nil {
-		log.Error().Err(err).Msg("Error fetching gateway status from cache")
-		return nil, status.Error(codes.Internal, "Error occurred during payment processing")
+		return nil, status.Error(codes.Internal, "Error building checkout payload")
 	}
 
-	paymentMetadata := &types.PaymentMetadata{
-		TripID:       req.TripId,
-		UserID:       req.UserId,
-		TripRating:   req.TripRating,
-		RiderComment: req.RiderComment,
-		DriverTip:    req.DriverTip * 100,
-	}
-
-	paystackMetadata, err := json.Marshal(paymentMetadata)
+	// Generate checkout url
+	checkoutUrl, err = s.generateCheckoutUrl(ctx, provider, paystackPayload, flutterwavePayload)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "Error occurred during payment processing")
-	}
-	paystackRequestPayload := &contracts.PaystackCheckoutRequest{
-		Email:       req.Email,
-		Amount:      req.Amount,
-		Reference:   txnID,
-		Channels:    []string{"card", "apple_pay", "bank_transfer"},
-		CallbackUrl: req.CustomRedirect,
-		Metadata:    string(paystackMetadata),
-	}
-
-	flutterwaveRequestPayload := &contracts.FlutterwaveCheckoutRequest{
-		Amount:      req.Amount / 100,
-		TxRef:       txnID,
-		RedirectUrl: req.CustomRedirect,
-		Meta:        paymentMetadata,
-		Customer: &contracts.FlutterwaveCustomer{
-			Email: req.Email,
-		},
-	}
-
-	if n > 0 {
-		for i := range 3 {
-			checkoutUrl, err = s.generateFlutterwaveCheckout(ctx, flutterwaveRequestPayload)
-			if err == nil {
-				break
+		if s.isGatewayUnavailable(err) && provider == types.ProviderPaystack {
+			// Mark primary payment gateway as unavailable
+			if err := s.cache.Set(ctx, gatewayStatusKey, "unavailable", 30*time.Minute).Err(); err != nil {
+				log.Error().Err(err).Msg("Error setting gateway status")
 			}
 
-			if errors.Is(err, ErrGatewayUnavailable) || errors.Is(err, ErrApiRequestFailure) {
-				if i == 2 {
-					log.Warn().Msg("All payment gateways are currently unavailable!")
+			// Retry payment attempt with fallback gateway
+			checkoutUrl, err = s.generateCheckoutUrl(ctx, types.ProviderFlutterwave, nil, flutterwavePayload)
 
-					// Update transaction details
-					if err := s.repo.UpdateTransaction(ctx, txnID, types.PaymentStatusAborted, types.ProviderFlutterwave); err != nil {
-						return &pb.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
-					}
-
-					// Update analytics
-					tripEvent := &models.TripEventModel{
-						TransactionRef:  txnID,
-						PaymentProvider: types.ProviderFlutterwave,
-						PaymentStatus:   types.PaymentStatusAborted,
-						Amount:          decimal.NewFromInt(req.Amount),
-					}
-					if err := analytics.SendEvent(ctx, s.bus, tripEvent); err != nil {
-						return nil, err
-					}
-
-					return nil, status.Error(codes.Unavailable, "Service unavailable")
+			if err != nil {
+				// Notify the client that payment gateways are unavailable
+				if s.isGatewayUnavailable(err) {
+					return nil, status.Error(codes.Unavailable, "Payment gateway is currently unavailable")
 				}
 
-				log.Warn().Int("attempt", i+1).Msg("Flutterwave gateway is currently unavailable. Retrying...")
-				continue
-			} else {
-				return nil, status.Error(codes.Internal, "Error occurred during payment processing")
+				return nil, status.Error(codes.Internal, "Error generating checkout url")
 			}
 		}
-	} else {
-		for i := range 3 {
-			checkoutUrl, err = s.generatePaystackCheckout(ctx, paystackRequestPayload)
-			if err == nil {
-				break
-			}
 
-			if errors.Is(err, ErrGatewayUnavailable) || errors.Is(err, ErrApiRequestFailure) {
-				if i == 2 {
-					log.Warn().Msg("Paystack gateway is unavailable. Redirecting requests to backup gateway...")
-
-					// Mark primary payment gateway as unavailable
-					if err := s.cache.Set(ctx, gatewayStatusKey, "unavailable", 30*time.Minute).Err(); err != nil {
-						log.Error().Err(err).Msg("Error setting gateway status")
-					}
-
-					// Redirect requests to backup payment gateway
-					for j := range 3 {
-						checkoutUrl, err = s.generateFlutterwaveCheckout(ctx, flutterwaveRequestPayload)
-						if err == nil {
-							break
-						}
-
-						if errors.Is(err, ErrGatewayUnavailable) || errors.Is(err, ErrApiRequestFailure) {
-							if j == 2 {
-								log.Warn().Msg("All payment gateways are currently unavailable!")
-
-								// Update transaction details
-								if err := s.repo.UpdateTransaction(ctx, txnID, types.PaymentStatusAborted, types.ProviderFlutterwave); err != nil {
-									return &pb.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
-								}
-
-								// Update analytics
-								tripEvent := &models.TripEventModel{
-									TransactionRef:  txnID,
-									PaymentProvider: types.ProviderFlutterwave,
-									PaymentStatus:   types.PaymentStatusAborted,
-									Amount:          decimal.NewFromInt(req.Amount),
-								}
-								if err := analytics.SendEvent(ctx, s.bus, tripEvent); err != nil {
-									return nil, err
-								}
-
-								return nil, status.Error(codes.Unavailable, "Service unavailable")
-							}
-
-							log.Warn().Int("attempt", j+1).Msg("Flutterwave gateway is currently unavailable. Retrying...")
-							continue
-						} else {
-							return nil, status.Error(codes.Internal, "Error occurred during payment processing")
-						}
-					}
-				} else {
-					log.Warn().Int("attempt", i+1).Msg("Paystack gateway is currently unavailable. Retrying...")
-					continue
-				}
-			} else {
-				return nil, status.Error(codes.Internal, "Error occurred during payment processing")
-			}
-		}
+		return nil, status.Error(codes.Internal, "Error generating checkout url")
 	}
 
 	return &pb.InitiatePaymentResponse{CheckoutUrl: checkoutUrl}, nil

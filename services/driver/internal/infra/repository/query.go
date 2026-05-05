@@ -109,31 +109,31 @@ func (r *DriverRepository) UpdateDriverDetails(ctx context.Context, driverID str
 		return fmt.Errorf("Invalid driver ID: %v", err)
 	}
 
-	updateData := bson.M{
-		"$set": bson.M{
-			"updated_at": time.Now(),
-		},
+	setFields := bson.M{
+		"updated_at": time.Now(),
 	}
 
+	incFields := bson.M{}
+
 	if data.TripCountUpdate {
-		updateData["$inc"] = bson.M{
-			"total_completed_trips": 1,
-		}
+		incFields["total_completed_trips"] = 1
 	}
 	if data.BalanceUpdate {
-		updateData["$inc"] = bson.M{
-			"available_balance": data.SplitAmount,
-		}
+		incFields["available_balance"] = data.SplitAmount
 	}
 	if data.PendingReturnsUpdate {
-		updateData["$inc"] = bson.M{
-			"pending_returns": data.SplitAmount,
-		}
+		incFields["pending_returns"] = data.SplitAmount
 	}
 	if data.OutstandingReturnsReset {
-		updateData["$set"] = bson.M{
-			"outstanding_returns": 0,
-		}
+		setFields["outstanding_returns"] = 0
+	}
+
+	updateData := bson.M{
+		"$set": setFields,
+	}
+
+	if len(incFields) > 0 {
+		updateData["$inc"] = incFields
 	}
 
 	if _, err := r.driverColl.UpdateOne(ctx, bson.M{"_id": driverIDHex}, updateData); err != nil {

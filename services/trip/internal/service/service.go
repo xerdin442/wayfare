@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/paulmach/orb"
+	"github.com/rs/zerolog/log"
 	"github.com/shopspring/decimal"
 	"github.com/twpayne/go-polyline"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
@@ -47,9 +48,17 @@ func (s *TripService) getTripRoute(pickup, destination *pb.Coordinate) (*contrac
 
 	httpResp, err := s.httpClient.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to fetch routes from OSRM API: %v", err)
+		return nil, fmt.Errorf("failed to send request to OSRM API: %v", err)
 	}
 	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode != http.StatusOK {
+		log.Error().
+			Int("status_code", httpResp.StatusCode).
+			Msg("Unable to fetch trip routes from OSRM API")
+
+		return nil, fmt.Errorf("Error fetching routes for trip coordinates")
+	}
 
 	body, err := io.ReadAll(httpResp.Body)
 	if err != nil {
@@ -139,8 +148,12 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	var polylineString string
+	if len(route.Routes) > 0 {
+		polylineString = string(polyline.EncodeCoords(route.Routes[0].Geometry.Coordinates))
+	}
+
 	// Generate route details
-	fullPath := polyline.EncodeCoords(route.Routes[0].Geometry.Coordinates)
 	routeDetails := models.RouteDetails{
 		Pickup: models.GeoPoint{
 			Type:        "Point",
@@ -152,7 +165,7 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 		},
 		Duration: route.ToProto().Duration,
 		Distance: route.ToProto().Distance,
-		Polyline: string(fullPath),
+		Polyline: polylineString,
 	}
 
 	// Store generated ride fares

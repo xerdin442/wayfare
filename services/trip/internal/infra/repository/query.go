@@ -292,7 +292,7 @@ func (r *TripRepository) UpdateDriverRatingAndTier(ctx context.Context) error {
 			"current_rating": bson.M{
 				"$cond": bson.A{
 					bson.M{"$eq": bson.A{"$numOfTrips", 0}},
-					0.0,
+					GlobalMean,
 					bson.M{
 						"$divide": bson.A{
 							bson.M{"$add": bson.A{bson.M{"$multiply": bson.A{ConfidenceValue, GlobalMean}}, "$sumOfRatings"}},
