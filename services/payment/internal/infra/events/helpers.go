@@ -60,3 +60,16 @@ func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, p *messa
 
 	return nil
 }
+
+func (h *PaymentEventsHandler) checkTransferRetries(ctx context.Context, recipientCode string) error {
+	transactions, err := h.repo.GetRecentPayoutTransactions(ctx, recipientCode)
+	if err != nil {
+		return err
+	}
+
+	if len(transactions) >= 2 {
+		// Send email
+	}
+
+	return nil
+}

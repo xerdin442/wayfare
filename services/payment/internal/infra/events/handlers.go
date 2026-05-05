@@ -58,6 +58,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 	switch payload.Provider {
 	case types.ProviderPaystack:
 		webhook := payload.PaystackWebhook
+		recipientCode := webhook.Data.Recipient.RecipientCode
 
 		var metadata types.PaymentMetadata
 		if err := json.Unmarshal([]byte(webhook.Data.Metadata), &metadata); err != nil {
@@ -83,7 +84,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 				// Reset driver's pending payout after confirmation
 				if webhook.Event == "transfer.success" {
 					data, err := json.Marshal(messaging.DriverUpdateQueuePayload{
-						RecipientCode: webhook.Data.Recipient.RecipientCode,
+						RecipientCode: recipientCode,
 					})
 					if err != nil {
 						return fmt.Errorf("Failed to marshal driver_update queue payload")
@@ -102,6 +103,12 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 				updatedStatus = types.PaymentStatusFailed
 			case string(types.PaymentStatusReversed):
 				updatedStatus = types.PaymentStatusReversed
+			}
+
+			if strings.HasPrefix(webhook.Event, "transfer.") {
+				if err := h.checkTransferRetries(ctx, recipientCode); err != nil {
+					log.Error().Err(err).Str("recipient", recipientCode).Msg("Error checking transfer retries")
+				}
 			}
 		} else {
 			return fmt.Errorf("Invalid webhook payload for checkout transaction")

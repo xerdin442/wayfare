@@ -192,10 +192,11 @@ func (r *PaymentRepository) UpdateBatchTransactions(ctx context.Context, txnIDs 
 	return nil
 }
 
-func (r *PaymentRepository) GetRecentPayoutTransactions(ctx context.Context) ([]*models.TransactionModel, error) {
+func (r *PaymentRepository) GetRecentPayoutTransactions(ctx context.Context, recipientCode string) ([]*models.TransactionModel, error) {
 	filter := bson.M{
-		"type":       types.TransactionPayout,
-		"created_at": bson.M{"$gte": time.Now().Add(-5 * time.Hour)},
+		"driver_recipient_code": recipientCode,
+		"type":                  types.TransactionPayout,
+		"created_at":            bson.M{"$gte": time.Now().Add(-5 * time.Hour)},
 	}
 
 	cursor, err := r.txnColl.Find(ctx, filter)
