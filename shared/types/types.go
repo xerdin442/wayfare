@@ -30,10 +30,11 @@ const (
 type PaymentStatus string
 
 const (
-	PaymentStatusPending PaymentStatus = "pending"
-	PaymentStatusSuccess PaymentStatus = "success"
-	PaymentStatusFailed  PaymentStatus = "failed"
-	PaymentStatusAborted PaymentStatus = "aborted"
+	PaymentStatusPending  PaymentStatus = "pending"
+	PaymentStatusSuccess  PaymentStatus = "success"
+	PaymentStatusFailed   PaymentStatus = "failed"
+	PaymentStatusReversed PaymentStatus = "reversed"
+	PaymentStatusAborted  PaymentStatus = "aborted"
 )
 
 type PaymentProvider string
@@ -41,6 +42,21 @@ type PaymentProvider string
 const (
 	ProviderPaystack    PaymentProvider = "paystack"
 	ProviderFlutterwave PaymentProvider = "flutterwave"
+)
+
+type TransactionType string
+
+const (
+	TransactionCheckout TransactionType = "checkout"
+	TransactionPayout   TransactionType = "payout"
+)
+
+type DriverTier string
+
+const (
+	TierBronze DriverTier = "bronze"
+	TierSilver DriverTier = "silver"
+	TierGold   DriverTier = "gold"
 )
 
 type Route struct {
@@ -59,11 +75,10 @@ type Coordinate struct {
 }
 
 type RideFare struct {
-	ID               string     `json:"id"`
-	PackageSlug      CarPackage `json:"packageSlug"`
-	BasePrice        int64      `json:"basePrice"`
-	TotalPriceInKobo int64      `json:"totalPriceInKobo,omitempty"`
-	Route            Route      `json:"route"`
+	ID          string     `json:"id"`
+	PackageSlug CarPackage `json:"packageSlug"`
+	Amount      int64      `json:"amount"`
+	Route       Route      `json:"route"`
 }
 
 type Trip struct {
@@ -89,4 +104,36 @@ type Rider struct {
 	Name           string `json:"name"`
 	Email          string `json:"email"`
 	ProfilePicture string `json:"profilePicture"`
+}
+
+type PaymentMetadata struct {
+	TripID       string `json:"trip_id"`
+	UserID       string `json:"user_id"`
+	TripRating   int64  `json:"trip_rating"`
+	RiderComment string `json:"rider_comment,omitempty"`
+	DriverTip    int64  `json:"driver_tip,omitempty"`
+}
+
+type PaystackWebhookPayload struct {
+	Event string `json:"event"`
+	Data  struct {
+		Reference string `json:"reference"`
+		Status    string `json:"status"`
+		Amount    int64  `json:"amount"`
+		Metadata  string `json:"metadata"`
+		Recipient struct {
+			Email         string `json:"email"`
+			RecipientCode string `json:"recipient_code"`
+		} `json:"recipient"`
+	} `json:"data"`
+}
+
+type FlutterwaveWebhookPayload struct {
+	Event string `json:"event"`
+	Data  struct {
+		Status string          `json:"status"`
+		Amount int64           `json:"amount"`
+		TxRef  string          `json:"tx_ref"`
+		Meta   PaymentMetadata `json:"meta"`
+	} `json:"data"`
 }

@@ -13,16 +13,21 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"trip_id", "amount", "status"},
+		"required": []string{"amount", "status", "type"},
 		"properties": bson.M{
-			"trip_id": bson.M{"bsonType": "objectId"},
+			"trip_id":               bson.M{"bsonType": "objectId"},
+			"driver_recipient_code": bson.M{"bsonType": "string"},
+			"type": bson.M{
+				"enum":        []string{"checkout", "payout"},
+				"description": "must be a valid transaction type",
+			},
 			"provider": bson.M{
 				"enum":        []string{"paystack", "flutterwave"},
 				"description": "must be one of the supported payment providers",
 			},
-			"amount": bson.M{"bsonType": "long", "minimum": 1},
+			"amount": bson.M{"bsonType": "long"},
 			"status": bson.M{
-				"enum":        []string{"pending", "success", "failed", "refunded"},
+				"enum":        []string{"pending", "success", "failed", "reversed", "aborted"},
 				"description": "must be a valid payment status value",
 			},
 		},
@@ -40,7 +45,10 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 
 	// Create search index
 	tripIndex := mongo.IndexModel{
-		Keys: bson.D{{Key: "trip_id", Value: 1}},
+		Keys: bson.D{
+			{Key: "trip_id", Value: 1},
+			{Key: "driver_recipient_code", Value: 1},
+		},
 	}
 
 	if _, err := collection.Indexes().CreateOne(ctx, tripIndex); err != nil {

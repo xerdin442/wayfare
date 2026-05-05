@@ -29,6 +29,7 @@ type TripUpdateData struct {
 	EndedAt      time.Time
 	Rating       int64
 	RiderComment string
+	DriverTip    int64
 }
 
 func NewTripRepository(db *mongo.Database) *TripRepository {
@@ -75,16 +76,15 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.Rid
 
 	for _, fare := range rideFares {
 		docs = append(docs, &models.RideFareModel{
-			ID:               bson.NewObjectID(),
-			UserID:           userIDHex,
-			RegionID:         regionIDHex,
-			CarPackage:       types.CarPackage(fare.PackageSlug),
-			BasePrice:        fare.BasePrice,
-			TotalPriceInKobo: fare.TotalPriceInKobo,
-			ExpiresAt:        time.Now().Add(15 * time.Minute), // Documents are dropped after 15mins
-			Route:            route,
-			CreatedAt:        time.Now(),
-			UpdatedAt:        time.Now(),
+			ID:         bson.NewObjectID(),
+			UserID:     userIDHex,
+			RegionID:   regionIDHex,
+			CarPackage: types.CarPackage(fare.PackageSlug),
+			Amount:     fare.Amount,
+			ExpiresAt:  time.Now().Add(15 * time.Minute), // Documents are dropped after 15mins
+			Route:      route,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
 		})
 	}
 
@@ -119,6 +119,7 @@ func (r *TripRepository) GetPricingPerRegion(ctx context.Context, pickupCoords o
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching pricing categories: %v", err)
 	}
+	defer cursor.Close(ctx)
 
 	var pricingModels []*models.PricingModel
 	if err := cursor.All(ctx, &pricingModels); err != nil {
@@ -186,18 +187,15 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 	}
 
 	trip := &models.TripModel{
-		ID:     bson.NewObjectID(),
-		UserID: userIDHex,
-		Region: region.Name,
-		Status: types.TripStatusSearching,
-		Fare: models.RideFareSummary{
-			CarPackage:       rideFare.CarPackage,
-			BasePrice:        rideFare.BasePrice,
-			TotalPriceInKobo: rideFare.TotalPriceInKobo,
-		},
-		Route:     rideFare.Route,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:         bson.NewObjectID(),
+		UserID:     userIDHex,
+		Region:     region.Name,
+		Status:     types.TripStatusSearching,
+		RideFare:   rideFare.Amount,
+		CarPackage: rideFare.CarPackage,
+		Route:      rideFare.Route,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
 	}
 
 	if _, err = r.tripColl.InsertOne(ctx, trip); err != nil {
@@ -239,6 +237,9 @@ func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, data *Tr
 	if !data.EndedAt.IsZero() {
 		updateData["ended_at"] = data.EndedAt
 	}
+	if data.DriverTip != 0 {
+		updateData["driver_tip"] = data.DriverTip
+	}
 
 	updateData["updated_at"] = time.Now()
 
@@ -253,7 +254,7 @@ func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, data *Tr
 	return r.GetTripByID(ctx, tripID)
 }
 
-func (r *TripRepository) UpdateDriverRatings(ctx context.Context) error {
+func (r *TripRepository) UpdateDriverRatingAndTier(ctx context.Context) error {
 	oneYearAgo := time.Now().AddDate(-1, 0, 0)
 
 	// Calculate driver rating using Bayesian Average: ((C * m) + S) / (C + N)
@@ -296,6 +297,19 @@ func (r *TripRepository) UpdateDriverRatings(ctx context.Context) error {
 						"$divide": bson.A{
 							bson.M{"$add": bson.A{bson.M{"$multiply": bson.A{ConfidenceValue, GlobalMean}}, "$sumOfRatings"}},
 							bson.M{"$add": bson.A{ConfidenceValue, "$numOfTrips"}},
+						},
+					},
+				},
+			},
+			"tier": bson.M{
+				"$cond": bson.A{
+					bson.M{"$gte": bson.A{"$numOfTrips", 1000}},
+					types.TierGold,
+					bson.M{
+						"$cond": bson.A{
+							bson.M{"$gte": bson.A{"$numOfTrips", 300}},
+							types.TierSilver,
+							types.TierBronze,
 						},
 					},
 				},

@@ -35,9 +35,12 @@ type SignupDetails struct {
 
 type SignupDriverRequest struct {
 	SignupDetails
-	ProfileImage multipart.FileHeader `form:"profile_image" binding:"required"`
-	CarPackage   string               `form:"car_package" binding:"required"`
-	CarPlate     string               `form:"car_plate" binding:"required"`
+	ProfileImage  multipart.FileHeader `form:"profile_image" binding:"required"`
+	CarPackage    string               `form:"car_package" binding:"required"`
+	CarPlate      string               `form:"car_plate" binding:"required"`
+	AccountNumber string               `form:"account_number" binding:"required"`
+	AccountName   string               `form:"account_name" binding:"required"`
+	BankName      string               `form:"bank_name" binding:"required"`
 }
 
 type SignupRiderRequest struct {
@@ -64,4 +67,5 @@ type InitiatePaymentRequest struct {
 	CustomRedirect string `json:"customRedirect" binding:"required"`
 	TripRating     int64  `json:"tripRating" binding:"required,min=1,max=5"`
 	RiderComment   string `json:"riderComment,omitempty"`
+	DriverTip      int64  `json:"driverTip,omitempty"` // Naira amount
 }

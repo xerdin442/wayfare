@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
-	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
@@ -30,11 +29,6 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 
 	logger := log.Ctx(ctx)
 
-	userID := c.MustGet("user_id").(string)
-
-	var provider types.PaymentProvider
-	var payload any
-
 	paystackSignature := c.GetHeader("x-paystack-signature")
 	flutterwaveSignature := c.GetHeader("verif-hash")
 
@@ -46,10 +40,10 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 		return
 	}
 
+	var queuePayload messaging.PaymentWebhookPayload
+
 	// Verify webhook signature
 	if paystackSignature != "" {
-		provider = types.ProviderPaystack
-
 		h := hmac.New(sha512.New, []byte(h.cfg.Env.PaystackSecretKey))
 		h.Write(rawBody)
 		hash := hex.EncodeToString(h.Sum(nil))
@@ -61,7 +55,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 			return
 		}
 
-		var req contracts.PaystackWebhookPayload
+		var req *types.PaystackWebhookPayload
 		if err := c.ShouldBindJSON(&req); err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Error parsing Paystack webhook payload")
@@ -69,17 +63,16 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 			return
 		}
 
-		if !strings.HasPrefix(req.Event, "charge.") {
+		if !strings.HasPrefix(req.Event, "charge.") && !strings.HasPrefix(req.Event, "transfer.") {
 			tracing.HandleError(span, ErrInvalidWebhookEvent)
-			logger.Warn().Msg("Invalid Paystack webhook event")
+			logger.Warn().Msgf("Invalid Paystack webhook event: %s", req.Event)
 			c.Status(http.StatusBadRequest)
 			return
 		}
 
-		payload = req
+		queuePayload.Provider = types.ProviderPaystack
+		queuePayload.PaystackWebhook = req
 	} else if flutterwaveSignature != "" {
-		provider = types.ProviderFlutterwave
-
 		if h.cfg.Env.FlutterwaveVerifHash != flutterwaveSignature {
 			tracing.HandleError(span, ErrInvalidWebhookSignature)
 			logger.Error().Msg("Invalid flutterwave signature")
@@ -87,7 +80,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 			return
 		}
 
-		var req contracts.FlutterwaveWebhookPayload
+		var req *types.FlutterwaveWebhookPayload
 		if err := c.ShouldBindJSON(&req); err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Error parsing Flutterwave webhook payload")
@@ -102,22 +95,17 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 			return
 		}
 
-		payload = req
-	}
-
-	if payload == nil {
+		queuePayload.Provider = types.ProviderFlutterwave
+		queuePayload.FlutterwaveWebhook = req
+	} else {
 		tracing.HandleError(span, ErrEmptyWebhookPayload)
-		logger.Error().Msg("No payload received")
+		logger.Error().Msg("No webhook payload received")
 		c.Status(http.StatusBadRequest)
 		return
 	}
 
 	// Publish webhook event to payment service
-	paymentServiceData, err := json.Marshal(messaging.CheckoutPaymentPayload{
-		RiderID:  userID,
-		Provider: provider,
-		Data:     payload,
-	})
+	paymentServiceData, err := json.Marshal(queuePayload)
 	if err != nil {
 		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msg("Failed to marshal payment queue payload")

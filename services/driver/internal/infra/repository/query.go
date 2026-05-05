@@ -20,7 +20,11 @@ type DriverRepository struct {
 }
 
 type DriverUpdateData struct {
-	TripCountUpdate bool
+	TripCountUpdate         bool
+	SplitAmount             int64
+	BalanceUpdate           bool
+	PendingReturnsUpdate    bool
+	OutstandingReturnsReset bool
 }
 
 func NewDriverRepository(db *mongo.Database) *DriverRepository {
@@ -73,18 +77,23 @@ func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *pb.
 	}
 
 	driver := &models.DriverModel{
-		ID:                  bson.NewObjectID(),
-		Name:                details.Name,
-		Email:               details.Email,
-		Password:            string(hashedPassword),
-		ProfilePicture:      details.ProfileImage,
-		CarPackage:          types.CarPackage(details.CarPackage),
-		CarPlate:            details.CarPlate,
-		CurrentRating:       0.0,
-		TotalCompletedTrips: 0,
-		LifetimeRatingAvg:   0.0,
-		CreatedAt:           time.Now(),
-		UpdatedAt:           time.Now(),
+		ID:                    bson.NewObjectID(),
+		Name:                  details.Name,
+		Email:                 details.Email,
+		Password:              string(hashedPassword),
+		ProfilePicture:        details.ProfileImage,
+		CarPackage:            types.CarPackage(details.CarPackage),
+		CarPlate:              details.CarPlate,
+		CurrentRating:         0.0,
+		TotalCompletedTrips:   0,
+		LifetimeRatingAvg:     0.0,
+		AvailableBalance:      0,
+		PendingPayout:         0,
+		PendingReturns:        0,
+		OutstandingReturns:    0,
+		TransferRecipientCode: details.TransferRecipientCode,
+		CreatedAt:             time.Now(),
+		UpdatedAt:             time.Now(),
 	}
 
 	if _, err := r.driverColl.InsertOne(ctx, driver); err != nil {
@@ -111,9 +120,86 @@ func (r *DriverRepository) UpdateDriverDetails(ctx context.Context, driverID str
 			"total_completed_trips": 1,
 		}
 	}
+	if data.BalanceUpdate {
+		updateData["$inc"] = bson.M{
+			"available_balance": data.SplitAmount,
+		}
+	}
+	if data.PendingReturnsUpdate {
+		updateData["$inc"] = bson.M{
+			"pending_returns": data.SplitAmount,
+		}
+	}
+	if data.OutstandingReturnsReset {
+		updateData["$set"] = bson.M{
+			"outstanding_returns": 0,
+		}
+	}
 
 	if _, err := r.driverColl.UpdateOne(ctx, bson.M{"_id": driverIDHex}, updateData); err != nil {
-		return fmt.Errorf("Failed to update driver trip count: %v", err)
+		return fmt.Errorf("Failed to update driver details: %v", err)
+	}
+
+	return nil
+}
+
+func (r *DriverRepository) BatchResetBalances(ctx context.Context) error {
+	pipeline := mongo.Pipeline{
+		bson.D{{Key: "$set", Value: bson.D{
+			// Transfer earnings to payout if they exceed 2000 naira
+			{Key: "pending_payout", Value: bson.D{{Key: "$cond", Value: bson.A{
+				bson.D{{Key: "$gt", Value: bson.A{"$available_balance", 200000}}},
+				bson.D{{Key: "$add", Value: bson.A{"$pending_payout", "$available_balance"}}},
+				"$pending_payout",
+			}}}},
+			// Reset balance if earnings were transferred to payout
+			{Key: "available_balance", Value: bson.D{{Key: "$cond", Value: bson.A{
+				bson.D{{Key: "$gt", Value: bson.A{"$available_balance", 200000}}},
+				0,
+				"$available_balance",
+			}}}},
+			// Update outstanding returns if there are any pending returns
+			{Key: "outstanding_returns", Value: bson.D{{Key: "$cond", Value: bson.A{
+				bson.D{{Key: "$gt", Value: bson.A{"$pending_returns", 0}}},
+				bson.D{{Key: "$add", Value: bson.A{"$outstanding_returns", "$pending_returns"}}},
+				"$outstanding_returns",
+			}}}},
+			// Reset pending returns
+			{Key: "pending_returns", Value: 0},
+			{Key: "updated_at", Value: time.Now()},
+		}}},
+	}
+
+	_, err := r.driverColl.UpdateMany(ctx, bson.M{}, pipeline)
+	return err
+}
+
+func (r *DriverRepository) GetDriversForPayout(ctx context.Context) ([]*models.DriverModel, error) {
+	cursor, err := r.driverColl.Find(ctx, bson.M{"pending_payout": bson.M{"$gt": 0}})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to fetch drivers for payout: %v", err)
+	}
+	defer cursor.Close(ctx)
+
+	var drivers []*models.DriverModel
+	if err := cursor.All(ctx, &drivers); err != nil {
+		return nil, fmt.Errorf("Failed to decode drivers: %v", err)
+	}
+
+	return drivers, nil
+}
+
+func (r *DriverRepository) ResetPendingPayout(ctx context.Context, recipientCode string) error {
+	filter := bson.M{"transfer_recipient_code": recipientCode}
+	update := bson.M{
+		"$set": bson.M{
+			"pending_payout": 0,
+			"updated_at":     time.Now(),
+		},
+	}
+
+	if _, err := r.driverColl.UpdateOne(ctx, filter, update); err != nil {
+		return fmt.Errorf("Failed to reset pending payout for recipient %s: %v", recipientCode, err)
 	}
 
 	return nil

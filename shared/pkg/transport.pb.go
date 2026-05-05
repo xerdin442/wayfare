@@ -378,15 +378,16 @@ func (x *SignupRiderRequest) GetProfileImage() string {
 }
 
 type SignupDriverRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Password      string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
-	ProfileImage  string                 `protobuf:"bytes,4,opt,name=profile_image,json=profileImage,proto3" json:"profile_image,omitempty"`
-	CarPackage    string                 `protobuf:"bytes,5,opt,name=car_package,json=carPackage,proto3" json:"car_package,omitempty"`
-	CarPlate      string                 `protobuf:"bytes,6,opt,name=car_plate,json=carPlate,proto3" json:"car_plate,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Name                  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Email                 string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Password              string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	ProfileImage          string                 `protobuf:"bytes,4,opt,name=profile_image,json=profileImage,proto3" json:"profile_image,omitempty"`
+	CarPackage            string                 `protobuf:"bytes,5,opt,name=car_package,json=carPackage,proto3" json:"car_package,omitempty"`
+	CarPlate              string                 `protobuf:"bytes,6,opt,name=car_plate,json=carPlate,proto3" json:"car_plate,omitempty"`
+	TransferRecipientCode string                 `protobuf:"bytes,7,opt,name=transfer_recipient_code,json=transferRecipientCode,proto3" json:"transfer_recipient_code,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *SignupDriverRequest) Reset() {
@@ -457,6 +458,13 @@ func (x *SignupDriverRequest) GetCarPackage() string {
 func (x *SignupDriverRequest) GetCarPlate() string {
 	if x != nil {
 		return x.CarPlate
+	}
+	return ""
+}
+
+func (x *SignupDriverRequest) GetTransferRecipientCode() string {
+	if x != nil {
+		return x.TransferRecipientCode
 	}
 	return ""
 }
@@ -716,11 +724,13 @@ func (x *StartTripResponse) GetTripId() string {
 type InitiatePaymentRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	TripId         string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
-	Email          string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Amount         int64                  `protobuf:"varint,3,opt,name=amount,proto3" json:"amount,omitempty"`
-	CustomRedirect string                 `protobuf:"bytes,4,opt,name=custom_redirect,json=customRedirect,proto3" json:"custom_redirect,omitempty"`
-	TripRating     int64                  `protobuf:"varint,5,opt,name=trip_rating,json=tripRating,proto3" json:"trip_rating,omitempty"`
-	RiderComment   string                 `protobuf:"bytes,6,opt,name=rider_comment,json=riderComment,proto3" json:"rider_comment,omitempty"`
+	UserId         string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Email          string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	Amount         int64                  `protobuf:"varint,4,opt,name=amount,proto3" json:"amount,omitempty"`
+	CustomRedirect string                 `protobuf:"bytes,5,opt,name=custom_redirect,json=customRedirect,proto3" json:"custom_redirect,omitempty"`
+	TripRating     int64                  `protobuf:"varint,6,opt,name=trip_rating,json=tripRating,proto3" json:"trip_rating,omitempty"`
+	RiderComment   string                 `protobuf:"bytes,7,opt,name=rider_comment,json=riderComment,proto3" json:"rider_comment,omitempty"`
+	DriverTip      int64                  `protobuf:"varint,8,opt,name=driver_tip,json=driverTip,proto3" json:"driver_tip,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -762,6 +772,13 @@ func (x *InitiatePaymentRequest) GetTripId() string {
 	return ""
 }
 
+func (x *InitiatePaymentRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
 func (x *InitiatePaymentRequest) GetEmail() string {
 	if x != nil {
 		return x.Email
@@ -795,6 +812,13 @@ func (x *InitiatePaymentRequest) GetRiderComment() string {
 		return x.RiderComment
 	}
 	return ""
+}
+
+func (x *InitiatePaymentRequest) GetDriverTip() int64 {
+	if x != nil {
+		return x.DriverTip
+	}
+	return 0
 }
 
 type InitiatePaymentResponse struct {
@@ -865,7 +889,7 @@ const file_transport_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x03 \x01(\tR\bpassword\x12#\n" +
-	"\rprofile_image\x18\x04 \x01(\tR\fprofileImage\"\xbe\x01\n" +
+	"\rprofile_image\x18\x04 \x01(\tR\fprofileImage\"\xf6\x01\n" +
 	"\x13SignupDriverRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
@@ -873,7 +897,8 @@ const file_transport_proto_rawDesc = "" +
 	"\rprofile_image\x18\x04 \x01(\tR\fprofileImage\x12\x1f\n" +
 	"\vcar_package\x18\x05 \x01(\tR\n" +
 	"carPackage\x12\x1b\n" +
-	"\tcar_plate\x18\x06 \x01(\tR\bcarPlate\"'\n" +
+	"\tcar_plate\x18\x06 \x01(\tR\bcarPlate\x126\n" +
+	"\x17transfer_recipient_code\x18\a \x01(\tR\x15transferRecipientCode\"'\n" +
 	"\fAuthResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"\x91\x01\n" +
 	"\x12PreviewTripRequest\x12\x17\n" +
@@ -889,15 +914,18 @@ const file_transport_proto_rawDesc = "" +
 	"\fride_fare_id\x18\x02 \x01(\tR\n" +
 	"rideFareId\",\n" +
 	"\x11StartTripResponse\x12\x17\n" +
-	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"\xce\x01\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"\x86\x02\n" +
 	"\x16InitiatePaymentRequest\x12\x17\n" +
-	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\x12\x16\n" +
-	"\x06amount\x18\x03 \x01(\x03R\x06amount\x12'\n" +
-	"\x0fcustom_redirect\x18\x04 \x01(\tR\x0ecustomRedirect\x12\x1f\n" +
-	"\vtrip_rating\x18\x05 \x01(\x03R\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12\x16\n" +
+	"\x06amount\x18\x04 \x01(\x03R\x06amount\x12'\n" +
+	"\x0fcustom_redirect\x18\x05 \x01(\tR\x0ecustomRedirect\x12\x1f\n" +
+	"\vtrip_rating\x18\x06 \x01(\x03R\n" +
 	"tripRating\x12#\n" +
-	"\rrider_comment\x18\x06 \x01(\tR\friderComment\"<\n" +
+	"\rrider_comment\x18\a \x01(\tR\friderComment\x12\x1d\n" +
+	"\n" +
+	"driver_tip\x18\b \x01(\x03R\tdriverTip\"<\n" +
 	"\x17InitiatePaymentResponse\x12!\n" +
 	"\fcheckout_url\x18\x01 \x01(\tR\vcheckoutUrl2\xe8\x01\n" +
 	"\vTripService\x12H\n" +

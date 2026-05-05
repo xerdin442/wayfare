@@ -5,6 +5,7 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/xerdin442/wayfare/shared/models"
 	"github.com/xerdin442/wayfare/shared/types"
 )
 
@@ -46,8 +47,13 @@ const (
 )
 
 type DriverUpdateQueuePayload struct {
-	DriverID        string `json:"driver_id"`
-	TripCountUpdate bool   `json:"trip_count_update,omitempty"`
+	DriverID                string `json:"driver_id,omitempty"`
+	RecipientCode           string `json:"recipient_code,omitempty"`
+	TripCountUpdate         bool   `json:"trip_count_update,omitempty"`
+	RideFare                int64  `json:"ride_fare,omitempty"`
+	BalanceUpdate           bool   `json:"balance_update,omitempty"`
+	PendingReturnsUpdate    bool   `json:"pending_returns_update,omitempty"`
+	OutstandingReturnsReset bool   `json:"outstanding_returns_reset,omitempty"`
 }
 
 type AssignDriverQueuePayload struct {
@@ -62,6 +68,8 @@ type TripUpdateQueuePayload struct {
 	EndedAt      time.Time `json:"ended_at,omitempty"`
 	Rating       int64     `json:"rating,omitempty"`
 	RiderComment string    `json:"rider_comment,omitempty"`
+	DriverTip    int64     `json:"driver_tip,omitempty"`
+	CashPayment  bool      `json:"cash_payment,omitempty"`
 }
 
 type CashPaymentPayload struct {
@@ -72,14 +80,19 @@ type CashPaymentPayload struct {
 	RiderComment string `json:"rider_comment,omitempty"`
 }
 
-type CheckoutPaymentPayload struct {
-	RiderID  string                `json:"rider_id"`
-	Provider types.PaymentProvider `json:"provider"`
-	Data     any                   `json:"data"`
+type PaymentWebhookPayload struct {
+	Provider           types.PaymentProvider            `json:"provider"`
+	PaystackWebhook    *types.PaystackWebhookPayload    `json:"paystack_webhook,omitempty"`
+	FlutterwaveWebhook *types.FlutterwaveWebhookPayload `json:"flutterwave_webhook,omitempty"`
+}
+
+type DriverPayoutPayload struct {
+	Drivers []*models.DriverModel `json:"drivers"`
+	Retry   bool                  `json:"retry,omitempty"`
 }
 
 type AnalyticsQueuePayload struct {
-	Event any `json:"event"`
+	Event *models.TripEventModel `json:"event"`
 }
 
 type AmqpEvent string
@@ -103,12 +116,12 @@ const (
 	DriverEventTripRequest AmqpEvent = "driver.event.trip_request"
 
 	// Driver commands
-	DriverCmdTripPickup      AmqpEvent = "driver.cmd.confirm_pickup"
-	DriverCmdTripAccept      AmqpEvent = "driver.cmd.trip_accept"
-	DriverCmdTripDecline     AmqpEvent = "driver.cmd.trip_decline"
-	DriverCmdLocationUpdate  AmqpEvent = "driver.cmd.location_update"
-	DriverCmdEndTrip         AmqpEvent = "driver.cmd.end_trip"
-	DriverCmdTripCountUpdate AmqpEvent = "driver.cmd.trip_count_update"
+	DriverCmdTripPickup     AmqpEvent = "driver.cmd.confirm_pickup"
+	DriverCmdTripAccept     AmqpEvent = "driver.cmd.trip_accept"
+	DriverCmdTripDecline    AmqpEvent = "driver.cmd.trip_decline"
+	DriverCmdLocationUpdate AmqpEvent = "driver.cmd.location_update"
+	DriverCmdEndTrip        AmqpEvent = "driver.cmd.end_trip"
+	DriverCmdDetailsUpdate  AmqpEvent = "driver.cmd.details_update"
 
 	// Payment events
 	PaymentEventWebhookReceived     AmqpEvent = "payment.event.webhook_received"
@@ -116,6 +129,9 @@ const (
 	PaymentEventFailed              AmqpEvent = "payment.event.failed"
 	PaymentEventCashOptionPreferred AmqpEvent = "payment.event.cash_option_preferred"
 	PaymentEventCashReceived        AmqpEvent = "payment.event.cash_payment_received"
+
+	// Payment commands
+	PaymentCmdDriverPayout AmqpEvent = "payment.cmd.driver_payout"
 
 	// Analytics events
 	AnalyticsEventUpdate AmqpEvent = "analytics.event.update"

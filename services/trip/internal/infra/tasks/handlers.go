@@ -16,6 +16,6 @@ func NewTripTasksHandler(r *repo.TripRepository) *TripTasksHandler {
 	}
 }
 
-func (h *TripTasksHandler) HandleDriverRatingsUpdate(ctx context.Context) error {
-	return h.repo.UpdateDriverRatings(ctx)
+func (h *TripTasksHandler) HandleDriverUpdate(ctx context.Context) error {
+	return h.repo.UpdateDriverRatingAndTier(ctx)
 }

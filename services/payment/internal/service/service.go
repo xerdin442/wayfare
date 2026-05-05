@@ -12,9 +12,13 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
+	"github.com/shopspring/decimal"
 	repo "github.com/xerdin442/wayfare/services/payment/internal/infra/repository"
 	"github.com/xerdin442/wayfare/services/payment/internal/secrets"
+	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
+	"github.com/xerdin442/wayfare/shared/messaging"
+	"github.com/xerdin442/wayfare/shared/models"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
@@ -31,14 +35,16 @@ type PaymentService struct {
 	pb.UnimplementedPaymentServiceServer
 	repo       *repo.PaymentRepository
 	cache      *redis.Client
+	bus        messaging.MessageBus
 	env        *secrets.Secrets
 	httpClient *http.Client
 }
 
-func NewPaymentService(r *repo.PaymentRepository, c *redis.Client, s *secrets.Secrets) *PaymentService {
+func NewPaymentService(r *repo.PaymentRepository, b messaging.MessageBus, c *redis.Client, s *secrets.Secrets) *PaymentService {
 	return &PaymentService{
 		repo:       r,
 		cache:      c,
+		bus:        b,
 		env:        s,
 		httpClient: tracing.NewHttpClient(),
 	}
@@ -104,7 +110,7 @@ func (s *PaymentService) generatePaystackCheckout(ctx context.Context, req *cont
 
 	httpResp, err := s.sendApiRequest(
 		ctx,
-		s.env.PaystackApiUrl,
+		fmt.Sprintf("%s/transaction/initialize", s.env.PaystackApiUrl),
 		s.env.PaystackSecretKey,
 		bytes.NewBuffer(payload),
 	)
@@ -128,7 +134,7 @@ func (s *PaymentService) generateFlutterwaveCheckout(ctx context.Context, req *c
 
 	httpResp, err := s.sendApiRequest(
 		ctx,
-		s.env.FlutterwaveApiUrl,
+		fmt.Sprintf("%s/v3/payments", s.env.FlutterwaveApiUrl),
 		s.env.FlutterwaveSecretKey,
 		bytes.NewBuffer(payload),
 	)
@@ -159,7 +165,11 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 		txnID = existingTxn.ID.Hex()
 	} else {
 		// Create new transaction
-		txnID, err = s.repo.CreateTransaction(ctx, req.TripId, req.Amount)
+		txnID, err = s.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
+			TripID: req.TripId,
+			Amount: req.Amount,
+			Type:   types.TransactionCheckout,
+		})
 		if err != nil {
 			return &pb.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
 		}
@@ -173,10 +183,12 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 		return nil, status.Error(codes.Internal, "Error occurred during payment processing")
 	}
 
-	paymentMetadata := &contracts.PaymentMetadata{
+	paymentMetadata := &types.PaymentMetadata{
 		TripID:       req.TripId,
+		UserID:       req.UserId,
 		TripRating:   req.TripRating,
 		RiderComment: req.RiderComment,
+		DriverTip:    req.DriverTip * 100,
 	}
 
 	paystackMetadata, err := json.Marshal(paymentMetadata)
@@ -185,7 +197,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 	}
 	paystackRequestPayload := &contracts.PaystackCheckoutRequest{
 		Email:       req.Email,
-		Amount:      req.Amount * 100,
+		Amount:      req.Amount,
 		Reference:   txnID,
 		Channels:    []string{"card", "apple_pay", "bank_transfer"},
 		CallbackUrl: req.CustomRedirect,
@@ -193,7 +205,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 	}
 
 	flutterwaveRequestPayload := &contracts.FlutterwaveCheckoutRequest{
-		Amount:      req.Amount,
+		Amount:      req.Amount / 100,
 		TxRef:       txnID,
 		RedirectUrl: req.CustomRedirect,
 		Meta:        paymentMetadata,
@@ -218,6 +230,17 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 						return &pb.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
 					}
 
+					// Update analytics
+					tripEvent := &models.TripEventModel{
+						TransactionRef:  txnID,
+						PaymentProvider: types.ProviderFlutterwave,
+						PaymentStatus:   types.PaymentStatusAborted,
+						Amount:          decimal.NewFromInt(req.Amount),
+					}
+					if err := analytics.SendEvent(ctx, s.bus, tripEvent); err != nil {
+						return nil, err
+					}
+
 					return nil, status.Error(codes.Unavailable, "Service unavailable")
 				}
 
@@ -239,7 +262,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 					log.Warn().Msg("Paystack gateway is unavailable. Redirecting requests to backup gateway...")
 
 					// Mark primary payment gateway as unavailable
-					if err := s.cache.Set(ctx, gatewayStatusKey, "unavailable", 10*time.Minute).Err(); err != nil {
+					if err := s.cache.Set(ctx, gatewayStatusKey, "unavailable", 30*time.Minute).Err(); err != nil {
 						log.Error().Err(err).Msg("Error setting gateway status")
 					}
 
@@ -257,6 +280,17 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 								// Update transaction details
 								if err := s.repo.UpdateTransaction(ctx, txnID, types.PaymentStatusAborted, types.ProviderFlutterwave); err != nil {
 									return &pb.InitiatePaymentResponse{}, status.Error(codes.Internal, err.Error())
+								}
+
+								// Update analytics
+								tripEvent := &models.TripEventModel{
+									TransactionRef:  txnID,
+									PaymentProvider: types.ProviderFlutterwave,
+									PaymentStatus:   types.PaymentStatusAborted,
+									Amount:          decimal.NewFromInt(req.Amount),
+								}
+								if err := analytics.SendEvent(ctx, s.bus, tripEvent); err != nil {
+									return nil, err
 								}
 
 								return nil, status.Error(codes.Unavailable, "Service unavailable")

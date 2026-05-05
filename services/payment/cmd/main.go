@@ -66,12 +66,13 @@ func main() {
 
 	// Setup repository and service
 	repo := repo.NewPaymentRepository(database)
-	svc := service.NewPaymentService(repo, cache, env)
-	h := events.NewPaymentEventsHandler(repo, rmq, cache)
+	svc := service.NewPaymentService(repo, rmq, cache, env)
+	h := events.NewPaymentEventsHandler(repo, rmq, cache, env)
 
 	w := messaging.NewEventWorker(rmq, messaging.PaymentQueue)
 	w.RegisterHandler(h.HandleWebhook, messaging.PaymentEventWebhookReceived)
 	w.RegisterHandler(h.HandleCashPayment, messaging.PaymentEventCashReceived)
+	w.RegisterHandler(h.HandleDriverPayout, messaging.PaymentCmdDriverPayout)
 
 	g.Go(func() error {
 		log.Info().Msg("Starting event worker...")

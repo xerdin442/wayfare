@@ -32,5 +32,13 @@ func CreateRidersCollection(db *mongo.Database, name string) (*mongo.Collection,
 
 	collection := db.Collection(name)
 
+	emailIndex := mongo.IndexModel{
+		Keys: bson.D{{Key: "email", Value: 1}},
+	}
+
+	if _, err := collection.Indexes().CreateOne(ctx, emailIndex); err != nil {
+		return nil, err
+	}
+
 	return collection, nil
 }

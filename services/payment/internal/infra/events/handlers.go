@@ -1,82 +1,43 @@
 package events
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"github.com/shopspring/decimal"
 	repo "github.com/xerdin442/wayfare/services/payment/internal/infra/repository"
+	"github.com/xerdin442/wayfare/services/payment/internal/secrets"
 	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/models"
+	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
 )
 
 type PaymentEventsHandler struct {
-	repo  *repo.PaymentRepository
-	bus   messaging.MessageBus
-	cache *redis.Client
+	repo       *repo.PaymentRepository
+	bus        messaging.MessageBus
+	cache      *redis.Client
+	env        *secrets.Secrets
+	httpClient *http.Client
 }
 
-func NewPaymentEventsHandler(r *repo.PaymentRepository, b messaging.MessageBus, c *redis.Client) *PaymentEventsHandler {
+func NewPaymentEventsHandler(r *repo.PaymentRepository, b messaging.MessageBus, c *redis.Client, s *secrets.Secrets) *PaymentEventsHandler {
 	return &PaymentEventsHandler{
-		repo:  r,
-		bus:   b,
-		cache: c,
+		repo:       r,
+		bus:        b,
+		cache:      c,
+		env:        s,
+		httpClient: tracing.NewHttpClient(),
 	}
-}
-
-func (h *PaymentEventsHandler) sendTransactionStatus(ctx context.Context, userID string, status types.PaymentStatus) error {
-	var event messaging.AmqpEvent
-	if status == types.PaymentStatusSuccess {
-		event = messaging.PaymentEventSuccess
-	} else {
-		event = messaging.PaymentEventFailed
-	}
-
-	gatewayData, err := json.Marshal(contracts.WebsocketMessage{
-		Type: event,
-	})
-	if err != nil {
-		return fmt.Errorf("Could not parse event queue payload: %v", err)
-	}
-
-	if err := h.bus.PublishMessage(
-		ctx,
-		messaging.GatewayExchange,
-		messaging.AmqpEvent(fmt.Sprintf("user.%s", userID)),
-		messaging.AmqpMessage{Data: gatewayData},
-	); err != nil {
-		return fmt.Errorf("Failed to publish %s event: %v", event, err)
-	}
-
-	return nil
-}
-
-func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, tripID, riderComment string, rating int64) error {
-	tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
-		TripID:       tripID,
-		Rating:       rating,
-		RiderComment: riderComment,
-	})
-	if err != nil {
-		return fmt.Errorf("Failed to marshal trip_update queue payload")
-	}
-
-	if err := h.bus.PublishMessage(
-		ctx,
-		messaging.ServicesExchange,
-		messaging.TripCmdCompleted,
-		messaging.AmqpMessage{Data: tripServiceData},
-	); err != nil {
-		return fmt.Errorf("Failed to publish %s event", messaging.TripCmdCompleted)
-	}
-
-	return nil
 }
 
 func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
@@ -85,21 +46,26 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
 	}
 
-	var payload messaging.CheckoutPaymentPayload
+	var payload messaging.PaymentWebhookPayload
 	if err := json.Unmarshal(msg.Data, &payload); err != nil {
 		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
 
+	var tripServicePayload *messaging.TripUpdateQueuePayload
+	var tripEvent *models.TripEventModel
+	var updatedStatus types.PaymentStatus
+
 	switch payload.Provider {
 	case types.ProviderPaystack:
-		data := payload.Data.(contracts.PaystackWebhookPayload)
+		webhook := payload.PaystackWebhook
+		recipientCode := webhook.Data.Recipient.RecipientCode
 
-		var metadata contracts.PaymentMetadata
-		if err := json.Unmarshal([]byte(data.Data.Metadata), &metadata); err != nil {
+		var metadata types.PaymentMetadata
+		if err := json.Unmarshal([]byte(webhook.Data.Metadata), &metadata); err != nil {
 			return fmt.Errorf("Failed to unmarshal Paystack webhook metadata")
 		}
 
-		transaction, err := h.repo.GetTransactionByID(ctx, data.Data.Reference)
+		transaction, err := h.repo.GetTransactionByID(ctx, webhook.Data.Reference)
 		if err != nil {
 			log.Warn().Err(err).Msg("Invalid transaction reference from Paystack webhook")
 			return err
@@ -110,12 +76,39 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return nil
 		}
 
-		updatedStatus := types.PaymentStatusAborted
-		if transaction.Amount == data.Data.Amount/100 {
-			if data.Event == "charge.success" && data.Data.Status == "success" {
+		if transaction.Amount == webhook.Data.Amount/100 {
+			switch webhook.Data.Status {
+			case string(types.PaymentStatusSuccess):
 				updatedStatus = types.PaymentStatusSuccess
-			} else if data.Event == "charge.failed" && data.Data.Status == "failed" {
+
+				// Reset driver's pending payout after confirmation
+				if webhook.Event == "transfer.success" {
+					data, err := json.Marshal(messaging.DriverUpdateQueuePayload{
+						RecipientCode: recipientCode,
+					})
+					if err != nil {
+						return fmt.Errorf("Failed to marshal driver_update queue payload")
+					}
+
+					if err := h.bus.PublishMessage(
+						ctx,
+						messaging.ServicesExchange,
+						messaging.DriverCmdDetailsUpdate,
+						messaging.AmqpMessage{Data: data},
+					); err != nil {
+						return fmt.Errorf("Failed to publish %s event", messaging.DriverCmdDetailsUpdate)
+					}
+				}
+			case string(types.PaymentStatusFailed):
 				updatedStatus = types.PaymentStatusFailed
+			case string(types.PaymentStatusReversed):
+				updatedStatus = types.PaymentStatusReversed
+			}
+
+			if strings.HasPrefix(webhook.Event, "transfer.") {
+				if err := h.checkTransferRetries(ctx, recipientCode); err != nil {
+					log.Error().Err(err).Str("recipient", recipientCode).Msg("Error checking transfer retries")
+				}
 			}
 		} else {
 			return fmt.Errorf("Invalid webhook payload for checkout transaction")
@@ -130,36 +123,35 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return err
 		}
 
-		// Send transaction status to rider
-		if err := h.sendTransactionStatus(ctx, payload.RiderID, updatedStatus); err != nil {
-			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
-		}
+		if strings.HasPrefix(webhook.Event, "charge.") {
+			// Send transaction status to rider
+			if err := h.sendTransactionStatus(ctx, metadata.UserID, updatedStatus); err != nil {
+				log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
+			}
 
-		// Mark trip as completed after successful payment
-		if data.Event == "charge.success" && data.Data.Status == "success" {
-			if err := h.markTripAsCompleted(ctx, metadata.TripID, metadata.RiderComment, metadata.TripRating); err != nil {
-				return err
+			if updatedStatus == types.PaymentStatusSuccess {
+				tripServicePayload = &messaging.TripUpdateQueuePayload{
+					TripID:       metadata.TripID,
+					RiderComment: metadata.RiderComment,
+					Rating:       metadata.TripRating,
+					DriverTip:    metadata.DriverTip,
+				}
+			}
+
+			tripEvent = &models.TripEventModel{
+				TransactionRef:  webhook.Data.Reference,
+				PaymentProvider: payload.Provider,
+				PaymentStatus:   updatedStatus,
+				Amount:          decimal.NewFromInt(webhook.Data.Amount / 100),
+				TransactionType: types.TransactionCheckout,
 			}
 		}
 
-		// Update analytics
-		tripEvent := &models.TripEventModel{
-			TransactionRef:  data.Data.Reference,
-			PaymentProvider: payload.Provider,
-			PaymentStatus:   updatedStatus,
-			Amount:          decimal.NewFromInt(data.Data.Amount / 100),
-			// DriverShare:     decimal.NewFromInt(payload.Amount),
-			// DriverTip:       decimal.Zero,
-			// PlatformFee:     decimal.Zero,
-		}
-		if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
-			return err
-		}
 	case types.ProviderFlutterwave:
-		data := payload.Data.(contracts.FlutterwaveWebhookPayload)
-		metadata := data.Data.Meta
+		webhook := payload.FlutterwaveWebhook
+		metadata := webhook.Data.Meta
 
-		transaction, err := h.repo.GetTransactionByID(ctx, data.Data.TxRef)
+		transaction, err := h.repo.GetTransactionByID(ctx, webhook.Data.TxRef)
 		if err != nil {
 			return err
 		}
@@ -169,9 +161,8 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return nil
 		}
 
-		updatedStatus := types.PaymentStatusAborted
-		if transaction.Amount == data.Data.Amount && data.Event == "charge.completed" {
-			switch data.Data.Status {
+		if transaction.Amount == webhook.Data.Amount && webhook.Event == "charge.completed" {
+			switch webhook.Data.Status {
 			case "successful":
 				updatedStatus = types.PaymentStatusSuccess
 			case "failed":
@@ -191,33 +182,42 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 		}
 
 		// Send transaction status to rider
-		if err := h.sendTransactionStatus(ctx, payload.RiderID, updatedStatus); err != nil {
+		if err := h.sendTransactionStatus(ctx, metadata.UserID, updatedStatus); err != nil {
 			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
 		}
 
-		// Mark trip as completed after successful payment
-		if data.Event == "charge.completed" && data.Data.Status == "successful" {
-			if err := h.markTripAsCompleted(ctx, metadata.TripID, metadata.RiderComment, metadata.TripRating); err != nil {
-				return err
+		if updatedStatus == types.PaymentStatusSuccess {
+			tripServicePayload = &messaging.TripUpdateQueuePayload{
+				TripID:       metadata.TripID,
+				RiderComment: metadata.RiderComment,
+				Rating:       metadata.TripRating,
+				DriverTip:    metadata.DriverTip,
 			}
 		}
 
-		// Update analytics
-		tripEvent := &models.TripEventModel{
-			TransactionRef:  data.Data.TxRef,
+		tripEvent = &models.TripEventModel{
+			TransactionRef:  webhook.Data.TxRef,
 			PaymentProvider: payload.Provider,
 			PaymentStatus:   updatedStatus,
-			Amount:          decimal.NewFromInt(data.Data.Amount),
-			// DriverShare:     decimal.NewFromInt(payload.Amount),
-			// DriverTip:       decimal.Zero,
-			// PlatformFee:     decimal.Zero,
+			Amount:          decimal.NewFromInt(webhook.Data.Amount),
+			TransactionType: types.TransactionCheckout,
 		}
-		if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
-			return err
-		}
+
 	default:
 		log.Warn().Str("provider", string(payload.Provider)).Msg("Webhook received from unknown payment provider")
 		return fmt.Errorf("Unknown payment provider: %s", payload.Provider)
+	}
+
+	if tripServicePayload != nil {
+		if err := h.markTripAsCompleted(ctx, tripServicePayload); err != nil {
+			return err
+		}
+	}
+
+	if tripEvent != nil {
+		if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -254,8 +254,12 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 			return err
 		}
 	} else {
-		// Create new transaction
-		txnID, err = h.repo.CreateTransaction(ctx, payload.TripID, payload.Amount)
+		// Create new checkout transaction
+		txnID, err = h.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
+			TripID: payload.TripID,
+			Amount: payload.Amount,
+			Type:   types.TransactionCheckout,
+		})
 		if err != nil {
 			return err
 		}
@@ -272,7 +276,13 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 	}
 
 	// Mark trip as completed
-	if err := h.markTripAsCompleted(ctx, payload.TripID, payload.RiderComment, payload.TripRating); err != nil {
+	tripServicePayload := &messaging.TripUpdateQueuePayload{
+		TripID:       payload.TripID,
+		RiderComment: payload.RiderComment,
+		Rating:       payload.TripRating,
+		CashPayment:  true,
+	}
+	if err := h.markTripAsCompleted(ctx, tripServicePayload); err != nil {
 		return err
 	}
 
@@ -281,14 +291,111 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		TransactionRef:  txnID,
 		PaymentProvider: "none",
 		PaymentStatus:   types.PaymentStatusSuccess,
-		Amount:          decimal.NewFromInt(payload.Amount),
-		// DriverShare:     decimal.NewFromInt(payload.Amount),
-		// DriverTip:       decimal.Zero,
-		// PlatformFee:     decimal.Zero,
+		Amount:          decimal.NewFromInt(payload.Amount / 100),
+		TransactionType: types.TransactionCheckout,
 	}
 	if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messaging.AmqpDeliveryPayload) error {
+	var msg messaging.AmqpMessage
+	if err := json.Unmarshal(p.Body, &msg); err != nil {
+		return fmt.Errorf("Failed to unmarshal message from %s event: %v", p.RoutingKey, err)
+	}
+
+	var payoutPayload messaging.DriverPayoutPayload
+	if err := json.Unmarshal(msg.Data, &payoutPayload); err != nil {
+		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
+	}
+
+	// Check payment gateway status
+	gatewayStatusKey := "gateway:paystack:status"
+	n, err := h.cache.Exists(ctx, gatewayStatusKey).Result()
+	if err != nil {
+		return fmt.Errorf("Error fetching gateway status from cache")
+	}
+
+	if n > 0 {
+		log.Error().Msg("Failed to process driver payout. Paystack API is currently unavailable")
+		return fmt.Errorf("Payment gateway is currently unavailable")
+	}
+
+	// Create payout transactions
+	var txnData []repo.CreateTransactionData
+	for _, d := range payoutPayload.Drivers {
+		txnData = append(txnData, repo.CreateTransactionData{
+			DriverRecipientCode: d.TransferRecipientCode,
+			Amount:              d.PendingPayout,
+			Type:                types.TransactionPayout,
+		})
+	}
+
+	txnIDs, err := h.repo.CreateBatchTransactions(ctx, txnData)
+	if err != nil {
+		return err
+	}
+
+	// Configure bulk transfer payload
+	var transfers []*contracts.TransferDetails
+	for i, d := range payoutPayload.Drivers {
+		transfers = append(transfers, &contracts.TransferDetails{
+			Amount:    d.PendingPayout,
+			Recipient: d.TransferRecipientCode,
+			Reference: txnIDs[i],
+			Reason:    "WAYFARE INC. - Driver Payout",
+		})
+	}
+
+	transferPayload, err := json.Marshal(contracts.BulkTransferPayload{
+		Currency:  "NGN",
+		Source:    "balance",
+		Transfers: transfers,
+	})
+	if err != nil {
+		return fmt.Errorf("Failed to marshal bulk transfer payload. %s", err.Error())
+	}
+
+	// Configure request details
+	req, err := http.NewRequestWithContext(
+		ctx,
+		"POST",
+		h.env.PaystackApiUrl+"/transfer/bulk",
+		bytes.NewBuffer(transferPayload),
+	)
+	if err != nil {
+		return fmt.Errorf("Error configuring bulk transfer request. %s", err.Error())
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+h.env.PaystackSecretKey)
+
+	response, err := h.httpClient.Do(req)
+	if err != nil {
+		log.Error().Err(err).Msg("Error sending bulk transfer request to Paystack API")
+		return fmt.Errorf("Error sending bulk transfer request")
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode >= 500 {
+		// Mark payment gateway as unavailable
+		if err := h.cache.Set(ctx, gatewayStatusKey, "unavailable", 30*time.Minute).Err(); err != nil {
+			log.Error().Err(err).Msg("Error setting gateway status")
+		}
+
+		// Update all newly created payout transactions
+		if err := h.repo.UpdateBatchTransactions(ctx, txnIDs, types.PaymentStatusAborted, types.ProviderPaystack); err != nil {
+			return err
+		}
+
+		return fmt.Errorf("Payment gateway is currently unavailable")
+	}
+
+	// 15-sec wait to handle queue retries and Paystack API rate limits
+	time.Sleep(15 * time.Second)
 
 	return nil
 }

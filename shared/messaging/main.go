@@ -216,9 +216,7 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 
 	if err := r.declareAndBindQueue(
 		DriverUpdateQueue,
-		[]AmqpEvent{
-			DriverCmdTripCountUpdate,
-		},
+		[]AmqpEvent{DriverCmdDetailsUpdate},
 		ServicesExchange,
 	); err != nil {
 		return err
@@ -245,6 +243,7 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		[]AmqpEvent{
 			PaymentEventWebhookReceived,
 			PaymentEventCashReceived,
+			PaymentCmdDriverPayout,
 		},
 		ServicesExchange,
 	); err != nil {
