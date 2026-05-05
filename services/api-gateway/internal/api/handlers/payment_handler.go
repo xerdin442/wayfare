@@ -29,13 +29,8 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 
 	logger := log.Ctx(ctx)
 
-	userID := c.MustGet("user_id").(string)
 	paystackSignature := c.GetHeader("x-paystack-signature")
 	flutterwaveSignature := c.GetHeader("verif-hash")
-
-	queuePayload := messaging.CheckoutPaymentPayload{
-		RiderID: userID,
-	}
 
 	rawBody, err := c.GetRawData()
 	if err != nil {
@@ -44,6 +39,8 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 		c.Status(http.StatusBadRequest)
 		return
 	}
+
+	var queuePayload messaging.PaymentWebhookPayload
 
 	// Verify webhook signature
 	if paystackSignature != "" {
@@ -66,9 +63,9 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 			return
 		}
 
-		if !strings.HasPrefix(req.Event, "charge.") {
+		if !strings.HasPrefix(req.Event, "charge.") && !strings.HasPrefix(req.Event, "transfer.") {
 			tracing.HandleError(span, ErrInvalidWebhookEvent)
-			logger.Warn().Msg("Invalid Paystack webhook event")
+			logger.Warn().Msgf("Invalid Paystack webhook event: %s", req.Event)
 			c.Status(http.StatusBadRequest)
 			return
 		}

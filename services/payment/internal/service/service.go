@@ -185,6 +185,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 
 	paymentMetadata := &types.PaymentMetadata{
 		TripID:       req.TripId,
+		UserID:       req.UserId,
 		TripRating:   req.TripRating,
 		RiderComment: req.RiderComment,
 		DriverTip:    req.DriverTip * 100,

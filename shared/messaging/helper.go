@@ -80,8 +80,7 @@ type CashPaymentPayload struct {
 	RiderComment string `json:"rider_comment,omitempty"`
 }
 
-type CheckoutPaymentPayload struct {
-	RiderID            string                           `json:"rider_id"`
+type PaymentWebhookPayload struct {
 	Provider           types.PaymentProvider            `json:"provider"`
 	PaystackWebhook    *types.PaystackWebhookPayload    `json:"paystack_webhook,omitempty"`
 	FlutterwaveWebhook *types.FlutterwaveWebhookPayload `json:"flutterwave_webhook,omitempty"`

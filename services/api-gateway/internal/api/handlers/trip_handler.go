@@ -149,6 +149,7 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 	// Generate checkout link
 	checkoutResponse, err := h.cfg.Clients.Payment.InitiatePayment(ctx, &pb.InitiatePaymentRequest{
 		TripId:         tripID,
+		UserId:         userID,
 		Email:          req.Email,
 		Amount:         tripDetails.RideFareAmount,
 		CustomRedirect: req.CustomRedirect,
