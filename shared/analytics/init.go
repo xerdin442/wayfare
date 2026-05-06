@@ -28,6 +28,7 @@ func CreateAnalyticsTable(ctx context.Context, conn clickhouse.Conn) error {
 			platform_fee     				Decimal(10, 2),
 			driver_split     				Decimal(10, 2),
 			driver_tip       				Decimal(10, 2),
+			driver_status 				  Enum('online', 'offline', 'busy'),
 			timestamp        				DateTime
 		) ENGINE = MergeTree()
 		PARTITION BY toYYYYMM(timestamp)

@@ -42,7 +42,6 @@ type OpenweatherApiResponse struct {
 	Rain       struct {
 		OneH float64 `json:"1h"`
 	} `json:"rain"`
-	Timezone int `json:"timezone"`
 }
 
 type SignupDetails struct {

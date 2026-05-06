@@ -10,16 +10,17 @@ type TripEventModel struct {
 	DriverID string `ch:"driver_id"`
 
 	// Trip lifecycle details
-	Region                string           `ch:"region"`
-	CarPackage            types.CarPackage `ch:"car_package"`
-	TripStatus            types.TripStatus `ch:"trip_status"`
-	PredictedDurationMins decimal.Decimal  `ch:"predicted_duration_mins"`
-	ActualDurationMins    decimal.Decimal  `ch:"actual_duration_mins"`
-	DistanceKm            decimal.Decimal  `ch:"distance_km"`
-	PickupLat             float64          `ch:"pickup_lat"`
-	PickupLng             float64          `ch:"pickup_lng"`
-	Rating                int64            `ch:"rating"`
-	DriverTip             decimal.Decimal  `ch:"driver_tip"`
+	Region                string             `ch:"region"`
+	CarPackage            types.CarPackage   `ch:"car_package"`
+	TripStatus            types.TripStatus   `ch:"trip_status"`
+	DriverStatus          types.DriverStatus `ch:"driver_status"`
+	PredictedDurationMins decimal.Decimal    `ch:"predicted_duration_mins"`
+	ActualDurationMins    decimal.Decimal    `ch:"actual_duration_mins"`
+	DistanceKm            decimal.Decimal    `ch:"distance_km"`
+	PickupLat             float64            `ch:"pickup_lat"`
+	PickupLng             float64            `ch:"pickup_lng"`
+	Rating                int64              `ch:"rating"`
+	DriverTip             decimal.Decimal    `ch:"driver_tip"`
 
 	// Payment details
 	TransactionRef  string                `ch:"transaction_ref"`

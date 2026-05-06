@@ -18,7 +18,7 @@ func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection
 			"car_package", "car_plate", "current_rating",
 			"total_completed_trips", "lifetime_rating_avg",
 			"available_balance", "pending_payout", "pending_returns",
-			"outstanding_returns", "transfer_recipient_code", "tier",
+			"outstanding_returns", "transfer_recipient_code", "tier", "status",
 		},
 		"properties": bson.M{
 			"name":     bson.M{"bsonType": "string"},
@@ -41,6 +41,10 @@ func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection
 			"tier": bson.M{
 				"enum":        []string{"gold", "silver", "bronze"},
 				"description": "must be one of the supported driver tiers",
+			},
+			"status": bson.M{
+				"enum":        []string{"online", "offline", "busy"},
+				"description": "must be a valid driver status value",
 			},
 		},
 	}

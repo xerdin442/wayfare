@@ -117,7 +117,7 @@ func (s *TripService) checkWeatherConditions(pickupCoords orb.Point) (float64, e
 
 	switch {
 	case weatherId >= 200 && weatherId <= 232: // Thunderstorm
-		surgeFactor = 2.0
+		surgeFactor = 1.8
 	case weatherId >= 300 && weatherId <= 321: // Drizzle
 		surgeFactor = 1.25
 	case weatherId >= 500 && weatherId <= 531: // Rain

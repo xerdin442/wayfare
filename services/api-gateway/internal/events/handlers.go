@@ -100,6 +100,25 @@ func (h *GatewayEventsHandler) HandleOutgoingWebsocketMessages(ctx context.Conte
 			); err != nil {
 				return err
 			}
+
+			// Update driver status
+			driverServiceData, err := json.Marshal(messaging.DriverUpdateQueuePayload{
+				DriverID: response.Driver.ID,
+				Status:   types.DriverStatusOnline,
+			})
+			if err != nil {
+				return fmt.Errorf("Failed to marshal driver_update queue payload: %v", err)
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				ctx,
+				messaging.ServicesExchange,
+				messaging.DriverCmdDetailsUpdate,
+				messaging.AmqpMessage{Data: driverServiceData},
+			); err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("Invalid user ID received by gateway queue: %s", userId)
 		}

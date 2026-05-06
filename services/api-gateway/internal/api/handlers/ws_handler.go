@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/xerdin442/wayfare/shared/messaging"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
+	"github.com/xerdin442/wayfare/shared/types"
 )
 
 func (h *RouteHandler) monitorConnection(conn *websocket.Conn) {
@@ -34,6 +36,26 @@ func (h *RouteHandler) monitorConnection(conn *websocket.Conn) {
 	}()
 }
 
+func (h *RouteHandler) updateDriverStatus(ctx context.Context, driverId string, status types.DriverStatus) {
+	data, err := json.Marshal(messaging.DriverUpdateQueuePayload{
+		DriverID: driverId,
+		Status:   status,
+	})
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to marshal driver_update queue payload")
+		return
+	}
+
+	if err := h.cfg.Queue.PublishMessage(
+		ctx,
+		messaging.ServicesExchange,
+		messaging.DriverCmdDetailsUpdate,
+		messaging.AmqpMessage{Data: data},
+	); err != nil {
+		return
+	}
+}
+
 func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 	// Start tracer
 	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleDriversConnection")
@@ -48,18 +70,20 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 		return
 	}
 
-	userID := c.Query("user_id")
-	if userID == "" {
+	userId := c.Query("user_id")
+	if userId == "" {
 		tracing.HandleError(span, fmt.Errorf("user id not provided"))
 		logger.Warn().Msg("User ID not provided")
 		return
 	}
 
-	h.cfg.ConnManager.Store(userID, conn)
+	h.cfg.ConnManager.Store(userId, conn)
+	h.updateDriverStatus(ctx, userId, types.DriverStatusOnline)
 	h.monitorConnection(conn)
 
 	defer func() {
-		h.cfg.ConnManager.Delete(userID)
+		h.updateDriverStatus(ctx, userId, types.DriverStatusOffline)
+		h.cfg.ConnManager.Delete(userId)
 		conn.Close()
 	}()
 
@@ -92,7 +116,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				ctx,
 				cacheKey,
 				&redis.GeoLocation{
-					Name:      userID,
+					Name:      userId,
 					Longitude: data.Coords.Longitude,
 					Latitude:  data.Coords.Latitude,
 				},
@@ -191,6 +215,9 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				tracing.HandleError(span, err)
 				return
 			}
+
+			// Update driver status
+			h.updateDriverStatus(ctx, data.Driver.ID, types.DriverStatusBusy)
 
 		case messaging.DriverCmdTripPickup:
 			var data contracts.TripUpdateRequest

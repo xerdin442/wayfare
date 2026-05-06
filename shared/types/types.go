@@ -59,6 +59,14 @@ const (
 	TierGold   DriverTier = "gold"
 )
 
+type DriverStatus string
+
+const (
+	DriverStatusOnline  DriverStatus = "online"
+	DriverStatusOffline DriverStatus = "offline"
+	DriverStatusBusy    DriverStatus = "busy"
+)
+
 type Route struct {
 	Distance float64     `json:"distance"`
 	Duration float64     `json:"duration"`

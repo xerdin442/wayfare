@@ -20,6 +20,7 @@ type DriverRepository struct {
 }
 
 type DriverUpdateData struct {
+	Status                  types.DriverStatus
 	TripCountUpdate         bool
 	SplitAmount             int64
 	BalanceUpdate           bool
@@ -95,6 +96,7 @@ func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *pb.
 		OutstandingReturns:    0,
 		TransferRecipientCode: details.TransferRecipientCode,
 		Tier:                  types.TierBronze,
+		Status:                types.DriverStatusOffline,
 		CreatedAt:             time.Now(),
 		UpdatedAt:             time.Now(),
 	}
@@ -131,6 +133,9 @@ func (r *DriverRepository) UpdateDriverDetails(ctx context.Context, driverId str
 	}
 	if data.OutstandingReturnsReset {
 		setFields["outstanding_returns"] = 0
+	}
+	if data.Status != "" {
+		setFields["status"] = data.Status
 	}
 
 	updateData := bson.M{
