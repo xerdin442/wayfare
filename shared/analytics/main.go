@@ -57,7 +57,7 @@ func SendEvent(ctx context.Context, bus messaging.MessageBus, e *models.TripEven
 		Event: e,
 	})
 	if err != nil {
-		return fmt.Errorf("Failed to marshal analytics queue payload")
+		return err
 	}
 
 	if err := bus.PublishMessage(
@@ -66,7 +66,7 @@ func SendEvent(ctx context.Context, bus messaging.MessageBus, e *models.TripEven
 		messaging.AnalyticsEventUpdate,
 		messaging.AmqpMessage{Data: data},
 	); err != nil {
-		return fmt.Errorf("Failed to publish analytics event")
+		return err
 	}
 
 	return nil

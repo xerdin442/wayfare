@@ -59,7 +59,7 @@ type PreviewTripRequest struct {
 }
 
 type StartTripRequest struct {
-	RideFareID string `json:"rideFareID" binding:"required"`
+	RideFareId string `json:"rideFareId" binding:"required"`
 }
 
 type InitiatePaymentRequest struct {

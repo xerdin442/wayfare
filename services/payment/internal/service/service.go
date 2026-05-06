@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,13 +21,9 @@ import (
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
+	"github.com/xerdin442/wayfare/shared/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-)
-
-var (
-	ErrGatewayUnavailable = errors.New("payment gateway is currently unavailable")
-	ErrApiRequestFailure  = errors.New("failed to send api request")
 )
 
 type PaymentService struct {
@@ -54,7 +49,8 @@ func (s *PaymentService) sendApiRequest(ctx context.Context, url, secretKey stri
 	// Configure request details
 	req, err := http.NewRequestWithContext(ctx, "POST", url, payload)
 	if err != nil {
-		return nil, fmt.Errorf("Error configuring new HTTP request. %s", err.Error())
+		log.Error().Err(err).Msg("Failed to build HTTP request")
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -63,8 +59,8 @@ func (s *PaymentService) sendApiRequest(ctx context.Context, url, secretKey stri
 	// Send request to payment provider
 	response, err := s.httpClient.Do(req)
 	if err != nil {
-		log.Error().Err(err).Msg("Error sending request to payment provider")
-		return nil, ErrApiRequestFailure
+		log.Error().Err(err).Msg("Failed to send request to payment provider")
+		return nil, util.ErrApiRequestFailure
 	}
 	defer response.Body.Close()
 
@@ -72,13 +68,13 @@ func (s *PaymentService) sendApiRequest(ctx context.Context, url, secretKey stri
 		errorBody, err := io.ReadAll(response.Body)
 		if err != nil {
 			log.Error().Str("provider_url", url).Err(err).Msg("Failed to read gateway error response")
-			return nil, ErrGatewayUnavailable
+			return nil, util.ErrGatewayUnavailable
 		}
 
 		var gatewayErr contracts.GatewayErrorResponse
 		if err := json.Unmarshal(errorBody, &gatewayErr); err != nil {
 			log.Error().Str("provider_url", url).Err(err).Msg("Failed to unmarshal gateway error response")
-			return nil, ErrGatewayUnavailable
+			return nil, util.ErrGatewayUnavailable
 		}
 
 		// Log error details for debugging
@@ -91,25 +87,27 @@ func (s *PaymentService) sendApiRequest(ctx context.Context, url, secretKey stri
 			Str("error_id", gatewayErr.ErrorID).
 			Msg("Gateway error response")
 
-		return nil, ErrGatewayUnavailable
+		return nil, util.ErrGatewayUnavailable
 	}
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read API response body: %s", err.Error())
+		log.Error().Err(err).Msg("Failed to read API response body")
+		return nil, err
 	}
 
 	return body, nil
 }
 
 func (s *PaymentService) isGatewayUnavailable(err error) bool {
-	return errors.Is(err, ErrGatewayUnavailable) || errors.Is(err, ErrApiRequestFailure)
+	return err == util.ErrGatewayUnavailable || err == util.ErrApiRequestFailure
 }
 
 func (s *PaymentService) generatePaystackCheckout(ctx context.Context, req *contracts.PaystackCheckoutRequest) (string, error) {
 	payload, err := json.Marshal(req)
 	if err != nil {
-		return "", fmt.Errorf("Failed to marshal checkout request payload: %s", err.Error())
+		log.Error().Err(err).Msg("Failed to marshal paystack checkout request payload")
+		return "", err
 	}
 
 	httpResp, err := s.sendApiRequest(
@@ -124,7 +122,8 @@ func (s *PaymentService) generatePaystackCheckout(ctx context.Context, req *cont
 
 	var checkoutInfo contracts.PaystackCheckoutResponse
 	if err := json.Unmarshal(httpResp, &checkoutInfo); err != nil {
-		return "", fmt.Errorf("Failed to unmarshal response from Paystack: %v", err)
+		log.Error().Err(err).Msg("Failed to unmarshal paystack checkout response")
+		return "", err
 	}
 
 	return checkoutInfo.Data.AuthorizationUrl, nil
@@ -133,7 +132,8 @@ func (s *PaymentService) generatePaystackCheckout(ctx context.Context, req *cont
 func (s *PaymentService) generateFlutterwaveCheckout(ctx context.Context, req *contracts.FlutterwaveCheckoutRequest) (string, error) {
 	payload, err := json.Marshal(req)
 	if err != nil {
-		return "", fmt.Errorf("Failed to marshal checkout request payload: %s", err.Error())
+		log.Error().Err(err).Msg("Failed to marshal flutterwave checkout request payload")
+		return "", err
 	}
 
 	httpResp, err := s.sendApiRequest(
@@ -148,7 +148,8 @@ func (s *PaymentService) generateFlutterwaveCheckout(ctx context.Context, req *c
 
 	var checkoutInfo contracts.FlutterwaveCheckoutResponse
 	if err := json.Unmarshal(httpResp, &checkoutInfo); err != nil {
-		return "", fmt.Errorf("Failed to unmarshal response from Flutterwave: %v", err)
+		log.Error().Err(err).Msg("Failed to unmarshal flutterwave checkout response")
+		return "", err
 	}
 
 	return checkoutInfo.Data.Link, nil
@@ -169,6 +170,7 @@ func (s *PaymentService) buildCheckoutPayloads(req *pb.InitiatePaymentRequest, t
 
 	paystackMetadata, err := json.Marshal(metadata)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to marshal payment metadata for checkout request")
 		return nil, nil, err
 	}
 
@@ -236,13 +238,14 @@ func (s *PaymentService) generateCheckoutUrl(
 				log.Warn().Msg("All payment gateways are currently unavailable!")
 
 				// Update transaction details
-				if err := s.repo.UpdateTransaction(
+				err = s.repo.UpdateTransaction(
 					ctx,
 					flutterwavePayload.TxRef,
 					types.PaymentStatusAborted,
 					types.ProviderFlutterwave,
-				); err != nil {
-					return "", err
+				)
+				if err != nil {
+					return "", util.ErrGatewayUnavailable
 				}
 
 				// Update analytics
@@ -252,11 +255,12 @@ func (s *PaymentService) generateCheckoutUrl(
 					PaymentStatus:   types.PaymentStatusAborted,
 					Amount:          decimal.NewFromInt(flutterwavePayload.Amount),
 				}
-				if err := analytics.SendEvent(ctx, s.bus, tripEvent); err != nil {
-					return "", err
+				err = analytics.SendEvent(ctx, s.bus, tripEvent)
+				if err != nil {
+					return "", util.ErrGatewayUnavailable
 				}
 
-				return "", err
+				return "", util.ErrGatewayUnavailable
 			}
 
 			log.Warn().Int("attempt", i+1).Msgf("%v gateway is currently unavailable. retrying...", provider)
@@ -275,7 +279,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 	// Check for pending transaction from unfinished checkout session
 	existingTxn, err := s.repo.GetTransactionByTripID(ctx, req.TripId)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	if existingTxn != nil {
@@ -289,7 +293,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 			Type:   types.TransactionCheckout,
 		})
 		if err != nil {
-			return nil, status.Error(codes.Internal, err.Error())
+			return nil, status.Error(codes.Internal, "internal server error")
 		}
 	}
 
@@ -299,7 +303,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 	// Configure checkout request payloads
 	paystackPayload, flutterwavePayload, err := s.buildCheckoutPayloads(req, txnID)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "Error building checkout payload")
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	// Generate checkout url
@@ -313,18 +317,17 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 
 			// Retry payment attempt with fallback gateway
 			checkoutUrl, err = s.generateCheckoutUrl(ctx, types.ProviderFlutterwave, nil, flutterwavePayload)
-
 			if err != nil {
 				// Notify the client that payment gateways are unavailable
 				if s.isGatewayUnavailable(err) {
-					return nil, status.Error(codes.Unavailable, "Payment gateway is currently unavailable")
+					return nil, status.Error(codes.Unavailable, err.Error())
 				}
 
-				return nil, status.Error(codes.Internal, "Error generating checkout url")
+				return nil, status.Error(codes.Internal, "internal server error")
 			}
 		}
 
-		return nil, status.Error(codes.Internal, "Error generating checkout url")
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	return &pb.InitiatePaymentResponse{CheckoutUrl: checkoutUrl}, nil

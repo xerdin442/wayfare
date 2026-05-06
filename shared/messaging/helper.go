@@ -88,7 +88,6 @@ type PaymentWebhookPayload struct {
 
 type DriverPayoutPayload struct {
 	Drivers []*models.DriverModel `json:"drivers"`
-	Retry   bool                  `json:"retry,omitempty"`
 }
 
 type AnalyticsQueuePayload struct {

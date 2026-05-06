@@ -3,13 +3,13 @@ package repo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/models"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/types"
+	"github.com/xerdin442/wayfare/shared/util"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"golang.org/x/crypto/bcrypt"
@@ -39,18 +39,21 @@ func NewDriverRepository(db *mongo.Database) *DriverRepository {
 }
 
 func (r *DriverRepository) GetDriverByID(ctx context.Context, driverId string) (*models.DriverModel, error) {
-	driverIDHex, err := bson.ObjectIDFromHex(driverId)
+	driverIdHex, err := bson.ObjectIDFromHex(driverId)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid driver ID: %v", err)
+		log.Error().Err(err).Str("id", driverId).Msg("Invalid driver ID")
+		return nil, err
 	}
 
 	var driver models.DriverModel
-	err = r.driverColl.FindOne(ctx, bson.M{"_id": driverIDHex}).Decode(&driver)
+	err = r.driverColl.FindOne(ctx, bson.M{"_id": driverIdHex}).Decode(&driver)
 	if err != nil {
+		log.Error().Err(err).Str("collection", "drivers").Msg("Database query error")
+
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("Driver not found")
+			return nil, util.ErrDocumentNotFound
 		}
-		return nil, fmt.Errorf("Error fetching driver: %v", err)
+		return nil, err
 	}
 
 	return &driver, nil
@@ -60,10 +63,8 @@ func (r *DriverRepository) GetDriverByEmail(ctx context.Context, email string) (
 	var driver models.DriverModel
 	err := r.driverColl.FindOne(ctx, bson.M{"email": email}).Decode(&driver)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("Driver not found")
-		}
-		return nil, fmt.Errorf("Error fetching driver: %v", err)
+		log.Error().Err(err).Str("collection", "drivers").Msg("Database query error")
+		return nil, err
 	}
 
 	return &driver, nil
@@ -73,7 +74,8 @@ func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *pb.
 	// Generate password hash
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(details.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to hash password: %v", err)
+		log.Error().Err(err).Msg("Failed to hash password")
+		return nil, err
 	}
 
 	driver := &models.DriverModel{
@@ -92,21 +94,24 @@ func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *pb.
 		PendingReturns:        0,
 		OutstandingReturns:    0,
 		TransferRecipientCode: details.TransferRecipientCode,
+		Tier:                  types.TierBronze,
 		CreatedAt:             time.Now(),
 		UpdatedAt:             time.Now(),
 	}
 
 	if _, err := r.driverColl.InsertOne(ctx, driver); err != nil {
-		return nil, fmt.Errorf("Failed to create driver account: %v", err)
+		log.Error().Err(err).Str("collection", "drivers").Msg("Database insert error")
+		return nil, err
 	}
 
 	return driver, nil
 }
 
-func (r *DriverRepository) UpdateDriverDetails(ctx context.Context, driverID string, data *DriverUpdateData) error {
-	driverIDHex, err := bson.ObjectIDFromHex(driverID)
+func (r *DriverRepository) UpdateDriverDetails(ctx context.Context, driverId string, data *DriverUpdateData) error {
+	driverIdHex, err := bson.ObjectIDFromHex(driverId)
 	if err != nil {
-		return fmt.Errorf("Invalid driver ID: %v", err)
+		log.Error().Err(err).Str("id", driverId).Msg("Invalid driver ID")
+		return err
 	}
 
 	setFields := bson.M{
@@ -136,8 +141,9 @@ func (r *DriverRepository) UpdateDriverDetails(ctx context.Context, driverID str
 		updateData["$inc"] = incFields
 	}
 
-	if _, err := r.driverColl.UpdateOne(ctx, bson.M{"_id": driverIDHex}, updateData); err != nil {
-		return fmt.Errorf("Failed to update driver details: %v", err)
+	if _, err := r.driverColl.UpdateOne(ctx, bson.M{"_id": driverIdHex}, updateData); err != nil {
+		log.Error().Err(err).Str("collection", "drivers").Msg("Database update error")
+		return err
 	}
 
 	return nil
@@ -170,20 +176,26 @@ func (r *DriverRepository) BatchResetBalances(ctx context.Context) error {
 		}}},
 	}
 
-	_, err := r.driverColl.UpdateMany(ctx, bson.M{}, pipeline)
-	return err
+	if _, err := r.driverColl.UpdateMany(ctx, bson.M{}, pipeline); err != nil {
+		log.Error().Err(err).Str("collection", "drivers").Msg("Database update error")
+		return err
+	}
+
+	return nil
 }
 
 func (r *DriverRepository) GetDriversForPayout(ctx context.Context) ([]*models.DriverModel, error) {
 	cursor, err := r.driverColl.Find(ctx, bson.M{"pending_payout": bson.M{"$gt": 0}})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to fetch drivers for payout: %v", err)
+		log.Error().Err(err).Str("collection", "drivers").Msg("Database query error")
+		return nil, err
 	}
 	defer cursor.Close(ctx)
 
 	var drivers []*models.DriverModel
 	if err := cursor.All(ctx, &drivers); err != nil {
-		return nil, fmt.Errorf("Failed to decode drivers: %v", err)
+		log.Error().Err(err).Str("collection", "drivers").Msg("Database cursor error")
+		return nil, err
 	}
 
 	return drivers, nil
@@ -199,7 +211,8 @@ func (r *DriverRepository) ResetPendingPayout(ctx context.Context, recipientCode
 	}
 
 	if _, err := r.driverColl.UpdateOne(ctx, filter, update); err != nil {
-		return fmt.Errorf("Failed to reset pending payout for recipient %s: %v", recipientCode, err)
+		log.Error().Err(err).Str("collection", "drivers").Msg("Database update error")
+		return err
 	}
 
 	return nil

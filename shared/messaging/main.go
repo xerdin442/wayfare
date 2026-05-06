@@ -143,7 +143,7 @@ func (r *RabbitMQ) PublishMessage(ctx context.Context, exchange AmqpExchange, ro
 	jsonMsg, err := json.Marshal(msg)
 	if err != nil {
 		tracing.HandleError(span, err)
-		return fmt.Errorf("Failed to marshal AMQP payload: %v", err)
+		return fmt.Errorf("failed to marshal AMQP payload")
 	}
 	payload := amqp.Publishing{
 		ContentType:  "text/plain",
@@ -159,17 +159,34 @@ func (r *RabbitMQ) PublishMessage(ctx context.Context, exchange AmqpExchange, ro
 	otel.GetTextMapPropagator().Inject(traceCtx, carrier)
 	payload.Headers = amqp.Table(carrier)
 
-	return r.channel.PublishWithContext(traceCtx,
+	err = r.channel.PublishWithContext(traceCtx,
 		string(exchange),   // exchange
 		string(routingKey), // routing key
 		false,              // mandatory
 		false,              // immediate
 		payload,
 	)
+	if err != nil {
+		tracing.HandleError(span, err)
+
+		log.Error().Err(err).
+			Str("exchange", string(exchange)).
+			Str("routing_key", string(routingKey)).
+			Msg("AMQP event publish error")
+
+		return fmt.Errorf("failed to publish AMQP message")
+	}
+
+	return nil
 }
 
 func (r *RabbitMQ) setupExchangesAndQueues() error {
-	exchanges := []AmqpExchange{GatewayExchange, ServicesExchange, DeadLetterExchange}
+	exchanges := []AmqpExchange{
+		GatewayExchange,
+		ServicesExchange,
+		AnalyticsExchange,
+		DeadLetterExchange,
+	}
 
 	for _, exchange := range exchanges {
 		err := r.channel.ExchangeDeclare(
@@ -262,7 +279,7 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 }
 
 func (r *RabbitMQ) declareAndBindQueue(queueName AmqpQueue, messageTypes []AmqpEvent, exchange AmqpExchange) error {
-	// Add dead letter configuration
+	// Add configuration for dead letter queue
 	args := amqp.Table{
 		"x-dead-letter-exchange": DeadLetterExchange,
 	}

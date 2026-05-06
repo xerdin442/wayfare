@@ -84,7 +84,7 @@ k8s_yaml('./infra/development/k8s/trip-service-deployment.yaml')
 k8s_resource(
   'trip-service',
   port_forwards=2112,
-  resource_deps=['mongodb', 'rabbitmq'],
+  resource_deps=['mongodb', 'rabbitmq', 'clickhouse'],
   labels="services",
 )
 
@@ -111,7 +111,7 @@ k8s_yaml('./infra/development/k8s/driver-service-deployment.yaml')
 k8s_resource(
   'driver-service',
   port_forwards=2112,
-  resource_deps=['redis', 'mongodb', 'rabbitmq'],
+  resource_deps=['redis', 'mongodb', 'rabbitmq', 'clickhouse'],
   labels="services",
 )
 
@@ -165,7 +165,7 @@ k8s_yaml('./infra/development/k8s/payment-service-deployment.yaml')
 k8s_resource(
   'payment-service',
   port_forwards=2112,
-  resource_deps=['redis', 'mongodb', 'rabbitmq'],
+  resource_deps=['redis', 'mongodb', 'rabbitmq', 'clickhouse'],
   labels="services",
 )
 

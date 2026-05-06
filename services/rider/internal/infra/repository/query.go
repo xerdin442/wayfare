@@ -3,12 +3,12 @@ package repo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/models"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/util"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"golang.org/x/crypto/bcrypt"
@@ -32,16 +32,19 @@ func NewRiderRepository(db *mongo.Database) *RiderRepository {
 func (r *RiderRepository) GetRiderByID(ctx context.Context, riderId string) (*models.RiderModel, error) {
 	riderIDHex, err := bson.ObjectIDFromHex(riderId)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid rider ID: %v", err)
+		log.Error().Err(err).Str("id", riderId).Msg("Invalid rider ID")
+		return nil, err
 	}
 
 	var rider models.RiderModel
 	err = r.riderColl.FindOne(ctx, bson.M{"_id": riderIDHex}).Decode(&rider)
 	if err != nil {
+		log.Error().Err(err).Str("collection", "riders").Msg("Database query error")
+
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("Rider not found")
+			return nil, util.ErrDocumentNotFound
 		}
-		return nil, fmt.Errorf("Error fetching rider: %v", err)
+		return nil, err
 	}
 
 	return &rider, nil
@@ -51,10 +54,8 @@ func (r *RiderRepository) GetRiderByEmail(ctx context.Context, email string) (*m
 	var rider models.RiderModel
 	err := r.riderColl.FindOne(ctx, bson.M{"email": email}).Decode(&rider)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("Rider not found")
-		}
-		return nil, fmt.Errorf("Error fetching rider: %v", err)
+		log.Error().Err(err).Str("collection", "riders").Msg("Database query error")
+		return nil, err
 	}
 
 	return &rider, nil
@@ -64,7 +65,8 @@ func (r *RiderRepository) CreateRiderAccount(ctx context.Context, details *pb.Si
 	// Generate password hash
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(details.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to hash password: %v", err)
+		log.Error().Err(err).Msg("Failed to hash password")
+		return nil, err
 	}
 
 	rider := &models.RiderModel{
@@ -79,7 +81,8 @@ func (r *RiderRepository) CreateRiderAccount(ctx context.Context, details *pb.Si
 
 	_, err = r.riderColl.InsertOne(ctx, rider)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create rider account: %v", err)
+		log.Error().Err(err).Str("collection", "riders").Msg("Database insert error")
+		return nil, err
 	}
 
 	return rider, nil

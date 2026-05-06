@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/models"
 	"github.com/xerdin442/wayfare/shared/types"
+	"github.com/xerdin442/wayfare/shared/util"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -35,37 +36,39 @@ func NewPaymentRepository(db *mongo.Database) *PaymentRepository {
 	}
 }
 
-func (r *PaymentRepository) GetTransactionByID(ctx context.Context, txnID string) (*models.TransactionModel, error) {
-	txnIDHex, err := bson.ObjectIDFromHex(txnID)
+func (r *PaymentRepository) GetTransactionByID(ctx context.Context, txnId string) (*models.TransactionModel, error) {
+	txnIdHex, err := bson.ObjectIDFromHex(txnId)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid transaction ID: %v", err)
+		log.Error().Err(err).Str("id", txnId).Msg("Invalid transaction ID")
+		return nil, err
 	}
 
 	var transaction models.TransactionModel
-	err = r.txnColl.FindOne(ctx, bson.M{"_id": txnIDHex}).Decode(&transaction)
+	err = r.txnColl.FindOne(ctx, bson.M{"_id": txnIdHex}).Decode(&transaction)
 	if err != nil {
+		log.Error().Err(err).Str("collection", "transactions").Msg("Database query error")
+
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("Transaction not found")
+			return nil, util.ErrDocumentNotFound
 		}
-		return nil, fmt.Errorf("Error fetching transaction: %v", err)
+		return nil, err
 	}
 
 	return &transaction, nil
 }
 
-func (r *PaymentRepository) GetTransactionByTripID(ctx context.Context, tripID string) (*models.TransactionModel, error) {
-	tripIDHex, err := bson.ObjectIDFromHex(tripID)
+func (r *PaymentRepository) GetTransactionByTripID(ctx context.Context, tripId string) (*models.TransactionModel, error) {
+	tripIdHex, err := bson.ObjectIDFromHex(tripId)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid trip ID: %v", err)
+		log.Error().Err(err).Str("id", tripId).Msg("Invalid trip ID")
+		return nil, err
 	}
 
 	var transaction models.TransactionModel
-	err = r.txnColl.FindOne(ctx, bson.M{"trip_id": tripIDHex}).Decode(&transaction)
+	err = r.txnColl.FindOne(ctx, bson.M{"trip_id": tripIdHex}).Decode(&transaction)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("Transaction not found")
-		}
-		return nil, fmt.Errorf("Error fetching transaction: %v", err)
+		log.Error().Err(err).Str("collection", "transactions").Msg("Database query error")
+		return nil, err
 	}
 
 	return &transaction, nil
@@ -84,11 +87,13 @@ func (r *PaymentRepository) CreateTransaction(ctx context.Context, data *CreateT
 	if data.TripID != "" {
 		tripIDHex, err := bson.ObjectIDFromHex(data.TripID)
 		if err != nil {
-			return "", fmt.Errorf("Invalid trip ID: %v", err)
+			log.Error().Err(err).Str("id", data.TripID).Msg("Invalid trip ID")
+			return "", err
 		}
 
 		if data.Type != types.TransactionCheckout {
-			return "", fmt.Errorf("Invalid payload type for checkout transaction: %v", data.Type)
+			log.Error().Str("type", string(data.Type)).Msg("Invalid payload type for checkout transaction")
+			return "", fmt.Errorf("invalid payload type for checkout transaction")
 		}
 
 		txn.TripID = tripIDHex
@@ -96,14 +101,16 @@ func (r *PaymentRepository) CreateTransaction(ctx context.Context, data *CreateT
 
 	if data.DriverRecipientCode != "" {
 		if data.Type != types.TransactionPayout {
-			return "", fmt.Errorf("Invalid payload type for payout transaction: %v", data.Type)
+			log.Error().Str("type", string(data.Type)).Msg("Invalid payload type for payout transaction")
+			return "", fmt.Errorf("invalid payload type for payout transaction")
 		}
 
 		txn.DriverRecipientCode = data.DriverRecipientCode
 	}
 
 	if _, err := r.txnColl.InsertOne(ctx, txn); err != nil {
-		return "", fmt.Errorf("Failed to insert transaction document: %v", err)
+		log.Error().Err(err).Str("collection", "transactions").Msg("Database insert error")
+		return "", err
 	}
 
 	return txn.ID.Hex(), nil
@@ -125,7 +132,8 @@ func (r *PaymentRepository) CreateBatchTransactions(ctx context.Context, data []
 
 	result, err := r.txnColl.InsertMany(ctx, txns)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to insert batch transactions: %v", err)
+		log.Error().Err(err).Str("collection", "transactions").Msg("Database insert error")
+		return nil, err
 	}
 
 	var ids []string
@@ -136,10 +144,11 @@ func (r *PaymentRepository) CreateBatchTransactions(ctx context.Context, data []
 	return ids, nil
 }
 
-func (r *PaymentRepository) UpdateTransaction(ctx context.Context, txnID string, status types.PaymentStatus, provider types.PaymentProvider) error {
-	txnIDHex, err := bson.ObjectIDFromHex(txnID)
+func (r *PaymentRepository) UpdateTransaction(ctx context.Context, txnId string, status types.PaymentStatus, provider types.PaymentProvider) error {
+	txnIdHex, err := bson.ObjectIDFromHex(txnId)
 	if err != nil {
-		return fmt.Errorf("Invalid transaction ID: %v", err)
+		log.Error().Err(err).Str("id", txnId).Msg("Invalid transaction ID")
+		return err
 	}
 
 	updateData := bson.M{
@@ -155,8 +164,9 @@ func (r *PaymentRepository) UpdateTransaction(ctx context.Context, txnID string,
 		"$set": updateData,
 	}
 
-	if _, err = r.txnColl.UpdateOne(ctx, bson.M{"_id": txnIDHex}, update); err != nil {
-		return fmt.Errorf("Failed to update transaction document: %v", err)
+	if _, err = r.txnColl.UpdateOne(ctx, bson.M{"_id": txnIdHex}, update); err != nil {
+		log.Error().Err(err).Str("collection", "transactions").Msg("Database update error")
+		return err
 	}
 
 	return nil
@@ -167,8 +177,10 @@ func (r *PaymentRepository) UpdateBatchTransactions(ctx context.Context, txnIDs 
 	for _, id := range txnIDs {
 		hex, err := bson.ObjectIDFromHex(id)
 		if err != nil {
-			return fmt.Errorf("Invalid transaction ID in batch: %v", err)
+			log.Error().Err(err).Str("id", id).Msg("Invalid transaction ID in batch")
+			return err
 		}
+
 		idsHex = append(idsHex, hex)
 	}
 
@@ -186,7 +198,8 @@ func (r *PaymentRepository) UpdateBatchTransactions(ctx context.Context, txnIDs 
 	}
 
 	if _, err := r.txnColl.UpdateMany(ctx, bson.M{"_id": bson.M{"$in": idsHex}}, update); err != nil {
-		return fmt.Errorf("Failed to update batch transactions: %v", err)
+		log.Error().Err(err).Str("collection", "transactions").Msg("Database update error")
+		return err
 	}
 
 	return nil
@@ -201,13 +214,15 @@ func (r *PaymentRepository) GetRecentPayoutTransactions(ctx context.Context, rec
 
 	cursor, err := r.txnColl.Find(ctx, filter)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to fetch recent payout transactions: %v", err)
+		log.Error().Err(err).Str("collection", "transactions").Msg("Database query error")
+		return nil, err
 	}
 	defer cursor.Close(ctx)
 
 	var transactions []*models.TransactionModel
 	if err := cursor.All(ctx, &transactions); err != nil {
-		return nil, fmt.Errorf("Failed to decode payout transactions: %v", err)
+		log.Error().Err(err).Str("collection", "transactions").Msg("Database cursor error")
+		return nil, err
 	}
 
 	return transactions, nil

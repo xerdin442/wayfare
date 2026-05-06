@@ -58,14 +58,14 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 		var req *types.PaystackWebhookPayload
 		if err := c.ShouldBindJSON(&req); err != nil {
 			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Error parsing Paystack webhook payload")
+			logger.Error().Err(err).Msg("Error parsing paystack webhook payload")
 			c.Status(http.StatusBadRequest)
 			return
 		}
 
 		if !strings.HasPrefix(req.Event, "charge.") && !strings.HasPrefix(req.Event, "transfer.") {
 			tracing.HandleError(span, ErrInvalidWebhookEvent)
-			logger.Warn().Msgf("Invalid Paystack webhook event: %s", req.Event)
+			logger.Warn().Msgf("Invalid paystack webhook event: %s", req.Event)
 			c.Status(http.StatusBadRequest)
 			return
 		}
@@ -83,14 +83,14 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 		var req *types.FlutterwaveWebhookPayload
 		if err := c.ShouldBindJSON(&req); err != nil {
 			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Error parsing Flutterwave webhook payload")
+			logger.Error().Err(err).Msg("Error parsing flutterwave webhook payload")
 			c.Status(http.StatusBadRequest)
 			return
 		}
 
 		if !strings.HasPrefix(req.Event, "charge.") {
 			tracing.HandleError(span, ErrInvalidWebhookEvent)
-			logger.Warn().Msg("Invalid Flutterwave webhook event")
+			logger.Warn().Msg("Invalid flutterwave webhook event")
 			c.Status(http.StatusBadRequest)
 			return
 		}
@@ -120,7 +120,6 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 		messaging.AmqpMessage{Data: paymentServiceData},
 	); err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msgf("Failed to publish %s event", messaging.PaymentEventWebhookReceived)
 		c.Status(http.StatusInternalServerError)
 		return
 	}

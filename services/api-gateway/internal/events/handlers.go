@@ -32,18 +32,24 @@ func (h *GatewayEventsHandler) HandleOutgoingWebsocketMessages(ctx context.Conte
 		return fmt.Errorf("Failed to unmarshal payload from %s event: %v", p.RoutingKey, err)
 	}
 
-	userID := strings.TrimPrefix(p.RoutingKey, "user.")
-	val, exists := h.cfg.ConnManager.Load(userID)
+	userId := strings.TrimPrefix(p.RoutingKey, "user.")
+	val, exists := h.cfg.ConnManager.Load(userId)
 
 	if !exists {
 		switch payload.Type {
 		case messaging.DriverEventTripRequest:
+			var response types.Trip
+			dataBytes, _ := json.Marshal(payload.Data)
+			if err := json.Unmarshal(dataBytes, &response); err != nil {
+				return fmt.Errorf("Failed to unmarshal trip_request response: %v", err)
+			}
+
 			// Find another driver if the previously matched driver is offline
 			data, err := json.Marshal(messaging.AssignDriverQueuePayload{
-				Trip: payload.Data.(types.Trip),
+				Trip: response,
 			})
 			if err != nil {
-				return fmt.Errorf("Could not marshal payload: %v", err)
+				return fmt.Errorf("Failed to marshal assign_driver queue payload: %v", err)
 			}
 
 			if err := h.cfg.Queue.PublishMessage(
@@ -52,17 +58,21 @@ func (h *GatewayEventsHandler) HandleOutgoingWebsocketMessages(ctx context.Conte
 				messaging.TripEventDriverNotAvailable,
 				messaging.AmqpMessage{Data: data},
 			); err != nil {
-				return fmt.Errorf("Failed to publish %s event: %v", messaging.TripEventDriverNotAvailable, err)
+				return err
 			}
 		case messaging.TripEventDriverAssigned:
-			response := payload.Data.(contracts.DriverAssignedResponse)
+			var response contracts.DriverAssignedResponse
+			dataBytes, _ := json.Marshal(payload.Data)
+			if err := json.Unmarshal(dataBytes, &response); err != nil {
+				return fmt.Errorf("Failed to unmarshal driver_assigned response: %v", err)
+			}
 
 			// Abort trip if the rider is offline when a driver accepts the trip request
 			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
 				TripID: response.Trip.ID,
 			})
 			if err != nil {
-				return fmt.Errorf("Could not marshal payload: %v", err)
+				return fmt.Errorf("Failed to marshal trip_update queue payload: %v", err)
 			}
 
 			if err := h.cfg.Queue.PublishMessage(
@@ -71,7 +81,7 @@ func (h *GatewayEventsHandler) HandleOutgoingWebsocketMessages(ctx context.Conte
 				messaging.TripCmdAborted,
 				messaging.AmqpMessage{Data: tripServiceData},
 			); err != nil {
-				return fmt.Errorf("Failed to publish %s event: %v", messaging.TripCmdAborted, err)
+				return err
 			}
 
 			// Notify the driver that the trip has been aborted
@@ -79,7 +89,7 @@ func (h *GatewayEventsHandler) HandleOutgoingWebsocketMessages(ctx context.Conte
 				Type: messaging.TripCmdAborted,
 			})
 			if err != nil {
-				return fmt.Errorf("Could not marshal payload: %v", err)
+				return fmt.Errorf("Failed to marshal websocket message: %v", err)
 			}
 
 			if err := h.cfg.Queue.PublishMessage(
@@ -88,10 +98,10 @@ func (h *GatewayEventsHandler) HandleOutgoingWebsocketMessages(ctx context.Conte
 				messaging.AmqpEvent(fmt.Sprintf("user.%s", response.Driver.ID)),
 				messaging.AmqpMessage{Data: gatewayData},
 			); err != nil {
-				return fmt.Errorf("Failed to publish %s event: %v", messaging.TripCmdAborted, err)
+				return err
 			}
 		default:
-			return fmt.Errorf("Invalid user ID received by gateway queue: %s", userID)
+			return fmt.Errorf("Invalid user ID received by gateway queue: %s", userId)
 		}
 	}
 

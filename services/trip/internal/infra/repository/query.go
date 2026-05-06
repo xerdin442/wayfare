@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/paulmach/orb"
@@ -11,6 +10,7 @@ import (
 	"github.com/xerdin442/wayfare/shared/models"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/types"
+	"github.com/xerdin442/wayfare/shared/util"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -61,15 +61,17 @@ func NewTripRepository(db *mongo.Database) *TripRepository {
 	}
 }
 
-func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.RideFare, route models.RouteDetails, userID, regionID string) error {
-	userIDHex, err := bson.ObjectIDFromHex(userID)
+func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.RideFare, route models.RouteDetails, userId, regionId string) error {
+	userIdHex, err := bson.ObjectIDFromHex(userId)
 	if err != nil {
-		return fmt.Errorf("Invalid user ID: %v", err)
+		log.Error().Err(err).Str("id", userId).Msg("Invalid user ID")
+		return err
 	}
 
-	regionIDHex, err := bson.ObjectIDFromHex(regionID)
+	regionIdHex, err := bson.ObjectIDFromHex(regionId)
 	if err != nil {
-		return fmt.Errorf("Invalid region ID: %v", err)
+		log.Error().Err(err).Str("id", regionId).Msg("Invalid region ID")
+		return err
 	}
 
 	docs := make([]*models.RideFareModel, 0, len(rideFares))
@@ -77,8 +79,8 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.Rid
 	for _, fare := range rideFares {
 		docs = append(docs, &models.RideFareModel{
 			ID:         bson.NewObjectID(),
-			UserID:     userIDHex,
-			RegionID:   regionIDHex,
+			UserID:     userIdHex,
+			RegionID:   regionIdHex,
 			CarPackage: types.CarPackage(fare.PackageSlug),
 			Amount:     fare.Amount,
 			ExpiresAt:  time.Now().Add(15 * time.Minute), // Documents are dropped after 15mins
@@ -89,7 +91,8 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.Rid
 	}
 
 	if _, err := r.rideFareColl.InsertMany(ctx, docs); err != nil {
-		return fmt.Errorf("Failed to insert ride_fare documents: %v", err)
+		log.Error().Err(err).Str("collection", "ride_fares").Msg("Database insert error")
+		return err
 	}
 
 	return nil
@@ -110,68 +113,82 @@ func (r *TripRepository) GetPricingPerRegion(ctx context.Context, pickupCoords o
 
 	var region models.RegionModel
 	err := r.regionColl.FindOne(ctx, filter).Decode(&region)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return nil, fmt.Errorf("Wayfare is not available in this location")
+	if err != nil {
+		log.Error().Err(err).Str("collection", "regions").Msg("Database query error")
+
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, util.ErrUnsupportedLocation
+		}
+		return nil, err
 	}
 
 	// Get available pricing categories for the region
 	cursor, err := r.pricingColl.Find(ctx, bson.M{"region_id": region.ID})
 	if err != nil {
-		return nil, fmt.Errorf("Error fetching pricing categories: %v", err)
+		log.Error().Err(err).Str("collection", "pricing").Msg("Database query error")
+		return nil, err
 	}
 	defer cursor.Close(ctx)
 
 	var pricingModels []*models.PricingModel
 	if err := cursor.All(ctx, &pricingModels); err != nil {
-		return nil, fmt.Errorf("Error parsing pricing model documents: %v", err)
+		log.Error().Err(err).Str("collection", "pricing").Msg("Database cursor error")
+		return nil, err
 	}
 	if len(pricingModels) == 0 {
-		return nil, fmt.Errorf("No pricing categories found for this region")
+		return nil, util.ErrUnsupportedLocation
 	}
 
 	return pricingModels, nil
 }
 
 func (r *TripRepository) GetTripByID(ctx context.Context, tripId string) (*models.TripModel, error) {
-	tripIDHex, err := bson.ObjectIDFromHex(tripId)
+	tripIdHex, err := bson.ObjectIDFromHex(tripId)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid trip ID: %v", err)
+		log.Error().Err(err).Str("id", tripId).Msg("Invalid trip ID")
+		return nil, err
 	}
 
 	var trip models.TripModel
-	err = r.tripColl.FindOne(ctx, bson.M{"_id": tripIDHex}).Decode(&trip)
+	err = r.tripColl.FindOne(ctx, bson.M{"_id": tripIdHex}).Decode(&trip)
 	if err != nil {
+		log.Error().Err(err).Str("collection", "trips").Msg("Database query error")
+
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("Trip not found")
+			return nil, util.ErrDocumentNotFound
 		}
-		return nil, fmt.Errorf("Error fetching trip: %v", err)
+		return nil, err
 	}
 
 	return &trip, nil
 }
 
-func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) (*models.TripModel, error) {
-	userIDHex, err := bson.ObjectIDFromHex(userID)
+func (r *TripRepository) CreateTrip(ctx context.Context, fareId, userId string) (*models.TripModel, error) {
+	userIdHex, err := bson.ObjectIDFromHex(userId)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid user ID: %v", err)
+		log.Error().Err(err).Str("id", userId).Msg("Invalid user ID")
+		return nil, err
 	}
 
-	fareIDHex, err := bson.ObjectIDFromHex(fareID)
+	fareIdHex, err := bson.ObjectIDFromHex(fareId)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid ride fare ID: %v", err)
+		log.Error().Err(err).Str("id", fareId).Msg("Invalid ride fare ID")
+		return nil, err
 	}
 
 	var rideFare models.RideFareModel
 	err = r.rideFareColl.FindOne(ctx, bson.M{
-		"_id":     fareIDHex,
-		"user_id": userIDHex,
+		"_id":     fareIdHex,
+		"user_id": userIdHex,
 	}).Decode(&rideFare)
 
 	if err != nil {
+		log.Error().Err(err).Str("collection", "ride_fares").Msg("Database query error")
+
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("Invalid or expired ride fare")
+			return nil, util.ErrTripSessionExpired
 		}
-		return nil, fmt.Errorf("Error fetching ride fare: %v", err)
+		return nil, err
 	}
 
 	var region models.RegionModel
@@ -180,15 +197,13 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 	}).Decode(&region)
 
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("Region not found with ID: %v", rideFare.RegionID)
-		}
-		return nil, fmt.Errorf("Error fetching region: %v", err)
+		log.Error().Err(err).Str("collection", "regions").Msg("Database query error")
+		return nil, err
 	}
 
 	trip := &models.TripModel{
 		ID:         bson.NewObjectID(),
-		UserID:     userIDHex,
+		UserID:     userIdHex,
 		Region:     region.Name,
 		Status:     types.TripStatusSearching,
 		RideFare:   rideFare.Amount,
@@ -199,27 +214,30 @@ func (r *TripRepository) CreateTrip(ctx context.Context, fareID, userID string) 
 	}
 
 	if _, err = r.tripColl.InsertOne(ctx, trip); err != nil {
-		return nil, fmt.Errorf("Failed to insert trip document: %v", err)
+		log.Error().Err(err).Str("collection", "trips").Msg("Database insert error")
+		return nil, err
 	}
 
 	return trip, nil
 }
 
-func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, data *TripUpdateData) (*models.TripModel, error) {
-	tripIDHex, err := bson.ObjectIDFromHex(tripID)
+func (r *TripRepository) UpdateTrip(ctx context.Context, tripId string, data *TripUpdateData) (*models.TripModel, error) {
+	tripIdHex, err := bson.ObjectIDFromHex(tripId)
 	if err != nil {
-		return nil, fmt.Errorf("Invalid trip ID: %v", err)
+		log.Error().Err(err).Str("id", tripId).Msg("Invalid trip ID")
+		return nil, err
 	}
 
 	updateData := bson.M{}
 
 	if data.DriverID != "" {
-		driverIDHex, err := bson.ObjectIDFromHex(data.DriverID)
+		driverIdHex, err := bson.ObjectIDFromHex(data.DriverID)
 		if err != nil {
-			return nil, fmt.Errorf("Invalid driver ID: %v", err)
+			log.Error().Err(err).Str("id", data.DriverID).Msg("Invalid driver ID")
+			return nil, err
 		}
 
-		updateData["driver_id"] = driverIDHex
+		updateData["driver_id"] = driverIdHex
 	}
 
 	if data.NewStatus != "" {
@@ -247,11 +265,12 @@ func (r *TripRepository) UpdateTrip(ctx context.Context, tripID string, data *Tr
 		"$set": updateData,
 	}
 
-	if _, err := r.tripColl.UpdateOne(ctx, bson.M{"_id": tripIDHex}, update); err != nil {
-		return nil, fmt.Errorf("Failed to update trip document: %v", err)
+	if _, err := r.tripColl.UpdateOne(ctx, bson.M{"_id": tripIdHex}, update); err != nil {
+		log.Error().Err(err).Str("collection", "trips").Msg("Database update error")
+		return nil, err
 	}
 
-	return r.GetTripByID(ctx, tripID)
+	return r.GetTripByID(ctx, tripId)
 }
 
 func (r *TripRepository) UpdateDriverRatingAndTier(ctx context.Context) error {
@@ -328,7 +347,9 @@ func (r *TripRepository) UpdateDriverRatingAndTier(ctx context.Context) error {
 
 	cursor, err := r.tripColl.Aggregate(ctx, pipeline)
 	if err != nil {
-		return fmt.Errorf("Failed to aggregate and update ratings: %v", err)
+		log.Error().Err(err).Str("collection", "trips").Msg("Database update error")
+		return err
 	}
+
 	return cursor.Close(ctx)
 }

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -11,10 +10,8 @@ import (
 	"github.com/xerdin442/wayfare/shared/contracts"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
-)
-
-var (
-	ErrRequestAlreadyProcessed = errors.New("Request is already being processed")
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (h *RouteHandler) HandleTripPreview(c *gin.Context) {
@@ -43,6 +40,19 @@ func (h *RouteHandler) HandleTripPreview(c *gin.Context) {
 	if err != nil {
 		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msg("Error requesting trip preview")
+
+		st, ok := status.FromError(err)
+		if ok {
+			switch st.Code() {
+			case codes.InvalidArgument:
+				c.JSON(http.StatusBadRequest, gin.H{"error": st.Message()})
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to request trip preview"})
+			}
+
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to request trip preview"})
 		return
 	}
@@ -62,20 +72,33 @@ func (h *RouteHandler) HandleStartTrip(c *gin.Context) {
 	var req contracts.StartTripRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Error parsing start trip request")
+		logger.Error().Err(err).Msg("Start trip request failed")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	response, err := h.cfg.Clients.Trip.StartTrip(ctx, &pb.StartTripRequest{
 		UserId:     userID,
-		RideFareId: req.RideFareID,
+		RideFareId: req.RideFareId,
 	})
 
 	if err != nil {
 		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msg("Start trip request failed")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not start trip"})
+
+		st, ok := status.FromError(err)
+		if ok {
+			switch st.Code() {
+			case codes.InvalidArgument:
+				c.JSON(http.StatusBadRequest, gin.H{"error": st.Message()})
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occured while starting the trip"})
+			}
+
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occured while starting the trip"})
 		return
 	}
 
@@ -89,8 +112,8 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 
 	logger := log.Ctx(ctx)
 
-	userID := c.MustGet("user_id").(string)
-	tripID := c.Param("id")
+	userId := c.MustGet("user_id").(string)
+	tripId := c.Param("id")
 
 	var req contracts.InitiatePaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -100,20 +123,20 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 		return
 	}
 
-	idempotencyKey := fmt.Sprintf("lock:payment:%s", tripID)
+	idempotencyKey := fmt.Sprintf("lock:payment:%s", tripId)
 
 	// Check if request is still being processed
 	n, err := h.cfg.Cache.Exists(ctx, idempotencyKey).Result()
 	if err != nil {
 		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msg("Error fetching idempotency lock from cache")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while processing payment"})
 		return
 	}
 
 	if n > 0 {
-		tracing.HandleError(span, ErrRequestAlreadyProcessed)
-		c.JSON(http.StatusConflict, gin.H{"error": "Request is already being processed"})
+		tracing.HandleError(span, fmt.Errorf("payment request is already being processed"))
+		c.JSON(http.StatusConflict, gin.H{"error": "Payment request is already being processed"})
 		return
 	}
 
@@ -121,25 +144,44 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 	if err := h.cfg.Cache.Set(ctx, idempotencyKey, "locked", 2*time.Minute).Err(); err != nil {
 		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msg("Error setting idempotency lock")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while processing payment"})
 		return
 	}
 
 	// Verify trip details
 	tripDetails, err := h.cfg.Clients.Trip.GetTripDetails(ctx, &pb.TripDetailsRequest{
-		TripId: tripID,
+		TripId: tripId,
 	})
 	if err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Str("trip_id", tripID).Msg("Failed to get trip details")
+		logger.Error().Err(err).Str("trip_id", tripId).Msg("Failed to get trip details")
+
+		// Remove idempotency lock if payment request fails
+		if err := h.cfg.Cache.Del(ctx, idempotencyKey).Err(); err != nil {
+			tracing.HandleError(span, err)
+			logger.Error().Err(err).Msg("Error removing idempotency lock")
+		}
+
+		st, ok := status.FromError(err)
+		if ok {
+			switch st.Code() {
+			case codes.NotFound:
+				c.JSON(http.StatusNotFound, gin.H{"error": "Could not get trip details"})
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
+			}
+
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
 		return
 	}
 
-	if tripDetails.UserId != userID {
+	if tripDetails.UserId != userId {
 		log.Warn().
 			Str("trip_owner_id", tripDetails.UserId).
-			Str("payment_request_initiator_id", userID).
+			Str("payment_request_initiator_id", userId).
 			Msg("Unauthorized payment request")
 
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized payment request"})
@@ -148,10 +190,10 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 
 	// Generate checkout link
 	checkoutResponse, err := h.cfg.Clients.Payment.InitiatePayment(ctx, &pb.InitiatePaymentRequest{
-		TripId:         tripID,
-		UserId:         userID,
+		TripId:         tripId,
+		UserId:         userId,
 		Email:          req.Email,
-		Amount:         tripDetails.RideFareAmount,
+		Amount:         tripDetails.RideFare,
 		CustomRedirect: req.CustomRedirect,
 		TripRating:     req.TripRating,
 		RiderComment:   req.RiderComment,
@@ -159,8 +201,27 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 	})
 	if err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Str("trip_id", tripID).Msg("Failed to initiate processing of payment request")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
+		logger.Error().Err(err).Str("trip_id", tripId).Msg("Failed to generate checkout url")
+
+		// Remove idempotency lock if payment request fails
+		if err := h.cfg.Cache.Del(ctx, idempotencyKey).Err(); err != nil {
+			tracing.HandleError(span, err)
+			logger.Error().Err(err).Msg("Error removing idempotency lock")
+		}
+
+		st, ok := status.FromError(err)
+		if ok {
+			switch st.Code() {
+			case codes.Unavailable:
+				c.JSON(http.StatusServiceUnavailable, gin.H{"error": st.Message()})
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while processing payment"})
+			}
+
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while processing payment"})
 		return
 	}
 

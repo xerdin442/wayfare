@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
-	"strings"
 
 	repo "github.com/xerdin442/wayfare/services/rider/internal/infra/repository"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/util"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -25,10 +25,10 @@ func NewRiderService(r *repo.RiderRepository) *RiderService {
 func (s *RiderService) GetRiderProfile(ctx context.Context, req *pb.GetProfileRequest) (*pb.RiderProfileResponse, error) {
 	rider, err := s.repo.GetRiderByID(ctx, req.UserId)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			return nil, status.Error(codes.NotFound, "Rider not found")
+		if err == util.ErrDocumentNotFound {
+			return nil, status.Error(codes.NotFound, err.Error())
 		}
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	return &pb.RiderProfileResponse{
@@ -42,32 +42,37 @@ func (s *RiderService) GetRiderProfile(ctx context.Context, req *pb.GetProfileRe
 }
 
 func (s *RiderService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.AuthResponse, error) {
-	rider, err := s.repo.GetRiderByEmail(ctx, req.Email)
+	existingRider, err := s.repo.GetRiderByEmail(ctx, req.Email)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			return nil, status.Error(codes.NotFound, "Invalid email address")
-		}
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(rider.Password), []byte(req.Password)); err != nil {
-		return nil, status.Error(codes.Unauthenticated, "Incorrect password")
+	if existingRider == nil {
+		return nil, status.Error(codes.NotFound, "invalid email address")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(existingRider.Password), []byte(req.Password)); err != nil {
+		return nil, status.Error(codes.Unauthenticated, "incorrect password")
 	}
 
 	return &pb.AuthResponse{
-		UserId: rider.ID.Hex(),
+		UserId: existingRider.ID.Hex(),
 	}, nil
 }
 
 func (s *RiderService) Signup(ctx context.Context, req *pb.SignupRiderRequest) (*pb.AuthResponse, error) {
-	_, err := s.repo.GetRiderByEmail(ctx, req.Email)
-	if err == nil {
+	existingRider, err := s.repo.GetRiderByEmail(ctx, req.Email)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal server error")
+	}
+
+	if existingRider != nil {
 		return nil, status.Error(codes.AlreadyExists, "Rider already exists with this email")
 	}
 
 	rider, err := s.repo.CreateRiderAccount(ctx, req)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	return &pb.AuthResponse{

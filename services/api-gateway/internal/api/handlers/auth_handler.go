@@ -16,10 +16,9 @@ import (
 	"github.com/xerdin442/wayfare/shared/storage"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
-)
-
-var (
-	ErrMissingRoleHeader = errors.New("missing or invalid X-User-Role header")
+	"github.com/xerdin442/wayfare/shared/util"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (h *RouteHandler) HandleSignup(c *gin.Context) {
@@ -31,8 +30,8 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 
 	role := c.GetHeader("X-User-Role")
 	if role == "" || (types.UserRole(role) != types.RoleRider && types.UserRole(role) != types.RoleDriver) {
-		tracing.HandleError(span, ErrMissingRoleHeader)
-		c.JSON(http.StatusBadRequest, gin.H{"error": ErrMissingRoleHeader.Error()})
+		tracing.HandleError(span, util.ErrMissingRoleHeader)
+		c.JSON(http.StatusBadRequest, gin.H{"error": util.ErrMissingRoleHeader.Error()})
 		return
 	}
 
@@ -53,7 +52,16 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Failed to create transfer recipient")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			switch {
+			case errors.Is(err, util.ErrAccountNameMismatch), errors.Is(err, util.ErrUnsupportedBank):
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			case errors.Is(err, util.ErrGatewayUnavailable), errors.Is(err, util.ErrApiRequestFailure):
+				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Driver signup is temporarily unavailable"})
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
+			}
+
 			return
 		}
 
@@ -61,14 +69,14 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Failed to parse profile image")
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse profile image"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Driver signup failed"})
 			return
 		}
 		defer file.Close()
 
 		if err := storage.ParseImageMimetype(file); err != nil {
 			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Unsupported MIME type")
+			logger.Error().Err(err).Msg("Unsupported file type")
 			c.JSON(http.StatusUnsupportedMediaType, gin.H{"error": err.Error()})
 			return
 		}
@@ -77,7 +85,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Cloudinary upload error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload profile image"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
 			return
 		}
 
@@ -93,7 +101,20 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Driver signup error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during signup"})
+
+			st, ok := status.FromError(err)
+			if ok {
+				switch st.Code() {
+				case codes.AlreadyExists:
+					c.JSON(http.StatusConflict, gin.H{"error": st.Message()})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
+				}
+
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
 			return
 		}
 
@@ -102,7 +123,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Token generation error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate auth token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
 			return
 		}
 
@@ -117,6 +138,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 	if types.UserRole(role) == types.RoleRider {
 		var req contracts.SignupRiderRequest
 		if err := c.ShouldBind(&req); err != nil {
+			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Failed to parse rider signup request")
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -126,22 +148,25 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		if req.ProfileImage != nil {
 			file, err := req.ProfileImage.Open()
 			if err != nil {
+				tracing.HandleError(span, err)
 				logger.Error().Err(err).Msg("Failed to parse profile image")
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse profile image"})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Rider signup failed"})
 				return
 			}
 			defer file.Close()
 
 			if err := storage.ParseImageMimetype(file); err != nil {
-				logger.Error().Err(err).Msg("Unsupported MIME type")
-				c.JSON(http.StatusUnsupportedMediaType, gin.H{"error": err.Error()})
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Unsupported file type")
+				c.JSON(http.StatusUnsupportedMediaType, gin.H{"error": "Rider signup failed"})
 				return
 			}
 
 			result, err := storage.ProcessFileUpload(ctx, file, h.cfg.Uploader)
 			if err != nil {
+				tracing.HandleError(span, err)
 				logger.Error().Err(err).Msg("Cloudinary upload error")
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload profile image"})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider signup failed"})
 				return
 			}
 			profilePicURL = result.SecureURL
@@ -156,16 +181,31 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			ProfileImage: profilePicURL,
 		})
 		if err != nil {
+			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Rider signup error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during signup"})
+
+			st, ok := status.FromError(err)
+			if ok {
+				switch st.Code() {
+				case codes.AlreadyExists:
+					c.JSON(http.StatusConflict, gin.H{"error": st.Message()})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider signup failed"})
+				}
+
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider signup failed"})
 			return
 		}
 
 		// Generate JWT token
 		token, err := middleware.GenerateToken(res.UserId, types.RoleRider, h.cfg.Env.JwtSecret)
 		if err != nil {
+			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Token generation error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate auth token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider signup failed"})
 			return
 		}
 
@@ -187,8 +227,8 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 
 	role := c.GetHeader("X-User-Role")
 	if role == "" || (types.UserRole(role) != types.RoleRider && types.UserRole(role) != types.RoleDriver) {
-		tracing.HandleError(span, ErrMissingRoleHeader)
-		c.JSON(http.StatusBadRequest, gin.H{"error": ErrMissingRoleHeader.Error()})
+		tracing.HandleError(span, util.ErrMissingRoleHeader)
+		c.JSON(http.StatusBadRequest, gin.H{"error": util.ErrMissingRoleHeader.Error()})
 		return
 	}
 
@@ -201,6 +241,7 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 	}
 
 	var authToken string
+
 	if types.UserRole(role) == types.RoleDriver {
 		res, err := h.cfg.Clients.Driver.Login(ctx, &pb.LoginRequest{
 			Email:    req.Email,
@@ -209,7 +250,22 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Driver login error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during login"})
+
+			st, ok := status.FromError(err)
+			if ok {
+				switch st.Code() {
+				case codes.NotFound, codes.Unauthenticated:
+					c.JSON(http.StatusBadRequest, gin.H{"error": st.Message()})
+				case codes.PermissionDenied:
+					c.JSON(http.StatusForbidden, gin.H{"error": st.Message()})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver login failed"})
+				}
+
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver login failed"})
 			return
 		}
 
@@ -218,7 +274,7 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Token generation error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate auth token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver login failed"})
 			return
 		}
 
@@ -231,7 +287,20 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Rider login error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during login"})
+
+			st, ok := status.FromError(err)
+			if ok {
+				switch st.Code() {
+				case codes.NotFound, codes.Unauthenticated:
+					c.JSON(http.StatusUnauthorized, gin.H{"error": st.Message()})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider login failed"})
+				}
+
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider login failed"})
 			return
 		}
 
@@ -240,7 +309,7 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Token generation error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate auth token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider login failed"})
 			return
 		}
 
@@ -296,7 +365,20 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Failed to fetch driver profile")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user profile"})
+
+			st, ok := status.FromError(err)
+			if ok {
+				switch st.Code() {
+				case codes.NotFound:
+					c.JSON(http.StatusNotFound, gin.H{"error": "Driver account not found"})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch driver profile"})
+				}
+
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch driver profile"})
 			return
 		}
 
@@ -313,7 +395,20 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Failed to fetch rider profile")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user profile"})
+
+			st, ok := status.FromError(err)
+			if ok {
+				switch st.Code() {
+				case codes.NotFound:
+					c.JSON(http.StatusNotFound, gin.H{"error": "Rider account not found"})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rider profile"})
+				}
+
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rider profile"})
 			return
 		}
 

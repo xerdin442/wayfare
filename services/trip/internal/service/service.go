@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/paulmach/orb"
 	"github.com/rs/zerolog/log"
@@ -20,6 +19,7 @@ import (
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
+	"github.com/xerdin442/wayfare/shared/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -48,26 +48,35 @@ func (s *TripService) getTripRoute(pickup, destination *pb.Coordinate) (*contrac
 
 	httpResp, err := s.httpClient.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send request to OSRM API: %v", err)
+		log.Error().Err(err).
+			Float64("pickup_lng", pickup.Longitude).
+			Float64("pickup_lat", pickup.Latitude).
+			Float64("destination_lng", destination.Longitude).
+			Float64("destination_lat", destination.Latitude).
+			Msg("failed to fetch trip routes from osrm api")
+
+		return nil, err
 	}
 	defer httpResp.Body.Close()
 
 	if httpResp.StatusCode != http.StatusOK {
 		log.Error().
 			Int("status_code", httpResp.StatusCode).
-			Msg("Unable to fetch trip routes from OSRM API")
+			Msg("failed to fetch trip routes from osrm api")
 
-		return nil, fmt.Errorf("Error fetching routes for trip coordinates")
+		return nil, fmt.Errorf("error fetching routes for trip coordinates")
 	}
 
 	body, err := io.ReadAll(httpResp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read OSRM API response body: %v", err)
+		log.Error().Err(err).Msg("failed to read osrm api response body")
+		return nil, err
 	}
 
 	var osrmResp contracts.OsrmApiResponse
 	if err := json.Unmarshal(body, &osrmResp); err != nil {
-		return nil, fmt.Errorf("Failed to parse OSRM API response: %v", err)
+		log.Error().Err(err).Msg("failed to unmarshal osrm api response")
+		return nil, err
 	}
 
 	return &osrmResp, nil
@@ -83,7 +92,7 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 	// Get pricing categories per package
 	priceConfig, err := s.repo.GetPricingPerRegion(ctx, pickupCoords)
 	if err != nil {
-		return "", nil, fmt.Errorf("Failed to fetch pricing categories per region: %v", err)
+		return "", nil, err
 	}
 
 	// Convert OSRM metrics to standard units
@@ -118,16 +127,16 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 func (s *TripService) GetTripDetails(ctx context.Context, req *pb.TripDetailsRequest) (*pb.TripDetailsResponse, error) {
 	trip, err := s.repo.GetTripByID(ctx, req.TripId)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			return nil, status.Error(codes.NotFound, "Trip not found")
+		if err == util.ErrDocumentNotFound {
+			return nil, status.Error(codes.NotFound, err.Error())
 		}
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	return &pb.TripDetailsResponse{
-		RideFareAmount: trip.RideFare,
-		UserId:         trip.UserID.Hex(),
-		Region:         trip.Region,
+		RideFare: trip.RideFare,
+		UserId:   trip.UserID.Hex(),
+		Region:   trip.Region,
 	}, nil
 }
 
@@ -139,13 +148,16 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	// Get trip route
 	route, err := s.getTripRoute(req.Pickup, req.Destination)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	// Estimate ride fares
-	regionID, rideFares, err := s.estimateTripFarePerPackage(ctx, route.ToProto(), pickupCoords)
+	regionId, rideFares, err := s.estimateTripFarePerPackage(ctx, route.ToProto(), pickupCoords)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		if err == util.ErrUnsupportedLocation {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	var polylineString string
@@ -169,8 +181,8 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	}
 
 	// Store generated ride fares
-	if err := s.repo.StoreRideFares(ctx, rideFares, routeDetails, req.UserId, regionID); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+	if err := s.repo.StoreRideFares(ctx, rideFares, routeDetails, req.UserId, regionId); err != nil {
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	return &pb.PreviewTripResponse{
@@ -183,7 +195,10 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 	// Create new trip
 	trip, err := s.repo.CreateTrip(ctx, req.RideFareId, req.UserId)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		if err == util.ErrTripSessionExpired {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	// Find and assign available driver
@@ -218,12 +233,12 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "Failed to marshal assign_driver queue payload")
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	msg := messaging.AmqpMessage{Data: data}
 	if err := s.queue.PublishMessage(ctx, messaging.ServicesExchange, messaging.TripEventCreated, msg); err != nil {
-		return nil, status.Errorf(codes.Internal, "Failed to publish %s event", messaging.TripEventCreated)
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	tripEvent := &models.TripEventModel{
@@ -237,7 +252,7 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 		PickupLng:             trip.Route.Pickup.Coordinates[0],
 	}
 	if err := analytics.SendEvent(ctx, s.queue, tripEvent); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	return &pb.StartTripResponse{

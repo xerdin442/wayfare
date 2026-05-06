@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
+	"github.com/xerdin442/wayfare/shared/util"
 )
 
 type FileUploadConfig struct {
@@ -32,7 +32,7 @@ func ParseImageMimetype(file multipart.File) error {
 	// Verify if the MIME type is supported
 	supportedTypes := []string{"image/jpeg", "image/png", "image/heic", "image/webp", "image/jpg"}
 	if !slices.Contains(supportedTypes, contentType) {
-		return errors.New("Unsupported MIME type")
+		return util.ErrUnsupportedFileType
 	}
 
 	return nil

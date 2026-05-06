@@ -10,7 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/contracts"
+	"github.com/xerdin442/wayfare/shared/util"
 )
 
 func (h *RouteHandler) sendApiRequest(ctx context.Context, method, path string, payload io.Reader) ([]byte, error) {
@@ -21,7 +23,8 @@ func (h *RouteHandler) sendApiRequest(ctx context.Context, method, path string, 
 		payload,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Error configuring new HTTP request: %s", err.Error())
+		log.Error().Err(err).Msg("Failed to build http request")
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -30,13 +33,18 @@ func (h *RouteHandler) sendApiRequest(ctx context.Context, method, path string, 
 	// Send request
 	response, err := h.cfg.HttpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Error sending request to Paystack API")
+		return nil, util.ErrApiRequestFailure
 	}
 	defer response.Body.Close()
 
+	if response.StatusCode >= http.StatusInternalServerError {
+		return nil, util.ErrGatewayUnavailable
+	}
+
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read Paystack API response body: %s", err.Error())
+		log.Error().Err(err).Msg("Failed to read response body from paystack api")
+		return nil, err
 	}
 
 	return body, nil
@@ -67,7 +75,8 @@ func (h *RouteHandler) createTransferRecipient(ctx context.Context, name string,
 		}
 
 		if err := json.Unmarshal(banksListResp, &banksList); err != nil {
-			return "", fmt.Errorf("Failed to unmarshal response from Paystack API: %v", err)
+			log.Error().Err(err).Msg("Failed to unmarshal paystack banks list response")
+			return "", err
 		}
 
 		// Cache the response for 30 days
@@ -86,7 +95,7 @@ findBankCode:
 	}
 
 	if bankCode == "" {
-		return "", fmt.Errorf("Wayfare does not support payouts to %s", details.BankName)
+		return "", util.ErrUnsupportedBank
 	}
 
 	// Verify account details
@@ -102,11 +111,12 @@ findBankCode:
 
 	var verificationInfo contracts.AccountVerificationResponse
 	if err := json.Unmarshal(acctVerifcationResp, &verificationInfo); err != nil {
-		return "", fmt.Errorf("Failed to unmarshal response from Paystack API: %v", err)
+		log.Error().Err(err).Msg("Failed to unmarshal paystack account verification response")
+		return "", err
 	}
 
 	if !strings.EqualFold(verificationInfo.Data.AccountName, details.AccountName) {
-		return "", fmt.Errorf("Account name does not match. Please check the spelling or order of your account name")
+		return "", util.ErrAccountNameMismatch
 	}
 
 	payload, err := json.Marshal(contracts.CreateTransferRecipientPayload{
@@ -116,7 +126,8 @@ findBankCode:
 		BankCode:      bankCode,
 	})
 	if err != nil {
-		return "", fmt.Errorf("Failed to marshal transfer_recipient request payload: %s", err.Error())
+		log.Error().Err(err).Msg("Failed to marshal paystack transfer recipient request payload")
+		return "", err
 	}
 
 	trasnferRecipientResp, err := h.sendApiRequest(
@@ -131,7 +142,8 @@ findBankCode:
 
 	var trasnferRecipient contracts.TransferRecipientResponse
 	if err := json.Unmarshal(trasnferRecipientResp, &trasnferRecipient); err != nil {
-		return "", fmt.Errorf("Failed to unmarshal response from Paystack API: %v", err)
+		log.Error().Err(err).Msg("Failed to unmarshal paystack transfer recipient response")
+		return "", err
 	}
 
 	return trasnferRecipient.Data.RecipientCode, nil

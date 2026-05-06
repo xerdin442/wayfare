@@ -66,12 +66,12 @@ func (x *TripDetailsRequest) GetTripId() string {
 }
 
 type TripDetailsResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	RideFareAmount int64                  `protobuf:"varint,1,opt,name=ride_fare_amount,json=rideFareAmount,proto3" json:"ride_fare_amount,omitempty"`
-	UserId         string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Region         string                 `protobuf:"bytes,3,opt,name=region,proto3" json:"region,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RideFare      int64                  `protobuf:"varint,1,opt,name=ride_fare,json=rideFare,proto3" json:"ride_fare,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Region        string                 `protobuf:"bytes,3,opt,name=region,proto3" json:"region,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TripDetailsResponse) Reset() {
@@ -104,9 +104,9 @@ func (*TripDetailsResponse) Descriptor() ([]byte, []int) {
 	return file_transport_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *TripDetailsResponse) GetRideFareAmount() int64 {
+func (x *TripDetailsResponse) GetRideFare() int64 {
 	if x != nil {
-		return x.RideFareAmount
+		return x.RideFare
 	}
 	return 0
 }
@@ -871,9 +871,9 @@ const file_transport_proto_rawDesc = "" +
 	"\n" +
 	"\x0ftransport.proto\x12\awayfare\x1a\fschema.proto\"-\n" +
 	"\x12TripDetailsRequest\x12\x17\n" +
-	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"p\n" +
-	"\x13TripDetailsResponse\x12(\n" +
-	"\x10ride_fare_amount\x18\x01 \x01(\x03R\x0erideFareAmount\x12\x17\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"c\n" +
+	"\x13TripDetailsResponse\x12\x1b\n" +
+	"\tride_fare\x18\x01 \x01(\x03R\brideFare\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x16\n" +
 	"\x06region\x18\x03 \x01(\tR\x06region\",\n" +
 	"\x11GetProfileRequest\x12\x17\n" +
