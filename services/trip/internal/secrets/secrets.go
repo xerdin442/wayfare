@@ -14,6 +14,7 @@ type Secrets struct {
 	MongoUri               string
 	AmqpUri                string
 	TraceCollectorEndpoint string
+	OpenweatherApiKey      string
 }
 
 func Load() *Secrets {
@@ -23,6 +24,7 @@ func Load() *Secrets {
 		MongoUri:               getStr("MONGO_URI"),
 		AmqpUri:                getStr("AMQP_URI"),
 		TraceCollectorEndpoint: getStr("TRACE_COLLECTOR_ENDPOINT"),
+		OpenweatherApiKey:      getStr("OPENWEATHER_API_KEY"),
 	}
 }
 

@@ -66,7 +66,7 @@ func main() {
 	defer rmq.Close()
 
 	repo := repo.NewTripRepository(database)
-	svc := service.NewTripService(repo, rmq)
+	svc := service.NewTripService(repo, rmq, env)
 
 	eventsHandler := events.NewTripEventsHandler(repo, rmq)
 	tasksHandler := tasks.NewTripTasksHandler(repo)

@@ -27,6 +27,24 @@ type OsrmApiResponse struct {
 	} `json:"routes"`
 }
 
+type OpenweatherApiResponse struct {
+	Coord struct {
+		Lon float64 `json:"lon"`
+		Lat float64 `json:"lat"`
+	} `json:"coord"`
+	Weather []struct {
+		ID          int    `json:"id"`
+		Main        string `json:"main"`
+		Description string `json:"description"`
+		Icon        string `json:"icon"`
+	} `json:"weather"`
+	Visibility int `json:"visibility"`
+	Rain       struct {
+		OneH float64 `json:"1h"`
+	} `json:"rain"`
+	Timezone int `json:"timezone"`
+}
+
 type SignupDetails struct {
 	Email    string `form:"email" binding:"required,email"`
 	Password string `form:"password" binding:"required,min=8"`
@@ -35,17 +53,17 @@ type SignupDetails struct {
 
 type SignupDriverRequest struct {
 	SignupDetails
-	ProfileImage  multipart.FileHeader `form:"profile_image" binding:"required"`
-	CarPackage    string               `form:"car_package" binding:"required"`
-	CarPlate      string               `form:"car_plate" binding:"required"`
-	AccountNumber string               `form:"account_number" binding:"required"`
-	AccountName   string               `form:"account_name" binding:"required"`
-	BankName      string               `form:"bank_name" binding:"required"`
+	ProfileImage  multipart.FileHeader `form:"profileImage" binding:"required"`
+	CarPackage    string               `form:"carPackage" binding:"required"`
+	CarPlate      string               `form:"carPlate" binding:"required"`
+	AccountNumber string               `form:"accountNumber" binding:"required"`
+	AccountName   string               `form:"accountName" binding:"required"`
+	BankName      string               `form:"bankName" binding:"required"`
 }
 
 type SignupRiderRequest struct {
 	SignupDetails
-	ProfileImage *multipart.FileHeader `form:"profile_image"`
+	ProfileImage *multipart.FileHeader `form:"profileImage"`
 }
 
 type LoginRequest struct {

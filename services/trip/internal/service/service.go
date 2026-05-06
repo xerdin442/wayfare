@@ -12,6 +12,7 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/twpayne/go-polyline"
 	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
+	"github.com/xerdin442/wayfare/services/trip/internal/secrets"
 	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
@@ -28,13 +29,15 @@ type TripService struct {
 	pb.UnimplementedTripServiceServer
 	repo       *repo.TripRepository
 	queue      messaging.MessageBus
+	env        *secrets.Secrets
 	httpClient *http.Client
 }
 
-func NewTripService(r *repo.TripRepository, q messaging.MessageBus) *TripService {
+func NewTripService(r *repo.TripRepository, q messaging.MessageBus, s *secrets.Secrets) *TripService {
 	return &TripService{
 		repo:       r,
 		queue:      q,
+		env:        s,
 		httpClient: tracing.NewHttpClient(),
 	}
 }
@@ -60,10 +63,7 @@ func (s *TripService) getTripRoute(pickup, destination *pb.Coordinate) (*contrac
 	defer httpResp.Body.Close()
 
 	if httpResp.StatusCode != http.StatusOK {
-		log.Error().
-			Int("status_code", httpResp.StatusCode).
-			Msg("failed to fetch trip routes from osrm api")
-
+		log.Error().Int("status_code", httpResp.StatusCode).Msg("osrm api error")
 		return nil, fmt.Errorf("error fetching routes for trip coordinates")
 	}
 
@@ -82,6 +82,53 @@ func (s *TripService) getTripRoute(pickup, destination *pb.Coordinate) (*contrac
 	return &osrmResp, nil
 }
 
+func (s *TripService) checkWeatherConditions(pickupCoords orb.Point) (float64, error) {
+	url := fmt.Sprintf(
+		"https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s",
+		pickupCoords.Lat(), pickupCoords.Lon(), s.env.OpenweatherApiKey,
+	)
+
+	httpResp, err := s.httpClient.Get(url)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to fetch weather conditions from openweather api")
+		return 0, err
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode != http.StatusOK {
+		log.Error().Int("status_code", httpResp.StatusCode).Msg("openweather api error")
+		return 0, fmt.Errorf("error fetching weather conditions for pickup coordinates")
+	}
+
+	body, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to read openweather api response body")
+		return 0, err
+	}
+
+	var openweatherResp contracts.OpenweatherApiResponse
+	if err := json.Unmarshal(body, &openweatherResp); err != nil {
+		log.Error().Err(err).Msg("failed to unmarshal openweather api response")
+		return 0, err
+	}
+
+	weatherId := int(openweatherResp.Weather[0].ID)
+	var surgeFactor float64 = 1.0
+
+	switch {
+	case weatherId >= 200 && weatherId <= 232: // Thunderstorm
+		surgeFactor = 2.0
+	case weatherId >= 300 && weatherId <= 321: // Drizzle
+		surgeFactor = 1.25
+	case weatherId >= 500 && weatherId <= 531: // Rain
+		surgeFactor = 1.5
+	case weatherId >= 800:
+		surgeFactor = 1.0
+	}
+
+	return surgeFactor, nil
+}
+
 func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.Route, pickupCoords orb.Point) (string, []*pb.RideFare, error) {
 	// priceConfig := map[repo.CarPackage]{
 	// 	repo.PackageSedan:  {BaseFare: 50000, PricePerKm: 15000, PricePerMinute: 2000, MinFare: 150000},
@@ -95,7 +142,13 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 		return "", nil, err
 	}
 
-	// Convert OSRM metrics to standard units
+	// Get multiplier based on weather conditions
+	weatherSurgeFactor, err := s.checkWeatherConditions(pickupCoords)
+	if err != nil {
+		return "", nil, err
+	}
+
+	// Convert metric to standard units
 	distKm := route.Distance / 1000.0
 	durMin := route.Duration / 60.0
 
@@ -110,6 +163,9 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 
 		// Apply minimum fare if total cost is below fare threshold
 		estimatedPrice := max(totalCost, cfg.MinFare)
+
+		// Apply weather surge factor
+		estimatedPrice = int64(float64(estimatedPrice) * weatherSurgeFactor)
 
 		// Round up to nearest hundred
 		rideAmount := ((estimatedPrice + 99) / 100) * 100
