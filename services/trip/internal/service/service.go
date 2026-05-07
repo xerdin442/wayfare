@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/paulmach/orb"
 	"github.com/redis/go-redis/v9"
@@ -163,7 +164,7 @@ func (s *TripService) checkDemandAndSupply(ctx context.Context, pickupCoords orb
 	}
 }
 
-func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.Route, pickupCoords orb.Point) (string, []*pb.RideFare, error) {
+func (s *TripService) estimateRideFares(ctx context.Context, route *pb.Route, pickupCoords orb.Point) (string, []*pb.RideFare, error) {
 	// priceConfig := map[repo.CarPackage]{
 	// 	repo.PackageSedan:  {BaseFare: 50000, PricePerKm: 15000, PricePerMinute: 2000, MinFare: 150000},
 	// 	repo.PackageSUV:    {BaseFare: 100000, PricePerKm: 25000, PricePerMinute: 4000, MinFare: 250000},
@@ -208,6 +209,14 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 		surgeFactor := max(2.4, weatherSurgeFactor*demandSupplySurgeFactor)
 		estimatedPrice = int64(float64(estimatedPrice) * surgeFactor)
 
+		// Check if trip is eligible for after hours fee
+		location, _ := time.LoadLocation("Africa/Lagos")
+		hour := time.Now().In(location).Hour()
+
+		if hour >= 0 && hour < 5 {
+			estimatedPrice += cfg.AfterHoursFee
+		}
+
 		// Round up to nearest hundred
 		rideAmount := ((estimatedPrice + 99) / 100) * 100
 
@@ -249,7 +258,7 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	}
 
 	// Estimate ride fares
-	regionId, rideFares, err := s.estimateTripFarePerPackage(ctx, route.ToProto(), pickupCoords)
+	regionId, rideFares, err := s.estimateRideFares(ctx, route.ToProto(), pickupCoords)
 	if err != nil {
 		if err == util.ErrUnsupportedLocation {
 			return nil, status.Error(codes.InvalidArgument, err.Error())

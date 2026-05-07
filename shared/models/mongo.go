@@ -35,15 +35,16 @@ type RegionModel struct {
 }
 
 type PricingModel struct {
-	ID         bson.ObjectID    `bson:"_id,omitempty"`
-	RegionID   bson.ObjectID    `bson:"region_id"`
-	CarPackage types.CarPackage `bson:"car_package"`
-	BaseFee    int64            `bson:"base_fee"`
-	PerKm      int64            `bson:"per_km"`
-	PerMinute  int64            `bson:"per_minute"`
-	MinFare    int64            `bson:"min_fare"`
-	CreatedAt  time.Time        `bson:"created_at"`
-	UpdatedAt  time.Time        `bson:"updated_at"`
+	ID            bson.ObjectID    `bson:"_id,omitempty"`
+	RegionID      bson.ObjectID    `bson:"region_id"`
+	CarPackage    types.CarPackage `bson:"car_package"`
+	BaseFee       int64            `bson:"base_fee"`
+	PerKm         int64            `bson:"per_km"`
+	PerMinute     int64            `bson:"per_minute"`
+	AfterHoursFee int64            `bson:"after_hours_fee"`
+	MinFare       int64            `bson:"min_fare"`
+	CreatedAt     time.Time        `bson:"created_at"`
+	UpdatedAt     time.Time        `bson:"updated_at"`
 }
 
 type RideFareModel struct {
