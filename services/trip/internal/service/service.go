@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/paulmach/orb"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"github.com/shopspring/decimal"
 	"github.com/twpayne/go-polyline"
@@ -29,14 +30,16 @@ type TripService struct {
 	pb.UnimplementedTripServiceServer
 	repo       *repo.TripRepository
 	queue      messaging.MessageBus
+	cache      *redis.Client
 	env        *secrets.Secrets
 	httpClient *http.Client
 }
 
-func NewTripService(r *repo.TripRepository, q messaging.MessageBus, s *secrets.Secrets) *TripService {
+func NewTripService(r *repo.TripRepository, q messaging.MessageBus, c *redis.Client, s *secrets.Secrets) *TripService {
 	return &TripService{
 		repo:       r,
 		queue:      q,
+		cache:      c,
 		env:        s,
 		httpClient: tracing.NewHttpClient(),
 	}
@@ -119,7 +122,7 @@ func (s *TripService) checkWeatherConditions(pickupCoords orb.Point) (float64, e
 	case weatherId >= 200 && weatherId <= 232: // Thunderstorm
 		surgeFactor = 1.8
 	case weatherId >= 300 && weatherId <= 321: // Drizzle
-		surgeFactor = 1.25
+		surgeFactor = 1.2
 	case weatherId >= 500 && weatherId <= 531: // Rain
 		surgeFactor = 1.5
 	case weatherId >= 800:
@@ -127,6 +130,37 @@ func (s *TripService) checkWeatherConditions(pickupCoords orb.Point) (float64, e
 	}
 
 	return surgeFactor, nil
+}
+
+func (s *TripService) checkDemandAndSupply(ctx context.Context, pickupCoords orb.Point) (float64, error) {
+	// Find available drivers within 5km of the trip request
+	availableDrivers, err := s.cache.GeoSearch(ctx, "drivers_locations", &redis.GeoSearchQuery{
+		Longitude:  pickupCoords.Lon(),
+		Latitude:   pickupCoords.Lat(),
+		Radius:     5,
+		RadiusUnit: "km",
+		Sort:       "ASC",
+	}).Result()
+	if err != nil {
+		return 0, err
+	}
+
+	tripRequests, err := s.repo.GetActiveTripRequests(ctx, pickupCoords)
+	if err != nil {
+		return 0, err
+	}
+
+	ratio := float64(tripRequests) / float64(len(availableDrivers))
+	switch {
+	case ratio >= 5:
+		return 1.8, nil
+	case ratio >= 3:
+		return 1.5, nil
+	case ratio >= 1.5:
+		return 1.2, nil
+	default:
+		return 1.0, nil
+	}
 }
 
 func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.Route, pickupCoords orb.Point) (string, []*pb.RideFare, error) {
@@ -148,6 +182,12 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 		return "", nil, err
 	}
 
+	// Get multiplier based on demand and supply
+	demandSupplySurgeFactor, err := s.checkDemandAndSupply(ctx, pickupCoords)
+	if err != nil {
+		return "", nil, err
+	}
+
 	// Convert metric to standard units
 	distKm := route.Distance / 1000.0
 	durMin := route.Duration / 60.0
@@ -164,8 +204,9 @@ func (s *TripService) estimateTripFarePerPackage(ctx context.Context, route *pb.
 		// Apply minimum fare if total cost is below fare threshold
 		estimatedPrice := max(totalCost, cfg.MinFare)
 
-		// Apply weather surge factor
-		estimatedPrice = int64(float64(estimatedPrice) * weatherSurgeFactor)
+		// Apply surge factor
+		surgeFactor := max(2.4, weatherSurgeFactor*demandSupplySurgeFactor)
+		estimatedPrice = int64(float64(estimatedPrice) * surgeFactor)
 
 		// Round up to nearest hundred
 		rideAmount := ((estimatedPrice + 99) / 100) * 100

@@ -61,12 +61,13 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	database := storage.InitDatabase(ctx, env.MongoUri)
+	cache := storage.InitCache(ctx, env.RedisUri)
 
 	rmq := messaging.NewRabbitMQ(env.AmqpUri)
 	defer rmq.Close()
 
 	repo := repo.NewTripRepository(database)
-	svc := service.NewTripService(repo, rmq, env)
+	svc := service.NewTripService(repo, rmq, cache, env)
 
 	eventsHandler := events.NewTripEventsHandler(repo, rmq)
 	tasksHandler := tasks.NewTripTasksHandler(repo)

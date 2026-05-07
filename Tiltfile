@@ -84,7 +84,7 @@ k8s_yaml('./infra/development/k8s/trip-service-deployment.yaml')
 k8s_resource(
   'trip-service',
   port_forwards=2112,
-  resource_deps=['mongodb', 'rabbitmq', 'clickhouse'],
+  resource_deps=['mongodb', 'rabbitmq', 'redis', 'clickhouse'],
   labels="services",
 )
 

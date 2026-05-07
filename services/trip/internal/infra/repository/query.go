@@ -19,7 +19,6 @@ type TripRepository struct {
 	regionColl   *mongo.Collection
 	pricingColl  *mongo.Collection
 	rideFareColl *mongo.Collection
-	driverColl   *mongo.Collection
 	tripColl     *mongo.Collection
 }
 
@@ -49,11 +48,6 @@ func NewTripRepository(db *mongo.Database) *TripRepository {
 		log.Fatal().Err(err).Msg("Failed to create ride_fares collection")
 	}
 
-	driverCollection, err := models.CreateDriversCollection(db, "drivers")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create drivers collection")
-	}
-
 	tripCollection, err := models.CreateTripsColelction(db, "trips")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create trips collection")
@@ -63,7 +57,6 @@ func NewTripRepository(db *mongo.Database) *TripRepository {
 		regionColl:   regionCollection,
 		pricingColl:  pricingCollection,
 		rideFareColl: rideFareCollection,
-		driverColl:   driverCollection,
 		tripColl:     tripCollection,
 	}
 }
@@ -361,14 +354,30 @@ func (r *TripRepository) UpdateDriverRatingAndTier(ctx context.Context) error {
 	return cursor.Close(ctx)
 }
 
-func (r *TripRepository) GetAvailableDrivers(ctx context.Context) (int64, error) {
+func (r *TripRepository) GetActiveTripRequests(ctx context.Context, pickupCoords orb.Point) (int64, error) {
 	filter := bson.M{
-		"status": types.DriverStatusOnline,
+		"status": bson.M{
+			"$in": []types.TripStatus{
+				types.TripStatusSearching,
+				types.TripStatusMatched,
+				types.TripStatusActive,
+				types.TripStatusAwaitingPayment,
+			},
+		},
+		"route.pickup": bson.M{
+			"$near": bson.M{
+				"$geometry": bson.M{
+					"type":        "Point",
+					"coordinates": pickupCoords,
+				},
+				"$maxDistance": 5000,
+			},
+		},
 	}
 
-	count, err := r.driverColl.CountDocuments(ctx, filter)
+	count, err := r.tripColl.CountDocuments(ctx, filter)
 	if err != nil {
-		log.Error().Err(err).Str("collection", "drivers").Msg("Database count error")
+		log.Error().Err(err).Str("collection", "trips").Msg("Database count error")
 		return 0, err
 	}
 

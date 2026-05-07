@@ -12,6 +12,7 @@ type Secrets struct {
 	ServicePort            int
 	Environment            string
 	MongoUri               string
+	RedisUri               string
 	AmqpUri                string
 	TraceCollectorEndpoint string
 	OpenweatherApiKey      string
@@ -22,6 +23,7 @@ func Load() *Secrets {
 		ServicePort:            getInt("SERVICE_PORT"),
 		Environment:            getStr("ENVIRONMENT"),
 		MongoUri:               getStr("MONGO_URI"),
+		RedisUri:               getStr("REDIS_URI"),
 		AmqpUri:                getStr("AMQP_URI"),
 		TraceCollectorEndpoint: getStr("TRACE_COLLECTOR_ENDPOINT"),
 		OpenweatherApiKey:      getStr("OPENWEATHER_API_KEY"),

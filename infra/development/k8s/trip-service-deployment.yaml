@@ -48,6 +48,11 @@ spec:
                 secretKeyRef:
                   name: app-secrets
                   key: MONGO_URI
+            - name: REDIS_URI
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: REDIS_URI
             - name: AMQP_URI
               valueFrom:
                 secretKeyRef:
