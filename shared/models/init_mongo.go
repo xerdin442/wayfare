@@ -109,14 +109,18 @@ func CreatePricingColelction(db *mongo.Database, name string) (*mongo.Collection
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"region_id", "car_package", "base_fee", "per_km", "per_minute", "min_fare"},
+		"required": []string{
+			"region_id", "car_package", "base_fee",
+			"per_km", "per_minute", "min_fare", "after_hours_fee",
+		},
 		"properties": bson.M{
-			"region_id":   bson.M{"bsonType": "objectId"},
-			"car_package": carPackageSchema,
-			"base_fee":    bson.M{"bsonType": "long"},
-			"per_km":      bson.M{"bsonType": "long"},
-			"per_minute":  bson.M{"bsonType": "long"},
-			"min_fare":    bson.M{"bsonType": "long"},
+			"region_id":       bson.M{"bsonType": "objectId"},
+			"car_package":     carPackageSchema,
+			"base_fee":        bson.M{"bsonType": "long"},
+			"per_km":          bson.M{"bsonType": "long"},
+			"per_minute":      bson.M{"bsonType": "long"},
+			"after_hours_fee": bson.M{"bsonType": "long"},
+			"min_fare":        bson.M{"bsonType": "long"},
 		},
 	}
 
