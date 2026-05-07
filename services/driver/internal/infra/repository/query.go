@@ -29,7 +29,7 @@ type DriverUpdateData struct {
 }
 
 func NewDriverRepository(db *mongo.Database) *DriverRepository {
-	driverCollection, err := CreateDriversCollection(db, "drivers")
+	driverCollection, err := models.CreateDriversCollection(db, "drivers")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create drivers collection")
 	}

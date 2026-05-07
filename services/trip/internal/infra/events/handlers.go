@@ -38,6 +38,7 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 	}
 
 	var updatedStatus types.TripStatus
+	var driverStatus types.DriverStatus
 
 	switch messaging.AmqpEvent(p.RoutingKey) {
 	case messaging.TripEventNoDriversFound:
@@ -72,6 +73,7 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 	}
 
 	if updatedStatus == types.TripStatusCompleted {
+		driverStatus = types.DriverStatusOnline
 		var publishErr error
 
 		// Notify participants that the trip has ended
@@ -96,15 +98,12 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 			messaging.AmqpMessage{Data: gatewayData},
 		)
 
-		if publishErr != nil {
-			return fmt.Errorf("Failed to publish gateway event")
-		}
-
 		// Update driver details
 		queuePayload := messaging.DriverUpdateQueuePayload{
 			DriverID:        payload.DriverID,
 			TripCountUpdate: true,
 			RideFare:        updatedTrip.RideFare,
+			Status:          driverStatus,
 		}
 		if payload.CashPayment {
 			queuePayload.PendingReturnsUpdate = true
@@ -117,13 +116,15 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 			return fmt.Errorf("Failed to marshal driver_update queue payload: %v", err)
 		}
 
-		if err = h.bus.PublishMessage(
+		publishErr = h.bus.PublishMessage(
 			ctx,
 			messaging.ServicesExchange,
 			messaging.DriverCmdDetailsUpdate,
 			messaging.AmqpMessage{Data: driverServiceData},
-		); err != nil {
-			return fmt.Errorf("Failed to publish %s event: %v", messaging.DriverCmdDetailsUpdate, err)
+		)
+
+		if publishErr != nil {
+			return publishErr
 		}
 	}
 
@@ -136,6 +137,7 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 	tripEvent := &models.TripEventModel{
 		TripID:             payload.TripID,
 		DriverID:           payload.DriverID,
+		DriverStatus:       driverStatus,
 		TripStatus:         updatedStatus,
 		Rating:             payload.Rating,
 		ActualDurationMins: actualDuration,

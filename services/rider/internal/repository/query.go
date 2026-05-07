@@ -19,7 +19,7 @@ type RiderRepository struct {
 }
 
 func NewRiderRepository(db *mongo.Database) *RiderRepository {
-	riderCollection, err := CreateRidersCollection(db, "riders")
+	riderCollection, err := models.CreateRidersCollection(db, "riders")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create riders collection")
 	}

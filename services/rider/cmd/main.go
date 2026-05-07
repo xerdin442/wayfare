@@ -10,7 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	repo "github.com/xerdin442/wayfare/services/rider/internal/infra/repository"
+	repo "github.com/xerdin442/wayfare/services/rider/internal/repository"
 	"github.com/xerdin442/wayfare/services/rider/internal/secrets"
 	"github.com/xerdin442/wayfare/services/rider/internal/server"
 	"github.com/xerdin442/wayfare/services/rider/internal/service"

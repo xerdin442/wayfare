@@ -1,4 +1,4 @@
-package repo
+package models
 
 import (
 	"context"
@@ -46,7 +46,7 @@ var routeSchema = bson.M{
 
 var carPackageSchema = bson.M{
 	"enum":        []string{"luxury", "sedan", "suv"},
-	"description": "must be one of the approved car packages",
+	"description": "must be a valid car package",
 }
 
 func CreateRegionsCollection(db *mongo.Database, name string) (*mongo.Collection, error) {
@@ -234,6 +234,153 @@ func CreateTripsColelction(db *mongo.Database, name string) (*mongo.Collection, 
 	if _, err := collection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		pickupIndex, destinationIndex, searchIndex,
 	}); err != nil {
+		return nil, err
+	}
+
+	return collection, nil
+}
+
+func CreateRidersCollection(db *mongo.Database, name string) (*mongo.Collection, error) {
+	ctx := context.Background()
+
+	jsonSchema := bson.M{
+		"bsonType": "object",
+		"required": []string{"name", "email", "password", "profile_picture"},
+		"properties": bson.M{
+			"name":            bson.M{"bsonType": "string"},
+			"email":           bson.M{"bsonType": "string"},
+			"password":        bson.M{"bsonType": "string"},
+			"profile_picture": bson.M{"bsonType": "string"},
+		},
+	}
+
+	// Set schema validator
+	validator := bson.M{"$jsonSchema": jsonSchema}
+	opts := options.CreateCollection().SetValidator(validator)
+
+	if err := db.CreateCollection(ctx, name, opts); err != nil {
+		return nil, err
+	}
+
+	collection := db.Collection(name)
+
+	emailIndex := mongo.IndexModel{
+		Keys: bson.D{{Key: "email", Value: 1}},
+	}
+
+	if _, err := collection.Indexes().CreateOne(ctx, emailIndex); err != nil {
+		return nil, err
+	}
+
+	return collection, nil
+}
+
+func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection, error) {
+	ctx := context.Background()
+
+	jsonSchema := bson.M{
+		"bsonType": "object",
+		"required": []string{
+			"name", "email", "password", "profile_picture",
+			"car_package", "car_plate", "current_rating",
+			"total_completed_trips", "lifetime_rating_avg",
+			"available_balance", "pending_payout", "pending_returns",
+			"outstanding_returns", "transfer_recipient_code", "tier", "status",
+		},
+		"properties": bson.M{
+			"name":                    bson.M{"bsonType": "string"},
+			"email":                   bson.M{"bsonType": "string"},
+			"password":                bson.M{"bsonType": "string"},
+			"car_package":             carPackageSchema,
+			"profile_picture":         bson.M{"bsonType": "string"},
+			"car_plate":               bson.M{"bsonType": "string"},
+			"current_rating":          bson.M{"bsonType": "double", "minimum": 0, "maximum": 5},
+			"total_completed_trips":   bson.M{"bsonType": "int"},
+			"lifetime_rating_avg":     bson.M{"bsonType": "double", "minimum": 0, "maximum": 5},
+			"available_balance":       bson.M{"bsonType": "long"},
+			"pending_payout":          bson.M{"bsonType": "long"},
+			"pending_returns":         bson.M{"bsonType": "long"},
+			"outstanding_returns":     bson.M{"bsonType": "long"},
+			"transfer_recipient_code": bson.M{"bsonType": "string"},
+			"tier": bson.M{
+				"enum":        []string{"gold", "silver", "bronze"},
+				"description": "must be one of the supported driver tiers",
+			},
+			"status": bson.M{
+				"enum":        []string{"online", "offline", "busy"},
+				"description": "must be a valid driver status value",
+			},
+		},
+	}
+
+	// Set schema validator
+	validator := bson.M{"$jsonSchema": jsonSchema}
+	opts := options.CreateCollection().SetValidator(validator)
+
+	if err := db.CreateCollection(ctx, name, opts); err != nil {
+		return nil, err
+	}
+
+	collection := db.Collection(name)
+
+	recipientCodeIndex := mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "email", Value: 1},
+			{Key: "transfer_recipient_code", Value: 1},
+		},
+	}
+
+	if _, err := collection.Indexes().CreateOne(ctx, recipientCodeIndex); err != nil {
+		return nil, err
+	}
+
+	return collection, nil
+}
+
+func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Collection, error) {
+	ctx := context.Background()
+
+	jsonSchema := bson.M{
+		"bsonType": "object",
+		"required": []string{"amount", "status", "type"},
+		"properties": bson.M{
+			"trip_id":               bson.M{"bsonType": "objectId"},
+			"driver_recipient_code": bson.M{"bsonType": "string"},
+			"type": bson.M{
+				"enum":        []string{"checkout", "payout"},
+				"description": "must be a valid transaction type",
+			},
+			"provider": bson.M{
+				"enum":        []string{"paystack", "flutterwave"},
+				"description": "must be one of the supported payment providers",
+			},
+			"amount": bson.M{"bsonType": "long"},
+			"status": bson.M{
+				"enum":        []string{"pending", "success", "failed", "reversed", "aborted"},
+				"description": "must be a valid payment status value",
+			},
+		},
+	}
+
+	// Set schema validator
+	validator := bson.M{"$jsonSchema": jsonSchema}
+	opts := options.CreateCollection().SetValidator(validator)
+
+	if err := db.CreateCollection(ctx, name, opts); err != nil {
+		return nil, err
+	}
+
+	collection := db.Collection(name)
+
+	// Create search index
+	tripIndex := mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "trip_id", Value: 1},
+			{Key: "driver_recipient_code", Value: 1},
+		},
+	}
+
+	if _, err := collection.Indexes().CreateOne(ctx, tripIndex); err != nil {
 		return nil, err
 	}
 

@@ -10,8 +10,10 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
+	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
+	"github.com/xerdin442/wayfare/shared/models"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
@@ -52,6 +54,14 @@ func (h *RouteHandler) updateDriverStatus(ctx context.Context, driverId string, 
 		messaging.DriverCmdDetailsUpdate,
 		messaging.AmqpMessage{Data: data},
 	); err != nil {
+		return
+	}
+
+	tripEvent := &models.TripEventModel{
+		DriverID:     driverId,
+		DriverStatus: status,
+	}
+	if err := analytics.SendEvent(ctx, h.cfg.Queue, tripEvent); err != nil {
 		return
 	}
 }

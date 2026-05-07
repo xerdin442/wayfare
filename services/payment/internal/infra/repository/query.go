@@ -26,7 +26,7 @@ type CreateTransactionData struct {
 }
 
 func NewPaymentRepository(db *mongo.Database) *PaymentRepository {
-	txnCollection, err := CreateTransactionsCollection(db, "transactions")
+	txnCollection, err := models.CreateTransactionsCollection(db, "transactions")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create transactions collection")
 	}

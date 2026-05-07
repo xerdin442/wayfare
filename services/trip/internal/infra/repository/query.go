@@ -19,6 +19,7 @@ type TripRepository struct {
 	regionColl   *mongo.Collection
 	pricingColl  *mongo.Collection
 	rideFareColl *mongo.Collection
+	driverColl   *mongo.Collection
 	tripColl     *mongo.Collection
 }
 
@@ -33,22 +34,27 @@ type TripUpdateData struct {
 }
 
 func NewTripRepository(db *mongo.Database) *TripRepository {
-	regionCollection, err := CreateRegionsCollection(db, "regions")
+	regionCollection, err := models.CreateRegionsCollection(db, "regions")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create regions collection")
 	}
 
-	pricingCollection, err := CreatePricingColelction(db, "pricing")
+	pricingCollection, err := models.CreatePricingColelction(db, "pricing")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create pricing collection")
 	}
 
-	rideFareCollection, err := CreateRideFaresColelction(db, "ride_fares")
+	rideFareCollection, err := models.CreateRideFaresColelction(db, "ride_fares")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create ride_fares collection")
 	}
 
-	tripCollection, err := CreateTripsColelction(db, "trips")
+	driverCollection, err := models.CreateDriversCollection(db, "drivers")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create drivers collection")
+	}
+
+	tripCollection, err := models.CreateTripsColelction(db, "trips")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create trips collection")
 	}
@@ -57,6 +63,7 @@ func NewTripRepository(db *mongo.Database) *TripRepository {
 		regionColl:   regionCollection,
 		pricingColl:  pricingCollection,
 		rideFareColl: rideFareCollection,
+		driverColl:   driverCollection,
 		tripColl:     tripCollection,
 	}
 }
@@ -352,4 +359,18 @@ func (r *TripRepository) UpdateDriverRatingAndTier(ctx context.Context) error {
 	}
 
 	return cursor.Close(ctx)
+}
+
+func (r *TripRepository) GetAvailableDrivers(ctx context.Context) (int64, error) {
+	filter := bson.M{
+		"status": types.DriverStatusOnline,
+	}
+
+	count, err := r.driverColl.CountDocuments(ctx, filter)
+	if err != nil {
+		log.Error().Err(err).Str("collection", "drivers").Msg("Database count error")
+		return 0, err
+	}
+
+	return count, nil
 }

@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	repo "github.com/xerdin442/wayfare/services/rider/internal/infra/repository"
+	repo "github.com/xerdin442/wayfare/services/rider/internal/repository"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/util"
 	"golang.org/x/crypto/bcrypt"

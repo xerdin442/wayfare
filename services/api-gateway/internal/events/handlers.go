@@ -8,8 +8,10 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/base"
+	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
+	"github.com/xerdin442/wayfare/shared/models"
 	"github.com/xerdin442/wayfare/shared/types"
 )
 
@@ -60,6 +62,7 @@ func (h *GatewayEventsHandler) HandleOutgoingWebsocketMessages(ctx context.Conte
 			); err != nil {
 				return err
 			}
+
 		case messaging.TripEventDriverAssigned:
 			var response contracts.DriverAssignedResponse
 			dataBytes, _ := json.Marshal(payload.Data)
@@ -116,6 +119,15 @@ func (h *GatewayEventsHandler) HandleOutgoingWebsocketMessages(ctx context.Conte
 				messaging.DriverCmdDetailsUpdate,
 				messaging.AmqpMessage{Data: driverServiceData},
 			); err != nil {
+				return err
+			}
+
+			// Update analytics
+			tripEvent := &models.TripEventModel{
+				DriverID:     response.Driver.ID,
+				DriverStatus: types.DriverStatusOnline,
+			}
+			if err := analytics.SendEvent(ctx, h.cfg.Queue, tripEvent); err != nil {
 				return err
 			}
 

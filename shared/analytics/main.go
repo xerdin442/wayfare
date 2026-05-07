@@ -41,7 +41,7 @@ func SetupProvider(ctx context.Context, cfg *AnalyticsConfig) error {
 
 	defer conn.Close()
 
-	if err := CreateAnalyticsTable(ctx, conn); err != nil {
+	if err := models.CreateAnalyticsTable(ctx, conn); err != nil {
 		return fmt.Errorf("Failed to create analytics table: %v", err)
 	}
 
