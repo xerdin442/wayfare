@@ -15,7 +15,8 @@ import (
 )
 
 type PaymentRepository struct {
-	txnColl *mongo.Collection
+	tripColl *mongo.Collection
+	txnColl  *mongo.Collection
 }
 
 type CreateTransactionData struct {
@@ -26,13 +27,19 @@ type CreateTransactionData struct {
 }
 
 func NewPaymentRepository(db *mongo.Database) *PaymentRepository {
+	tripCollection, err := models.CreateTripsColelction(db, "trips")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create trips collection")
+	}
+
 	txnCollection, err := models.CreateTransactionsCollection(db, "transactions")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create transactions collection")
 	}
 
 	return &PaymentRepository{
-		txnColl: txnCollection,
+		tripColl: tripCollection,
+		txnColl:  txnCollection,
 	}
 }
 
@@ -226,4 +233,25 @@ func (r *PaymentRepository) GetRecentPayoutTransactions(ctx context.Context, rec
 	}
 
 	return transactions, nil
+}
+
+func (r *PaymentRepository) GetTripByID(ctx context.Context, tripId string) (*models.TripModel, error) {
+	tripIdHex, err := bson.ObjectIDFromHex(tripId)
+	if err != nil {
+		log.Error().Err(err).Str("id", tripId).Msg("Invalid trip ID")
+		return nil, err
+	}
+
+	var trip models.TripModel
+	err = r.tripColl.FindOne(ctx, bson.M{"_id": tripIdHex}).Decode(&trip)
+	if err != nil {
+		log.Error().Err(err).Str("collection", "trips").Msg("Database query error")
+
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, util.ErrDocumentNotFound
+		}
+		return nil, err
+	}
+
+	return &trip, nil
 }

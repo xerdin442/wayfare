@@ -114,7 +114,6 @@ message InitiatePaymentRequest {
   string trip_id         = 1;
   string user_id         = 2;
   string email           = 3;
-  int64  amount          = 4;
   string custom_redirect = 5;
   int64  trip_rating     = 6;
   string rider_comment   = 7;

@@ -726,7 +726,6 @@ type InitiatePaymentRequest struct {
 	TripId         string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
 	UserId         string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Email          string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	Amount         int64                  `protobuf:"varint,4,opt,name=amount,proto3" json:"amount,omitempty"`
 	CustomRedirect string                 `protobuf:"bytes,5,opt,name=custom_redirect,json=customRedirect,proto3" json:"custom_redirect,omitempty"`
 	TripRating     int64                  `protobuf:"varint,6,opt,name=trip_rating,json=tripRating,proto3" json:"trip_rating,omitempty"`
 	RiderComment   string                 `protobuf:"bytes,7,opt,name=rider_comment,json=riderComment,proto3" json:"rider_comment,omitempty"`
@@ -784,13 +783,6 @@ func (x *InitiatePaymentRequest) GetEmail() string {
 		return x.Email
 	}
 	return ""
-}
-
-func (x *InitiatePaymentRequest) GetAmount() int64 {
-	if x != nil {
-		return x.Amount
-	}
-	return 0
 }
 
 func (x *InitiatePaymentRequest) GetCustomRedirect() string {
@@ -914,12 +906,11 @@ const file_transport_proto_rawDesc = "" +
 	"\fride_fare_id\x18\x02 \x01(\tR\n" +
 	"rideFareId\",\n" +
 	"\x11StartTripResponse\x12\x17\n" +
-	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"\x86\x02\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"\xee\x01\n" +
 	"\x16InitiatePaymentRequest\x12\x17\n" +
 	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email\x12\x16\n" +
-	"\x06amount\x18\x04 \x01(\x03R\x06amount\x12'\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12'\n" +
 	"\x0fcustom_redirect\x18\x05 \x01(\tR\x0ecustomRedirect\x12\x1f\n" +
 	"\vtrip_rating\x18\x06 \x01(\x03R\n" +
 	"tripRating\x12#\n" +

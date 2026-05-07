@@ -148,52 +148,11 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 		return
 	}
 
-	// Verify trip details
-	tripDetails, err := h.cfg.Clients.Trip.GetTripDetails(ctx, &pb.TripDetailsRequest{
-		TripId: tripId,
-	})
-	if err != nil {
-		tracing.HandleError(span, err)
-		logger.Error().Err(err).Str("trip_id", tripId).Msg("Failed to get trip details")
-
-		// Remove idempotency lock if payment request fails
-		if err := h.cfg.Cache.Del(ctx, idempotencyKey).Err(); err != nil {
-			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Error removing idempotency lock")
-		}
-
-		st, ok := status.FromError(err)
-		if ok {
-			switch st.Code() {
-			case codes.NotFound:
-				c.JSON(http.StatusNotFound, gin.H{"error": "Could not get trip details"})
-			default:
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
-			}
-
-			return
-		}
-
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occurred during payment processing"})
-		return
-	}
-
-	if tripDetails.UserId != userId {
-		log.Warn().
-			Str("trip_owner_id", tripDetails.UserId).
-			Str("payment_request_initiator_id", userId).
-			Msg("Unauthorized payment request")
-
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized payment request"})
-		return
-	}
-
 	// Generate checkout link
 	checkoutResponse, err := h.cfg.Clients.Payment.InitiatePayment(ctx, &pb.InitiatePaymentRequest{
 		TripId:         tripId,
 		UserId:         userId,
 		Email:          req.Email,
-		Amount:         tripDetails.RideFare,
 		CustomRedirect: req.CustomRedirect,
 		TripRating:     req.TripRating,
 		RiderComment:   req.RiderComment,
@@ -212,6 +171,8 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 		st, ok := status.FromError(err)
 		if ok {
 			switch st.Code() {
+			case codes.NotFound:
+				c.JSON(http.StatusNotFound, gin.H{"error": st.Message()})
 			case codes.Unavailable:
 				c.JSON(http.StatusServiceUnavailable, gin.H{"error": st.Message()})
 			default:

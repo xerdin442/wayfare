@@ -155,7 +155,7 @@ func (s *PaymentService) generateFlutterwaveCheckout(ctx context.Context, req *c
 	return checkoutInfo.Data.Link, nil
 }
 
-func (s *PaymentService) buildCheckoutPayloads(req *pb.InitiatePaymentRequest, txnID string) (
+func (s *PaymentService) buildCheckoutPayloads(req *pb.InitiatePaymentRequest, txnID string, amount int64) (
 	*contracts.PaystackCheckoutRequest,
 	*contracts.FlutterwaveCheckoutRequest,
 	error,
@@ -176,7 +176,7 @@ func (s *PaymentService) buildCheckoutPayloads(req *pb.InitiatePaymentRequest, t
 
 	paystackPayload := &contracts.PaystackCheckoutRequest{
 		Email:       req.Email,
-		Amount:      req.Amount,
+		Amount:      amount,
 		Reference:   txnID,
 		Channels:    []string{"card", "apple_pay", "bank_transfer"},
 		CallbackUrl: req.CustomRedirect,
@@ -184,7 +184,7 @@ func (s *PaymentService) buildCheckoutPayloads(req *pb.InitiatePaymentRequest, t
 	}
 
 	flutterwavePayload := &contracts.FlutterwaveCheckoutRequest{
-		Amount:      req.Amount / 100,
+		Amount:      amount / 100,
 		TxRef:       txnID,
 		RedirectUrl: req.CustomRedirect,
 		Meta:        metadata,
@@ -276,8 +276,17 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 	var checkoutUrl string
 	var txnID string
 
+	// Get trip details
+	trip, err := s.repo.GetTripByID(ctx, req.TripId)
+	if err != nil {
+		if err == util.ErrDocumentNotFound {
+			return nil, status.Error(codes.NotFound, "invalid trip id")
+		}
+		return nil, status.Error(codes.Internal, "internal server error")
+	}
+
 	// Check for pending transaction from unfinished checkout session
-	existingTxn, err := s.repo.GetTransactionByTripID(ctx, req.TripId)
+	existingTxn, err := s.repo.GetTransactionByTripID(ctx, trip.ID.Hex())
 	if err != nil {
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
@@ -288,8 +297,8 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 	} else {
 		// Create new transaction
 		txnID, err = s.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
-			TripID: req.TripId,
-			Amount: req.Amount,
+			TripID: trip.ID.Hex(),
+			Amount: trip.RideFare,
 			Type:   types.TransactionCheckout,
 		})
 		if err != nil {
@@ -301,7 +310,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 	provider := s.resolvePaymentProvider(ctx, gatewayStatusKey)
 
 	// Configure checkout request payloads
-	paystackPayload, flutterwavePayload, err := s.buildCheckoutPayloads(req, txnID)
+	paystackPayload, flutterwavePayload, err := s.buildCheckoutPayloads(req, txnID, trip.RideFare)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
