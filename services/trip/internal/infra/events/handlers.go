@@ -52,7 +52,7 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 		updatedStatus = types.TripStatusAwaitingPayment
 	case messaging.TripCmdCancelled:
 		updatedStatus = types.TripStatusCancelled
-	case messaging.TripCmdCompleted:
+	case messaging.TripCmdCompleted, messaging.TripCmdRated:
 		updatedStatus = types.TripStatusCompleted
 	default:
 		return fmt.Errorf("Unknown event type received in trip update queue: %s", p.RoutingKey)

@@ -13,6 +13,7 @@ import (
 	"github.com/xerdin442/wayfare/shared/util"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type TripRepository struct {
@@ -382,4 +383,33 @@ func (r *TripRepository) GetActiveTripRequests(ctx context.Context, pickupCoords
 	}
 
 	return count, nil
+}
+
+func (r *TripRepository) GetLastUnratedTrip(ctx context.Context, userID string) (*models.TripModel, error) {
+	userIdHex, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		log.Error().Err(err).Str("id", userID).Msg("Invalid user ID")
+		return nil, err
+	}
+
+	filter := bson.M{
+		"user_id": userIdHex,
+		"status":  types.TripStatusCompleted,
+	}
+
+	var trip models.TripModel
+	err = r.tripColl.FindOne(ctx, filter, options.FindOne().SetSort(bson.M{"created_at": -1})).Decode(&trip)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
+		log.Error().Err(err).Str("user_id", userID).Msg("Failed to find last trip")
+		return nil, err
+	}
+
+	if trip.Rating > 0 {
+		return nil, nil
+	}
+
+	return &trip, nil
 }

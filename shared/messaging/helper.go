@@ -74,11 +74,9 @@ type TripUpdateQueuePayload struct {
 }
 
 type CashPaymentPayload struct {
-	TripID       string `json:"trip_id"`
-	RiderID      string `json:"rider_id"`
-	Amount       int64  `json:"amount"`
-	TripRating   int64  `json:"trip_rating"`
-	RiderComment string `json:"rider_comment,omitempty"`
+	TripID  string `json:"trip_id"`
+	RiderID string `json:"rider_id"`
+	Amount  int64  `json:"amount"`
 }
 
 type PaymentWebhookPayload struct {
@@ -106,11 +104,13 @@ const (
 	TripEventDriverNotInterested AmqpEvent = "trip.event.driver_not_interested"
 	TripEventDriverNotAvailable  AmqpEvent = "trip.event.driver_not_available"
 	TripEventPaymentRequired     AmqpEvent = "trip.event.payment_required"
+	TripEventRatingRequired      AmqpEvent = "trip.event.rating_required"
 
 	// Trip commands
 	TripCmdCompleted AmqpEvent = "trip.cmd.completed"
 	TripCmdCancelled AmqpEvent = "trip.cmd.cancelled"
 	TripCmdAborted   AmqpEvent = "trip.cmd.aborted"
+	TripCmdRated     AmqpEvent = "trip.cmd.rated"
 
 	// Driver events
 	DriverEventTripRequest AmqpEvent = "driver.event.trip_request"

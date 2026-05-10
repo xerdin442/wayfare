@@ -332,7 +332,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 			}
 
 		case messaging.PaymentEventCashReceived:
-			var data contracts.CashPaymentRequest
+			var data contracts.TripUpdateRequest
 			dataBytes, _ := json.Marshal(payload.Data)
 			if err := json.Unmarshal(dataBytes, &data); err != nil {
 				tracing.HandleError(span, err)
@@ -342,7 +342,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 
 			// Get trip details
 			tripDetails, err := h.cfg.Clients.Trip.GetTripDetails(ctx, &pb.TripDetailsRequest{
-				TripId: data.TripID,
+				TripId: data.Trip.ID,
 			})
 			if err != nil {
 				tracing.HandleError(span, err)
@@ -352,11 +352,9 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 
 			// Send payment details to payment service
 			paymentServiceData, err := json.Marshal(messaging.CashPaymentPayload{
-				TripID:       data.TripID,
-				RiderID:      tripDetails.UserId,
-				Amount:       tripDetails.RideFare,
-				TripRating:   data.TripRating,
-				RiderComment: data.RiderComment,
+				TripID:  data.Trip.ID,
+				RiderID: tripDetails.UserId,
+				Amount:  tripDetails.RideFare,
 			})
 			if err != nil {
 				tracing.HandleError(span, err)
@@ -469,6 +467,37 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 				messaging.AmqpEvent(fmt.Sprintf("user.%s", data.Trip.DriverID)),
 
 				messaging.AmqpMessage{Data: gatewayData},
+			); err != nil {
+				tracing.HandleError(span, err)
+				return
+			}
+
+		case messaging.TripCmdRated:
+			var data contracts.TripRatingRequest
+			dataBytes, _ := json.Marshal(payload.Data)
+			if err := json.Unmarshal(dataBytes, &data); err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to unmarshal trip_update request message")
+				continue
+			}
+
+			// Update trip rating
+			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
+				TripID:       data.TripID,
+				Rating:       data.TripRating,
+				RiderComment: data.RiderComment,
+			})
+			if err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to marshal trip_update queue payload")
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				ctx,
+				messaging.ServicesExchange,
+				messaging.TripCmdRated,
+				messaging.AmqpMessage{Data: tripServiceData},
 			); err != nil {
 				tracing.HandleError(span, err)
 				return

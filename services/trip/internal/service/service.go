@@ -247,6 +247,44 @@ func (s *TripService) GetTripDetails(ctx context.Context, req *pb.TripDetailsReq
 }
 
 func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripRequest) (*pb.PreviewTripResponse, error) {
+	// Check if the user rated their last trip
+	lastTrip, err := s.repo.GetLastUnratedTrip(ctx, req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal server error")
+	}
+
+	if lastTrip != nil {
+		data, err := json.Marshal(contracts.WebsocketMessage{
+			Type: messaging.TripEventRatingRequired,
+			Data: contracts.TripRatingRequiredResponse{
+				TripID: lastTrip.ID.Hex(),
+				Pickup: types.Coordinate{
+					Latitude:  lastTrip.Route.Pickup.Coordinates.Lat(),
+					Longitude: lastTrip.Route.Pickup.Coordinates.Lon(),
+				},
+				Destination: types.Coordinate{
+					Latitude:  lastTrip.Route.Destination.Coordinates.Lat(),
+					Longitude: lastTrip.Route.Destination.Coordinates.Lon(),
+				},
+				Date: lastTrip.CreatedAt,
+			},
+		})
+		if err != nil {
+			return nil, status.Error(codes.Internal, "internal server error")
+		}
+
+		if err := s.queue.PublishMessage(
+			ctx,
+			messaging.GatewayExchange,
+			messaging.AmqpEvent(fmt.Sprintf("user.%s", req.UserId)),
+			messaging.AmqpMessage{Data: data},
+		); err != nil {
+			return nil, status.Error(codes.Internal, "internal server error")
+		}
+
+		return nil, status.Error(codes.FailedPrecondition, util.ErrTripRatingRequired.Error())
+	}
+
 	// Extract coordinates
 	pickupCoords := orb.Point{req.Pickup.Longitude, req.Pickup.Latitude}
 	destinationCoords := orb.Point{req.Destination.Longitude, req.Destination.Latitude}
@@ -354,8 +392,8 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 		TripStatus:            trip.Status,
 		PredictedDurationMins: decimal.NewFromFloat(trip.Route.Duration).Div(decimal.NewFromInt(60)),
 		DistanceKm:            decimal.NewFromFloat(trip.Route.Distance).Div(decimal.NewFromInt(1000)),
-		PickupLat:             trip.Route.Pickup.Coordinates[1],
-		PickupLng:             trip.Route.Pickup.Coordinates[0],
+		PickupLat:             trip.Route.Pickup.Coordinates.Lat(),
+		PickupLng:             trip.Route.Pickup.Coordinates.Lon(),
 	}
 	if err := analytics.SendEvent(ctx, s.queue, tripEvent); err != nil {
 		return nil, status.Error(codes.Internal, "internal server error")

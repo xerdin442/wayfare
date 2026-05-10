@@ -12,4 +12,5 @@ var (
 	ErrUnsupportedBank     = errors.New("wayfare does not support payouts to this bank")
 	ErrAccountNameMismatch = errors.New("account name does not match the name registered with your bank. please check the spelling or order of your account name")
 	ErrUnsupportedFileType = errors.New("unsupported file type")
+	ErrTripRatingRequired  = errors.New("please rate your previous trip. this helps us maintain the quality of our service")
 )

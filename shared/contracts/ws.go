@@ -1,6 +1,8 @@
 package contracts
 
 import (
+	"time"
+
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/types"
 )
@@ -23,7 +25,7 @@ type TripUpdateRequest struct {
 	Trip types.Trip `json:"trip"`
 }
 
-type CashPaymentRequest struct {
+type TripRatingRequest struct {
 	TripID       string `json:"tripId"`
 	TripRating   int64  `json:"tripRating"`
 	RiderComment string `json:"riderComment,omitempty"`
@@ -32,4 +34,11 @@ type CashPaymentRequest struct {
 type DriverAssignedResponse struct {
 	Driver types.Driver `json:"driver"`
 	Trip   types.Trip   `json:"trip"`
+}
+
+type TripRatingRequiredResponse struct {
+	TripID      string           `json:"tripId"`
+	Pickup      types.Coordinate `json:"pickup"`
+	Destination types.Coordinate `json:"destination"`
+	Date        time.Time        `json:"date"`
 }

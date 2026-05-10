@@ -277,10 +277,8 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 
 	// Mark trip as completed
 	tripServicePayload := &messaging.TripUpdateQueuePayload{
-		TripID:       payload.TripID,
-		RiderComment: payload.RiderComment,
-		Rating:       payload.TripRating,
-		CashPayment:  true,
+		TripID:      payload.TripID,
+		CashPayment: true,
 	}
 	if err := h.markTripAsCompleted(ctx, tripServicePayload); err != nil {
 		return err
