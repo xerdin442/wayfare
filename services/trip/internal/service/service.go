@@ -255,7 +255,7 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 
 	if lastTrip != nil {
 		data, err := json.Marshal(contracts.WebsocketMessage{
-			Type: messaging.TripEventRatingRequired,
+			Type: string(messaging.TripEventRatingRequired),
 			Data: contracts.TripRatingRequiredResponse{
 				TripID: lastTrip.ID.Hex(),
 				Pickup: types.Coordinate{

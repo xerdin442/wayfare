@@ -78,7 +78,7 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 
 		// Notify participants that the trip has ended
 		gatewayData, err := json.Marshal(contracts.WebsocketMessage{
-			Type: messaging.TripCmdCompleted,
+			Type: string(messaging.TripCmdCompleted),
 		})
 		if err != nil {
 			return fmt.Errorf("Failed to marshal websocket message")

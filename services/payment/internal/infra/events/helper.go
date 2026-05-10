@@ -19,7 +19,7 @@ func (h *PaymentEventsHandler) sendTransactionStatus(ctx context.Context, userID
 	}
 
 	gatewayData, err := json.Marshal(contracts.WebsocketMessage{
-		Type: event,
+		Type: string(event),
 	})
 	if err != nil {
 		return fmt.Errorf("Could not parse event queue payload: %v", err)

@@ -3,18 +3,17 @@ package contracts
 import (
 	"time"
 
-	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/types"
 )
 
 type WebsocketMessage struct {
-	Type messaging.AmqpEvent `json:"type"`
-	Data any                 `json:"data,omitempty"`
+	Type string `json:"type"`
+	Data any    `json:"data,omitempty"`
 }
 
 type DriverTripActionRequest struct {
 	Trip   types.Trip   `json:"trip"`
-	Driver types.Driver `json:"driver"`
+	Driver types.Driver `json:"driver,omitempty"`
 }
 
 type DriverLocationUpdateRequest struct {
@@ -27,8 +26,8 @@ type TripUpdateRequest struct {
 
 type TripRatingRequest struct {
 	TripID       string `json:"tripId"`
-	TripRating   int64  `json:"tripRating"`
-	RiderComment string `json:"riderComment,omitempty"`
+	Rating       int64  `json:"rating"`
+	RiderComment string `json:"comment,omitempty"`
 }
 
 type DriverAssignedResponse struct {

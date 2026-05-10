@@ -5,6 +5,7 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/models"
 	"github.com/xerdin442/wayfare/shared/types"
 )
@@ -80,9 +81,9 @@ type CashPaymentPayload struct {
 }
 
 type PaymentWebhookPayload struct {
-	Provider           types.PaymentProvider            `json:"provider"`
-	PaystackWebhook    *types.PaystackWebhookPayload    `json:"paystack_webhook,omitempty"`
-	FlutterwaveWebhook *types.FlutterwaveWebhookPayload `json:"flutterwave_webhook,omitempty"`
+	Provider           types.PaymentProvider                `json:"provider"`
+	PaystackWebhook    *contracts.PaystackWebhookPayload    `json:"paystack_webhook,omitempty"`
+	FlutterwaveWebhook *contracts.FlutterwaveWebhookPayload `json:"flutterwave_webhook,omitempty"`
 }
 
 type DriverPayoutPayload struct {

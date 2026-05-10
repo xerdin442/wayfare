@@ -113,35 +113,3 @@ type Rider struct {
 	Email          string `json:"email"`
 	ProfilePicture string `json:"profilePicture"`
 }
-
-type PaymentMetadata struct {
-	TripID       string `json:"trip_id"`
-	UserID       string `json:"user_id"`
-	TripRating   int64  `json:"trip_rating"`
-	RiderComment string `json:"rider_comment,omitempty"`
-	DriverTip    int64  `json:"driver_tip,omitempty"`
-}
-
-type PaystackWebhookPayload struct {
-	Event string `json:"event"`
-	Data  struct {
-		Reference string `json:"reference"`
-		Status    string `json:"status"`
-		Amount    int64  `json:"amount"`
-		Metadata  string `json:"metadata"`
-		Recipient struct {
-			Email         string `json:"email"`
-			RecipientCode string `json:"recipient_code"`
-		} `json:"recipient"`
-	} `json:"data"`
-}
-
-type FlutterwaveWebhookPayload struct {
-	Event string `json:"event"`
-	Data  struct {
-		Status string          `json:"status"`
-		Amount int64           `json:"amount"`
-		TxRef  string          `json:"tx_ref"`
-		Meta   PaymentMetadata `json:"meta"`
-	} `json:"data"`
-}

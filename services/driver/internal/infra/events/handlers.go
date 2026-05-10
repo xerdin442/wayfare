@@ -123,7 +123,7 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 
 		// Notify the rider there are no available drivers
 		gatewayData, err := json.Marshal(contracts.WebsocketMessage{
-			Type: messaging.TripEventNoDriversFound,
+			Type: string(messaging.TripEventNoDriversFound),
 		})
 		if err != nil {
 			return fmt.Errorf("Failed to marshal websocket message: %v", err)
@@ -141,7 +141,7 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 
 	// Send trip request to eligible driver
 	data, err := json.Marshal(contracts.WebsocketMessage{
-		Type: messaging.DriverEventTripRequest,
+		Type: string(messaging.DriverEventTripRequest),
 		Data: payload.Trip,
 	})
 	if err != nil {

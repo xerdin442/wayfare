@@ -160,7 +160,7 @@ func (s *PaymentService) buildCheckoutPayloads(req *pb.InitiatePaymentRequest, t
 	*contracts.FlutterwaveCheckoutRequest,
 	error,
 ) {
-	metadata := &types.PaymentMetadata{
+	metadata := &contracts.PaymentMetadata{
 		TripID:       req.TripId,
 		UserID:       req.UserId,
 		TripRating:   req.TripRating,

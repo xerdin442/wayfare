@@ -111,7 +111,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 		}
 
 		switch payload.Type {
-		case messaging.DriverCmdLocationUpdate:
+		case string(messaging.DriverCmdLocationUpdate):
 			var data contracts.DriverLocationUpdateRequest
 			dataBytes, _ := json.Marshal(payload.Data)
 			if err := json.Unmarshal(dataBytes, &data); err != nil {
@@ -142,7 +142,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				return
 			}
 
-		case messaging.DriverCmdTripDecline:
+		case string(messaging.DriverCmdTripDecline):
 			var data contracts.DriverTripActionRequest
 			dataBytes, _ := json.Marshal(payload.Data)
 			if err := json.Unmarshal(dataBytes, &data); err != nil {
@@ -171,7 +171,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				return
 			}
 
-		case messaging.DriverCmdTripAccept:
+		case string(messaging.DriverCmdTripAccept):
 			var data contracts.DriverTripActionRequest
 			dataBytes, _ := json.Marshal(payload.Data)
 			if err := json.Unmarshal(dataBytes, &data); err != nil {
@@ -204,7 +204,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 
 			// Notify rider that a driver has accepted the trip request
 			msg, err = json.Marshal(contracts.WebsocketMessage{
-				Type: messaging.TripEventDriverAssigned,
+				Type: string(messaging.TripEventDriverAssigned),
 				Data: contracts.DriverAssignedResponse{
 					Driver: data.Driver,
 					Trip:   data.Trip,
@@ -229,7 +229,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 			// Update driver status
 			h.updateDriverStatus(ctx, data.Driver.ID, types.DriverStatusBusy)
 
-		case messaging.DriverCmdTripPickup:
+		case string(messaging.DriverCmdTripPickup):
 			var data contracts.TripUpdateRequest
 			dataBytes, _ := json.Marshal(payload.Data)
 			if err := json.Unmarshal(dataBytes, &data); err != nil {
@@ -262,7 +262,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 
 			// Notify rider that the driver has arrived
 			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
-				Type: messaging.TripEventDriverArrival,
+				Type: string(messaging.TripEventDriverArrival),
 			})
 			if err != nil {
 				tracing.HandleError(span, err)
@@ -280,7 +280,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				return
 			}
 
-		case messaging.DriverCmdEndTrip:
+		case string(messaging.DriverCmdEndTrip):
 			var data contracts.TripUpdateRequest
 			dataBytes, _ := json.Marshal(payload.Data)
 			if err := json.Unmarshal(dataBytes, &data); err != nil {
@@ -313,7 +313,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 
 			// Notify rider to make payment
 			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
-				Type: messaging.TripEventPaymentRequired,
+				Type: string(messaging.TripEventPaymentRequired),
 			})
 			if err != nil {
 				tracing.HandleError(span, err)
@@ -331,7 +331,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				return
 			}
 
-		case messaging.PaymentEventCashReceived:
+		case string(messaging.PaymentEventCashReceived):
 			var data contracts.TripUpdateRequest
 			dataBytes, _ := json.Marshal(payload.Data)
 			if err := json.Unmarshal(dataBytes, &data); err != nil {
@@ -422,7 +422,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 		}
 
 		switch payload.Type {
-		case messaging.TripCmdCancelled:
+		case string(messaging.TripCmdCancelled):
 			var data contracts.TripUpdateRequest
 			dataBytes, _ := json.Marshal(payload.Data)
 			if err := json.Unmarshal(dataBytes, &data); err != nil {
@@ -453,7 +453,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 
 			// Update driver's trip preview
 			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
-				Type: messaging.TripCmdCancelled,
+				Type: string(messaging.TripCmdCancelled),
 			})
 			if err != nil {
 				tracing.HandleError(span, err)
@@ -472,7 +472,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 				return
 			}
 
-		case messaging.TripCmdRated:
+		case string(messaging.TripCmdRated):
 			var data contracts.TripRatingRequest
 			dataBytes, _ := json.Marshal(payload.Data)
 			if err := json.Unmarshal(dataBytes, &data); err != nil {
@@ -484,7 +484,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 			// Update trip rating
 			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
 				TripID:       data.TripID,
-				Rating:       data.TripRating,
+				Rating:       data.Rating,
 				RiderComment: data.RiderComment,
 			})
 			if err != nil {
@@ -503,7 +503,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 				return
 			}
 
-		case messaging.PaymentEventCashOptionPreferred:
+		case string(messaging.PaymentEventCashOptionPreferred):
 			var data contracts.TripUpdateRequest
 			dataBytes, _ := json.Marshal(payload.Data)
 			if err := json.Unmarshal(dataBytes, &data); err != nil {
@@ -514,7 +514,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 
 			// Notify driver that rider prefers cash payment
 			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
-				Type: messaging.PaymentEventCashOptionPreferred,
+				Type: string(messaging.PaymentEventCashOptionPreferred),
 			})
 			if err != nil {
 				tracing.HandleError(span, err)

@@ -39,7 +39,7 @@ func (h *GatewayEventsHandler) HandleOutgoingWebsocketMessages(ctx context.Conte
 
 	if !exists {
 		switch payload.Type {
-		case messaging.DriverEventTripRequest:
+		case string(messaging.DriverEventTripRequest):
 			var response types.Trip
 			dataBytes, _ := json.Marshal(payload.Data)
 			if err := json.Unmarshal(dataBytes, &response); err != nil {
@@ -63,7 +63,7 @@ func (h *GatewayEventsHandler) HandleOutgoingWebsocketMessages(ctx context.Conte
 				return err
 			}
 
-		case messaging.TripEventDriverAssigned:
+		case string(messaging.TripEventDriverAssigned):
 			var response contracts.DriverAssignedResponse
 			dataBytes, _ := json.Marshal(payload.Data)
 			if err := json.Unmarshal(dataBytes, &response); err != nil {
@@ -89,7 +89,7 @@ func (h *GatewayEventsHandler) HandleOutgoingWebsocketMessages(ctx context.Conte
 
 			// Notify the driver that the trip has been aborted
 			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
-				Type: messaging.TripCmdAborted,
+				Type: string(messaging.TripCmdAborted),
 			})
 			if err != nil {
 				return fmt.Errorf("Failed to marshal websocket message: %v", err)

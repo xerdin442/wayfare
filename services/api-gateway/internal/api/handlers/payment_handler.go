@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
+	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
@@ -55,7 +56,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 			return
 		}
 
-		var req *types.PaystackWebhookPayload
+		var req *contracts.PaystackWebhookPayload
 		if err := c.ShouldBindJSON(&req); err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Error parsing paystack webhook payload")
@@ -80,7 +81,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 			return
 		}
 
-		var req *types.FlutterwaveWebhookPayload
+		var req *contracts.FlutterwaveWebhookPayload
 		if err := c.ShouldBindJSON(&req); err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Error parsing flutterwave webhook payload")

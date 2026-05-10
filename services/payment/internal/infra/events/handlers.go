@@ -60,7 +60,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 		webhook := payload.PaystackWebhook
 		recipientCode := webhook.Data.Recipient.RecipientCode
 
-		var metadata types.PaymentMetadata
+		var metadata contracts.PaymentMetadata
 		if err := json.Unmarshal([]byte(webhook.Data.Metadata), &metadata); err != nil {
 			return fmt.Errorf("Failed to unmarshal Paystack webhook metadata")
 		}
