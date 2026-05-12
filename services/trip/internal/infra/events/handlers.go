@@ -103,6 +103,7 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 			DriverID:        payload.DriverID,
 			TripCountUpdate: true,
 			RideFare:        updatedTrip.RideFare,
+			Tip:             payload.DriverTip,
 			Status:          driverStatus,
 		}
 		if payload.CashPayment {

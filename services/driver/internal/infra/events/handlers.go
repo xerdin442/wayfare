@@ -182,7 +182,7 @@ func (h *DriverEventsHandler) HandleDriverUpdate(ctx context.Context, p messagin
 	} else {
 		updateData := &repo.DriverUpdateData{
 			Status:                  payload.Status,
-			SplitAmount:             splitAmount,
+			SplitAmount:             splitAmount + payload.Tip,
 			TripCountUpdate:         payload.TripCountUpdate,
 			BalanceUpdate:           payload.BalanceUpdate,
 			PendingReturnsUpdate:    payload.PendingReturnsUpdate,
