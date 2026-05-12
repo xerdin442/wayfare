@@ -57,7 +57,11 @@ func (h *RouteHandler) HandleTripPreview(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, contracts.APIResponse{Data: response})
+	c.JSON(http.StatusOK, contracts.APIResponse{
+		Data: gin.H{
+			"rideFares": contracts.MapRideFares(response.RideFares),
+		},
+	})
 }
 
 func (h *RouteHandler) HandleStartTrip(c *gin.Context) {
@@ -102,7 +106,11 @@ func (h *RouteHandler) HandleStartTrip(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, contracts.APIResponse{Data: response})
+	c.JSON(http.StatusOK, contracts.APIResponse{
+		Data: gin.H{
+			"tripId": response.TripId,
+		},
+	})
 }
 
 func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
@@ -186,5 +194,9 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, contracts.APIResponse{Data: checkoutResponse})
+	c.JSON(http.StatusOK, contracts.APIResponse{
+		Data: gin.H{
+			"checkoutUrl": checkoutResponse.CheckoutUrl,
+		},
+	})
 }

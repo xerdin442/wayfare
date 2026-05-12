@@ -330,7 +330,6 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	}
 
 	return &pb.PreviewTripResponse{
-		Route:     route.ToProto(),
 		RideFares: rideFares,
 	}, nil
 }
@@ -356,22 +355,10 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 				PackageSlug: trip.CarPackage,
 				Amount:      trip.RideFare,
 			},
-			Route: types.Route{
-				Distance: trip.Route.Distance,
-				Duration: trip.Route.Duration,
-				Geometry: []*types.Geometry{
-					{Coordinates: []*types.Coordinate{
-						{
-							Longitude: trip.Route.Pickup.Coordinates[0],
-							Latitude:  trip.Route.Pickup.Coordinates[1],
-						},
-						{
-							Longitude: trip.Route.Destination.Coordinates[0],
-							Latitude:  trip.Route.Destination.Coordinates[1],
-						},
-					}},
-				},
-			},
+		},
+		Pickup: types.Coordinate{
+			Latitude:  trip.Route.Pickup.Coordinates.Lat(),
+			Longitude: trip.Route.Pickup.Coordinates.Lon(),
 		},
 	}
 

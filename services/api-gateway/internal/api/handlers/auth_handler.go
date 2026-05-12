@@ -383,7 +383,18 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, contracts.APIResponse{
-			Data: gin.H{"user": res.Driver},
+			Data: gin.H{
+				"user": types.Driver{
+					ID:                  res.Driver.Id,
+					Name:                res.Driver.Name,
+					Email:               res.Driver.Email,
+					ProfilePicture:      res.Driver.ProfilePicture,
+					CarPlate:            res.Driver.CarPlate,
+					CurrentRating:       res.Driver.CurrentRating,
+					TotalCompletedTrips: res.Driver.TotalCompletedTrips,
+					Tier:                types.DriverTier(res.Driver.Tier),
+				},
+			},
 		})
 		return
 	}
@@ -413,7 +424,13 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, contracts.APIResponse{
-			Data: gin.H{"user": res.Rider},
+			Data: gin.H{
+				"user": types.Rider{
+					ID:             res.Rider.Id,
+					Email:          res.Rider.Email,
+					Name:           res.Rider.Name,
+					ProfilePicture: res.Rider.ProfilePicture,
+				}},
 		})
 		return
 	}

@@ -97,8 +97,7 @@ message PreviewTripRequest {
 }
 
 message PreviewTripResponse {
-  Route             route      = 1;
-  repeated RideFare ride_fares = 2;
+  repeated RideFare ride_fares = 1;
 }
 
 message StartTripRequest {

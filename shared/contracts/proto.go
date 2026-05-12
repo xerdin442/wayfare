@@ -1,6 +1,9 @@
 package contracts
 
-import pb "github.com/xerdin442/wayfare/shared/pkg"
+import (
+	pb "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/types"
+)
 
 func (o *OsrmApiResponse) ToProto() *pb.Route {
 	route := o.Routes[0]
@@ -34,4 +37,40 @@ func (r *PreviewTripRequest) ToProto() *pb.PreviewTripRequest {
 			Longitude: r.Destination.Longitude,
 		},
 	}
+}
+
+func MapRideFares(resp []*pb.RideFare) []types.RideFare {
+	rideFares := make([]types.RideFare, len(resp))
+
+	for _, fare := range resp {
+		var routeGeometry []*types.Geometry
+		for _, geometry := range fare.Route.Geometry {
+			coords := make([]*types.Coordinate, len(geometry.Coordinates))
+			for _, coord := range geometry.Coordinates {
+				coords = append(coords, &types.Coordinate{
+					Latitude:  coord.Latitude,
+					Longitude: coord.Longitude,
+				})
+			}
+
+			routeGeometry = append(routeGeometry, &types.Geometry{
+				Coordinates: coords,
+			})
+		}
+
+		route := types.Route{
+			Distance: fare.Route.Distance,
+			Duration: fare.Route.Duration,
+			Geometry: routeGeometry,
+		}
+
+		rideFares = append(rideFares, types.RideFare{
+			ID:          fare.Id,
+			PackageSlug: types.CarPackage(fare.PackageSlug),
+			Amount:      fare.Amount,
+			Route:       route,
+		})
+	}
+
+	return rideFares
 }

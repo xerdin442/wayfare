@@ -65,10 +65,9 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 	}
 
 	// Find available drivers within 5km of the trip request
-	pickup := payload.Trip.Route.Geometry[0].Coordinates[0]
 	nearbyDrivers, err := h.cache.GeoSearch(ctx, "drivers_locations", &redis.GeoSearchQuery{
-		Longitude:  pickup.Longitude,
-		Latitude:   pickup.Latitude,
+		Longitude:  payload.Pickup.Longitude,
+		Latitude:   payload.Pickup.Latitude,
 		Radius:     5,
 		RadiusUnit: "km",
 		Sort:       "ASC",

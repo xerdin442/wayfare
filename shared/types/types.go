@@ -91,20 +91,21 @@ type RideFare struct {
 
 type Trip struct {
 	ID           string     `json:"id"`
-	UserID       string     `json:"userID"`
-	DriverID     string     `json:"driverID,omitempty"`
+	UserID       string     `json:"userId"`
+	DriverID     string     `json:"driverId,omitempty"`
 	Status       TripStatus `json:"status"`
 	SelectedFare RideFare   `json:"selectedFare"`
-	Route        Route      `json:"route"`
 }
 
 type Driver struct {
-	ID                  string  `json:"id"`
-	Name                string  `json:"name"`
-	ProfilePicture      string  `json:"profilePicture"`
-	CarPlate            string  `json:"carPlate"`
-	CurrentRating       float64 `json:"currentRating"`
-	TotalCompletedTrips int64   `json:"totalCompletedTrips"`
+	ID                  string     `json:"id"`
+	Name                string     `json:"name"`
+	Email               string     `json:"email"`
+	ProfilePicture      string     `json:"profilePicture"`
+	CarPlate            string     `json:"carPlate"`
+	CurrentRating       float64    `json:"currentRating"`
+	TotalCompletedTrips int64      `json:"totalCompletedTrips"`
+	Tier                DriverTier `json:"tier"`
 }
 
 type Rider struct {

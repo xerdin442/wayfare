@@ -249,11 +249,12 @@ type Driver struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name                string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	ProfilePicture      string                 `protobuf:"bytes,3,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
-	CarPlate            string                 `protobuf:"bytes,4,opt,name=car_plate,json=carPlate,proto3" json:"car_plate,omitempty"`
-	CurrentRating       float64                `protobuf:"fixed64,5,opt,name=current_rating,json=currentRating,proto3" json:"current_rating,omitempty"`
-	TotalCompletedTrips int64                  `protobuf:"varint,6,opt,name=total_completed_trips,json=totalCompletedTrips,proto3" json:"total_completed_trips,omitempty"`
-	Tier                string                 `protobuf:"bytes,7,opt,name=tier,proto3" json:"tier,omitempty"`
+	Email               string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	ProfilePicture      string                 `protobuf:"bytes,4,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
+	CarPlate            string                 `protobuf:"bytes,5,opt,name=car_plate,json=carPlate,proto3" json:"car_plate,omitempty"`
+	CurrentRating       float64                `protobuf:"fixed64,6,opt,name=current_rating,json=currentRating,proto3" json:"current_rating,omitempty"`
+	TotalCompletedTrips int64                  `protobuf:"varint,7,opt,name=total_completed_trips,json=totalCompletedTrips,proto3" json:"total_completed_trips,omitempty"`
+	Tier                string                 `protobuf:"bytes,8,opt,name=tier,proto3" json:"tier,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -298,6 +299,13 @@ func (x *Driver) GetId() string {
 func (x *Driver) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *Driver) GetEmail() string {
+	if x != nil {
+		return x.Email
 	}
 	return ""
 }
@@ -412,7 +420,6 @@ type Trip struct {
 	DriverId      string                 `protobuf:"bytes,3,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"`
 	Status        string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
 	SelectedFare  *RideFare              `protobuf:"bytes,5,opt,name=selected_fare,json=selectedFare,proto3" json:"selected_fare,omitempty"`
-	Route         *Route                 `protobuf:"bytes,6,opt,name=route,proto3" json:"route,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -482,13 +489,6 @@ func (x *Trip) GetSelectedFare() *RideFare {
 	return nil
 }
 
-func (x *Trip) GetRoute() *Route {
-	if x != nil {
-		return x.Route
-	}
-	return nil
-}
-
 var File_schema_proto protoreflect.FileDescriptor
 
 const file_schema_proto_rawDesc = "" +
@@ -508,27 +508,27 @@ const file_schema_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fpackage_slug\x18\x02 \x01(\tR\vpackageSlug\x12\x16\n" +
 	"\x06amount\x18\x03 \x01(\x03R\x06amount\x12$\n" +
-	"\x05route\x18\x04 \x01(\v2\x0e.wayfare.RouteR\x05route\"\xe1\x01\n" +
+	"\x05route\x18\x04 \x01(\v2\x0e.wayfare.RouteR\x05route\"\xf7\x01\n" +
 	"\x06Driver\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
-	"\x0fprofile_picture\x18\x03 \x01(\tR\x0eprofilePicture\x12\x1b\n" +
-	"\tcar_plate\x18\x04 \x01(\tR\bcarPlate\x12%\n" +
-	"\x0ecurrent_rating\x18\x05 \x01(\x01R\rcurrentRating\x122\n" +
-	"\x15total_completed_trips\x18\x06 \x01(\x03R\x13totalCompletedTrips\x12\x12\n" +
-	"\x04tier\x18\a \x01(\tR\x04tier\"j\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12'\n" +
+	"\x0fprofile_picture\x18\x04 \x01(\tR\x0eprofilePicture\x12\x1b\n" +
+	"\tcar_plate\x18\x05 \x01(\tR\bcarPlate\x12%\n" +
+	"\x0ecurrent_rating\x18\x06 \x01(\x01R\rcurrentRating\x122\n" +
+	"\x15total_completed_trips\x18\a \x01(\x03R\x13totalCompletedTrips\x12\x12\n" +
+	"\x04tier\x18\b \x01(\tR\x04tier\"j\n" +
 	"\x05Rider\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x12'\n" +
-	"\x0fprofile_picture\x18\x04 \x01(\tR\x0eprofilePicture\"\xc2\x01\n" +
+	"\x0fprofile_picture\x18\x04 \x01(\tR\x0eprofilePicture\"\x9c\x01\n" +
 	"\x04Trip\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1b\n" +
 	"\tdriver_id\x18\x03 \x01(\tR\bdriverId\x12\x16\n" +
 	"\x06status\x18\x04 \x01(\tR\x06status\x126\n" +
-	"\rselected_fare\x18\x05 \x01(\v2\x11.wayfare.RideFareR\fselectedFare\x12$\n" +
-	"\x05route\x18\x06 \x01(\v2\x0e.wayfare.RouteR\x05routeB,Z*github.com/xerdin442/wayfare/shared/pkg/pbb\x06proto3"
+	"\rselected_fare\x18\x05 \x01(\v2\x11.wayfare.RideFareR\fselectedFareB,Z*github.com/xerdin442/wayfare/shared/pkg/pbb\x06proto3"
 
 var (
 	file_schema_proto_rawDescOnce sync.Once
@@ -557,12 +557,11 @@ var file_schema_proto_depIdxs = []int32{
 	1, // 1: wayfare.Route.geometry:type_name -> wayfare.Geometry
 	2, // 2: wayfare.RideFare.route:type_name -> wayfare.Route
 	3, // 3: wayfare.Trip.selected_fare:type_name -> wayfare.RideFare
-	2, // 4: wayfare.Trip.route:type_name -> wayfare.Route
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_schema_proto_init() }

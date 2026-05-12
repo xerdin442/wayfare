@@ -29,11 +29,12 @@ message RideFare {
 message Driver {
   string id                    = 1;
   string name                  = 2;
-  string profile_picture       = 3;
-  string car_plate             = 4;
-  double current_rating        = 5;
-  int64  total_completed_trips = 6;
-  string tier                  = 7;
+  string email                 = 3;
+  string profile_picture       = 4;
+  string car_plate             = 5;
+  double current_rating        = 6;
+  int64  total_completed_trips = 7;
+  string tier                  = 8;
 }
 
 message Rider {
@@ -49,5 +50,4 @@ message Trip {
   string   driver_id     = 3;
   string   status        = 4;
   RideFare selected_fare = 5;
-  Route    route         = 6;
 }

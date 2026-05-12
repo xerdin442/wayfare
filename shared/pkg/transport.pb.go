@@ -575,8 +575,7 @@ func (x *PreviewTripRequest) GetDestination() *Coordinate {
 
 type PreviewTripResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Route         *Route                 `protobuf:"bytes,1,opt,name=route,proto3" json:"route,omitempty"`
-	RideFares     []*RideFare            `protobuf:"bytes,2,rep,name=ride_fares,json=rideFares,proto3" json:"ride_fares,omitempty"`
+	RideFares     []*RideFare            `protobuf:"bytes,1,rep,name=ride_fares,json=rideFares,proto3" json:"ride_fares,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -609,13 +608,6 @@ func (x *PreviewTripResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use PreviewTripResponse.ProtoReflect.Descriptor instead.
 func (*PreviewTripResponse) Descriptor() ([]byte, []int) {
 	return file_transport_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *PreviewTripResponse) GetRoute() *Route {
-	if x != nil {
-		return x.Route
-	}
-	return nil
 }
 
 func (x *PreviewTripResponse) GetRideFares() []*RideFare {
@@ -896,11 +888,10 @@ const file_transport_proto_rawDesc = "" +
 	"\x12PreviewTripRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12+\n" +
 	"\x06pickup\x18\x02 \x01(\v2\x13.wayfare.CoordinateR\x06pickup\x125\n" +
-	"\vdestination\x18\x03 \x01(\v2\x13.wayfare.CoordinateR\vdestination\"m\n" +
-	"\x13PreviewTripResponse\x12$\n" +
-	"\x05route\x18\x01 \x01(\v2\x0e.wayfare.RouteR\x05route\x120\n" +
+	"\vdestination\x18\x03 \x01(\v2\x13.wayfare.CoordinateR\vdestination\"G\n" +
+	"\x13PreviewTripResponse\x120\n" +
 	"\n" +
-	"ride_fares\x18\x02 \x03(\v2\x11.wayfare.RideFareR\trideFares\"M\n" +
+	"ride_fares\x18\x01 \x03(\v2\x11.wayfare.RideFareR\trideFares\"M\n" +
 	"\x10StartTripRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12 \n" +
 	"\fride_fare_id\x18\x02 \x01(\tR\n" +
@@ -966,41 +957,39 @@ var file_transport_proto_goTypes = []any{
 	(*Driver)(nil),                  // 15: wayfare.Driver
 	(*Rider)(nil),                   // 16: wayfare.Rider
 	(*Coordinate)(nil),              // 17: wayfare.Coordinate
-	(*Route)(nil),                   // 18: wayfare.Route
-	(*RideFare)(nil),                // 19: wayfare.RideFare
+	(*RideFare)(nil),                // 18: wayfare.RideFare
 }
 var file_transport_proto_depIdxs = []int32{
 	15, // 0: wayfare.DriverProfileResponse.driver:type_name -> wayfare.Driver
 	16, // 1: wayfare.RiderProfileResponse.rider:type_name -> wayfare.Rider
 	17, // 2: wayfare.PreviewTripRequest.pickup:type_name -> wayfare.Coordinate
 	17, // 3: wayfare.PreviewTripRequest.destination:type_name -> wayfare.Coordinate
-	18, // 4: wayfare.PreviewTripResponse.route:type_name -> wayfare.Route
-	19, // 5: wayfare.PreviewTripResponse.ride_fares:type_name -> wayfare.RideFare
-	9,  // 6: wayfare.TripService.PreviewTrip:input_type -> wayfare.PreviewTripRequest
-	11, // 7: wayfare.TripService.StartTrip:input_type -> wayfare.StartTripRequest
-	0,  // 8: wayfare.TripService.GetTripDetails:input_type -> wayfare.TripDetailsRequest
-	2,  // 9: wayfare.DriverService.GetDriverProfile:input_type -> wayfare.GetProfileRequest
-	5,  // 10: wayfare.DriverService.Login:input_type -> wayfare.LoginRequest
-	7,  // 11: wayfare.DriverService.Signup:input_type -> wayfare.SignupDriverRequest
-	2,  // 12: wayfare.RiderService.GetRiderProfile:input_type -> wayfare.GetProfileRequest
-	5,  // 13: wayfare.RiderService.Login:input_type -> wayfare.LoginRequest
-	6,  // 14: wayfare.RiderService.Signup:input_type -> wayfare.SignupRiderRequest
-	13, // 15: wayfare.PaymentService.InitiatePayment:input_type -> wayfare.InitiatePaymentRequest
-	10, // 16: wayfare.TripService.PreviewTrip:output_type -> wayfare.PreviewTripResponse
-	12, // 17: wayfare.TripService.StartTrip:output_type -> wayfare.StartTripResponse
-	1,  // 18: wayfare.TripService.GetTripDetails:output_type -> wayfare.TripDetailsResponse
-	3,  // 19: wayfare.DriverService.GetDriverProfile:output_type -> wayfare.DriverProfileResponse
-	8,  // 20: wayfare.DriverService.Login:output_type -> wayfare.AuthResponse
-	8,  // 21: wayfare.DriverService.Signup:output_type -> wayfare.AuthResponse
-	4,  // 22: wayfare.RiderService.GetRiderProfile:output_type -> wayfare.RiderProfileResponse
-	8,  // 23: wayfare.RiderService.Login:output_type -> wayfare.AuthResponse
-	8,  // 24: wayfare.RiderService.Signup:output_type -> wayfare.AuthResponse
-	14, // 25: wayfare.PaymentService.InitiatePayment:output_type -> wayfare.InitiatePaymentResponse
-	16, // [16:26] is the sub-list for method output_type
-	6,  // [6:16] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	18, // 4: wayfare.PreviewTripResponse.ride_fares:type_name -> wayfare.RideFare
+	9,  // 5: wayfare.TripService.PreviewTrip:input_type -> wayfare.PreviewTripRequest
+	11, // 6: wayfare.TripService.StartTrip:input_type -> wayfare.StartTripRequest
+	0,  // 7: wayfare.TripService.GetTripDetails:input_type -> wayfare.TripDetailsRequest
+	2,  // 8: wayfare.DriverService.GetDriverProfile:input_type -> wayfare.GetProfileRequest
+	5,  // 9: wayfare.DriverService.Login:input_type -> wayfare.LoginRequest
+	7,  // 10: wayfare.DriverService.Signup:input_type -> wayfare.SignupDriverRequest
+	2,  // 11: wayfare.RiderService.GetRiderProfile:input_type -> wayfare.GetProfileRequest
+	5,  // 12: wayfare.RiderService.Login:input_type -> wayfare.LoginRequest
+	6,  // 13: wayfare.RiderService.Signup:input_type -> wayfare.SignupRiderRequest
+	13, // 14: wayfare.PaymentService.InitiatePayment:input_type -> wayfare.InitiatePaymentRequest
+	10, // 15: wayfare.TripService.PreviewTrip:output_type -> wayfare.PreviewTripResponse
+	12, // 16: wayfare.TripService.StartTrip:output_type -> wayfare.StartTripResponse
+	1,  // 17: wayfare.TripService.GetTripDetails:output_type -> wayfare.TripDetailsResponse
+	3,  // 18: wayfare.DriverService.GetDriverProfile:output_type -> wayfare.DriverProfileResponse
+	8,  // 19: wayfare.DriverService.Login:output_type -> wayfare.AuthResponse
+	8,  // 20: wayfare.DriverService.Signup:output_type -> wayfare.AuthResponse
+	4,  // 21: wayfare.RiderService.GetRiderProfile:output_type -> wayfare.RiderProfileResponse
+	8,  // 22: wayfare.RiderService.Login:output_type -> wayfare.AuthResponse
+	8,  // 23: wayfare.RiderService.Signup:output_type -> wayfare.AuthResponse
+	14, // 24: wayfare.PaymentService.InitiatePayment:output_type -> wayfare.InitiatePaymentResponse
+	15, // [15:25] is the sub-list for method output_type
+	5,  // [5:15] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_transport_proto_init() }
