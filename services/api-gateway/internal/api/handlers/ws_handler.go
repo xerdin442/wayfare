@@ -76,7 +76,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 	conn, err := h.ws.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		tracing.HandleError(span, err)
-		log.Error().Err(err).Msg("WebSocket connection upgrade failed")
+		logger.Error().Err(err).Msg("WebSocket connection upgrade failed")
 		return
 	}
 
@@ -140,6 +140,31 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				tracing.HandleError(span, err)
 				logger.Error().Err(err).Msg("Failed to set expiry on location tracker")
 				return
+			}
+
+			if data.RiderId != "" {
+				msg, err = json.Marshal(contracts.WebsocketMessage{
+					Type: string(messaging.DriverCmdLocationUpdate),
+					Data: types.Coordinate{
+						Latitude:  data.Coords.Latitude,
+						Longitude: data.Coords.Longitude,
+					},
+				})
+				if err != nil {
+					tracing.HandleError(span, err)
+					logger.Error().Err(err).Msg("Failed to marshal websocket message")
+					return
+				}
+
+				if err := h.cfg.Queue.PublishMessage(
+					ctx,
+					messaging.GatewayExchange,
+					messaging.AmqpEvent(fmt.Sprintf("user.%s", data.RiderId)),
+					messaging.AmqpMessage{Data: msg},
+				); err != nil {
+					tracing.HandleError(span, err)
+					return
+				}
 			}
 
 		case string(messaging.DriverCmdTripDecline):
