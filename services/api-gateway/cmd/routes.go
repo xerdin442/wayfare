@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/handlers"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/middleware"
@@ -14,6 +15,16 @@ func (app *application) routes() http.Handler {
 	r := gin.New()
 	m := middleware.New(app.config)
 	h := handlers.New(app.config)
+
+	corsConfig := cors.DefaultConfig()
+	if app.config.Env.Environment == "production" {
+		corsConfig.AllowOrigins = []string{app.config.Env.FrontendUrl}
+	} else {
+		corsConfig.AllowAllOrigins = true
+	}
+	corsConfig.AllowCredentials = true
+	corsConfig.AddAllowHeaders("Authorization")
+	r.Use(cors.New(corsConfig))
 
 	r.Use(m.CustomRequestLogger())
 	r.Use(m.RateLimiters()...)

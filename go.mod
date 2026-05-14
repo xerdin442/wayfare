@@ -5,6 +5,7 @@ go 1.25.4
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.45.0
 	github.com/cloudinary/cloudinary-go/v2 v2.15.0
+	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-co-op/gocron/v2 v2.21.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
