@@ -17,7 +17,8 @@ type DriverTripActionRequest struct {
 }
 
 type DriverLocationUpdateRequest struct {
-	Coords types.Coordinate `json:"coords"`
+	Coords  types.Coordinate `json:"coords"`
+	RiderId string           `json:"riderId,omitempty"`
 }
 
 type TripUpdateRequest struct {
@@ -25,7 +26,7 @@ type TripUpdateRequest struct {
 }
 
 type TripRatingRequest struct {
-	TripID       string `json:"tripId"`
+	TripId       string `json:"tripId"`
 	Rating       int64  `json:"rating"`
 	RiderComment string `json:"comment,omitempty"`
 }
@@ -36,7 +37,7 @@ type DriverAssignedResponse struct {
 }
 
 type TripRatingRequiredResponse struct {
-	TripID      string           `json:"tripId"`
+	TripId      string           `json:"tripId"`
 	Pickup      types.Coordinate `json:"pickup"`
 	Destination types.Coordinate `json:"destination"`
 	Date        time.Time        `json:"date"`

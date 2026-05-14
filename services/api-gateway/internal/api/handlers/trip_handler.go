@@ -27,7 +27,7 @@ func (h *RouteHandler) HandleTripPreview(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msg("Error parsing preview trip request")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
@@ -45,7 +45,7 @@ func (h *RouteHandler) HandleTripPreview(c *gin.Context) {
 		if ok {
 			switch st.Code() {
 			case codes.InvalidArgument, codes.FailedPrecondition:
-				c.JSON(http.StatusBadRequest, gin.H{"error": st.Message()})
+				c.JSON(http.StatusBadRequest, gin.H{"message": st.Message()})
 			default:
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to request trip preview"})
 			}
@@ -77,7 +77,7 @@ func (h *RouteHandler) HandleStartTrip(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msg("Start trip request failed")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
@@ -94,7 +94,7 @@ func (h *RouteHandler) HandleStartTrip(c *gin.Context) {
 		if ok {
 			switch st.Code() {
 			case codes.InvalidArgument:
-				c.JSON(http.StatusBadRequest, gin.H{"error": st.Message()})
+				c.JSON(http.StatusBadRequest, gin.H{"message": st.Message()})
 			default:
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occured while starting the trip"})
 			}
@@ -127,7 +127,7 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msg("Error parsing initiate payment request")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
@@ -144,7 +144,7 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 
 	if n > 0 {
 		tracing.HandleError(span, fmt.Errorf("payment request is already being processed"))
-		c.JSON(http.StatusConflict, gin.H{"error": "Payment request is already being processed"})
+		c.JSON(http.StatusConflict, gin.H{"message": "Payment request is already being processed"})
 		return
 	}
 
@@ -180,7 +180,7 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 		if ok {
 			switch st.Code() {
 			case codes.NotFound:
-				c.JSON(http.StatusNotFound, gin.H{"error": st.Message()})
+				c.JSON(http.StatusNotFound, gin.H{"message": st.Message()})
 			case codes.Unavailable:
 				c.JSON(http.StatusServiceUnavailable, gin.H{"error": st.Message()})
 			default:

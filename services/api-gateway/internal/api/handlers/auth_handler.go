@@ -31,7 +31,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 	role := c.GetHeader("X-User-Role")
 	if role == "" || (types.UserRole(role) != types.RoleRider && types.UserRole(role) != types.RoleDriver) {
 		tracing.HandleError(span, util.ErrMissingRoleHeader)
-		c.JSON(http.StatusBadRequest, gin.H{"error": util.ErrMissingRoleHeader.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"message": util.ErrMissingRoleHeader.Error()})
 		return
 	}
 
@@ -40,7 +40,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		if err := c.ShouldBind(&req); err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Failed to parse driver signup request")
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -55,7 +55,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 
 			switch {
 			case errors.Is(err, util.ErrAccountNameMismatch), errors.Is(err, util.ErrUnsupportedBank):
-				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			case errors.Is(err, util.ErrGatewayUnavailable), errors.Is(err, util.ErrApiRequestFailure):
 				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Driver signup is temporarily unavailable"})
 			default:
@@ -69,7 +69,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Failed to parse profile image")
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Driver signup failed"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
 			return
 		}
 		defer file.Close()
@@ -77,7 +77,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		if err := storage.ParseImageMimetype(file); err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Unsupported file type")
-			c.JSON(http.StatusUnsupportedMediaType, gin.H{"error": err.Error()})
+			c.JSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -106,7 +106,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			if ok {
 				switch st.Code() {
 				case codes.AlreadyExists:
-					c.JSON(http.StatusConflict, gin.H{"error": st.Message()})
+					c.JSON(http.StatusConflict, gin.H{"message": st.Message()})
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
 				}
@@ -127,7 +127,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
-		logger.Info().Str("email", req.Email).Msg("Driver signup successful")
+		logger.Info().Msg("Driver signup successful")
 		c.JSON(http.StatusCreated, contracts.APIResponse{
 			Data: gin.H{"token": token},
 		})
@@ -140,7 +140,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		if err := c.ShouldBind(&req); err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Failed to parse rider signup request")
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
 		}
 
@@ -150,7 +150,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			if err != nil {
 				tracing.HandleError(span, err)
 				logger.Error().Err(err).Msg("Failed to parse profile image")
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Rider signup failed"})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider signup failed"})
 				return
 			}
 			defer file.Close()
@@ -158,7 +158,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			if err := storage.ParseImageMimetype(file); err != nil {
 				tracing.HandleError(span, err)
 				logger.Error().Err(err).Msg("Unsupported file type")
-				c.JSON(http.StatusUnsupportedMediaType, gin.H{"error": "Rider signup failed"})
+				c.JSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
 				return
 			}
 
@@ -188,7 +188,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			if ok {
 				switch st.Code() {
 				case codes.AlreadyExists:
-					c.JSON(http.StatusConflict, gin.H{"error": st.Message()})
+					c.JSON(http.StatusConflict, gin.H{"message": st.Message()})
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider signup failed"})
 				}
@@ -228,7 +228,7 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 	role := c.GetHeader("X-User-Role")
 	if role == "" || (types.UserRole(role) != types.RoleRider && types.UserRole(role) != types.RoleDriver) {
 		tracing.HandleError(span, util.ErrMissingRoleHeader)
-		c.JSON(http.StatusBadRequest, gin.H{"error": util.ErrMissingRoleHeader.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"message": util.ErrMissingRoleHeader.Error()})
 		return
 	}
 
@@ -236,7 +236,7 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msg("Failed to parse login request")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
@@ -255,9 +255,9 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 			if ok {
 				switch st.Code() {
 				case codes.NotFound, codes.Unauthenticated:
-					c.JSON(http.StatusBadRequest, gin.H{"error": st.Message()})
+					c.JSON(http.StatusBadRequest, gin.H{"message": st.Message()})
 				case codes.PermissionDenied:
-					c.JSON(http.StatusForbidden, gin.H{"error": st.Message()})
+					c.JSON(http.StatusForbidden, gin.H{"message": st.Message()})
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver login failed"})
 				}
@@ -292,7 +292,7 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 			if ok {
 				switch st.Code() {
 				case codes.NotFound, codes.Unauthenticated:
-					c.JSON(http.StatusUnauthorized, gin.H{"error": st.Message()})
+					c.JSON(http.StatusBadRequest, gin.H{"message": st.Message()})
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider login failed"})
 				}
@@ -370,7 +370,7 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 			if ok {
 				switch st.Code() {
 				case codes.NotFound:
-					c.JSON(http.StatusNotFound, gin.H{"error": "Driver account not found"})
+					c.JSON(http.StatusNotFound, gin.H{"message": "Driver account not found"})
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch driver profile"})
 				}
@@ -411,7 +411,7 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 			if ok {
 				switch st.Code() {
 				case codes.NotFound:
-					c.JSON(http.StatusNotFound, gin.H{"error": "Rider account not found"})
+					c.JSON(http.StatusNotFound, gin.H{"message": "Rider account not found"})
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rider profile"})
 				}

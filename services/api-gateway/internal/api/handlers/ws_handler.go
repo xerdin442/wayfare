@@ -483,7 +483,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 
 			// Update trip rating
 			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
-				TripID:       data.TripID,
+				TripID:       data.TripId,
 				Rating:       data.Rating,
 				RiderComment: data.RiderComment,
 			})
