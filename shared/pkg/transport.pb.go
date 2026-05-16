@@ -714,16 +714,15 @@ func (x *StartTripResponse) GetTripId() string {
 }
 
 type InitiatePaymentRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	TripId         string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
-	UserId         string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Email          string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	CustomRedirect string                 `protobuf:"bytes,5,opt,name=custom_redirect,json=customRedirect,proto3" json:"custom_redirect,omitempty"`
-	TripRating     int64                  `protobuf:"varint,6,opt,name=trip_rating,json=tripRating,proto3" json:"trip_rating,omitempty"`
-	RiderComment   string                 `protobuf:"bytes,7,opt,name=rider_comment,json=riderComment,proto3" json:"rider_comment,omitempty"`
-	DriverTip      int64                  `protobuf:"varint,8,opt,name=driver_tip,json=driverTip,proto3" json:"driver_tip,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TripId        string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	TripRating    int64                  `protobuf:"varint,4,opt,name=trip_rating,json=tripRating,proto3" json:"trip_rating,omitempty"`
+	RiderComment  string                 `protobuf:"bytes,5,opt,name=rider_comment,json=riderComment,proto3" json:"rider_comment,omitempty"`
+	DriverTip     int64                  `protobuf:"varint,6,opt,name=driver_tip,json=driverTip,proto3" json:"driver_tip,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *InitiatePaymentRequest) Reset() {
@@ -773,13 +772,6 @@ func (x *InitiatePaymentRequest) GetUserId() string {
 func (x *InitiatePaymentRequest) GetEmail() string {
 	if x != nil {
 		return x.Email
-	}
-	return ""
-}
-
-func (x *InitiatePaymentRequest) GetCustomRedirect() string {
-	if x != nil {
-		return x.CustomRedirect
 	}
 	return ""
 }
@@ -897,17 +889,16 @@ const file_transport_proto_rawDesc = "" +
 	"\fride_fare_id\x18\x02 \x01(\tR\n" +
 	"rideFareId\",\n" +
 	"\x11StartTripResponse\x12\x17\n" +
-	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"\xee\x01\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"\xc5\x01\n" +
 	"\x16InitiatePaymentRequest\x12\x17\n" +
 	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email\x12'\n" +
-	"\x0fcustom_redirect\x18\x05 \x01(\tR\x0ecustomRedirect\x12\x1f\n" +
-	"\vtrip_rating\x18\x06 \x01(\x03R\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12\x1f\n" +
+	"\vtrip_rating\x18\x04 \x01(\x03R\n" +
 	"tripRating\x12#\n" +
-	"\rrider_comment\x18\a \x01(\tR\friderComment\x12\x1d\n" +
+	"\rrider_comment\x18\x05 \x01(\tR\friderComment\x12\x1d\n" +
 	"\n" +
-	"driver_tip\x18\b \x01(\x03R\tdriverTip\"<\n" +
+	"driver_tip\x18\x06 \x01(\x03R\tdriverTip\"<\n" +
 	"\x17InitiatePaymentResponse\x12!\n" +
 	"\fcheckout_url\x18\x01 \x01(\tR\vcheckoutUrl2\xe8\x01\n" +
 	"\vTripService\x12H\n" +

@@ -20,11 +20,10 @@ type FlutterwaveCustomer struct {
 }
 
 type FlutterwaveCheckoutRequest struct {
-	Amount      int64                `json:"amount"`
-	TxRef       string               `json:"tx_ref"`
-	Customer    *FlutterwaveCustomer `json:"customer"`
-	RedirectUrl string               `json:"redirect_url"`
-	Meta        *PaymentMetadata     `json:"meta"`
+	Amount   int64                `json:"amount"`
+	TxRef    string               `json:"tx_ref"`
+	Customer *FlutterwaveCustomer `json:"customer"`
+	Meta     *PaymentMetadata     `json:"meta"`
 }
 
 type FlutterwaveCheckoutResponse struct {
@@ -36,12 +35,11 @@ type FlutterwaveCheckoutResponse struct {
 }
 
 type PaystackCheckoutRequest struct {
-	Email       string   `json:"email"`
-	Amount      int64    `json:"amount"`
-	Reference   string   `json:"reference"`
-	Channels    []string `json:"channels"`
-	CallbackUrl string   `json:"callback_url"`
-	Metadata    string   `json:"metadata"`
+	Email     string   `json:"email"`
+	Amount    int64    `json:"amount"`
+	Reference string   `json:"reference"`
+	Channels  []string `json:"channels"`
+	Metadata  string   `json:"metadata"`
 }
 
 type PaystackCheckoutResponse struct {

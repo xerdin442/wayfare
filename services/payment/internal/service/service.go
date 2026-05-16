@@ -175,19 +175,17 @@ func (s *PaymentService) buildCheckoutPayloads(req *pb.InitiatePaymentRequest, t
 	}
 
 	paystackPayload := &contracts.PaystackCheckoutRequest{
-		Email:       req.Email,
-		Amount:      amount,
-		Reference:   txnID,
-		Channels:    []string{"card", "apple_pay", "bank_transfer"},
-		CallbackUrl: req.CustomRedirect,
-		Metadata:    string(paystackMetadata),
+		Email:     req.Email,
+		Amount:    amount,
+		Reference: txnID,
+		Channels:  []string{"card", "apple_pay", "bank_transfer"},
+		Metadata:  string(paystackMetadata),
 	}
 
 	flutterwavePayload := &contracts.FlutterwaveCheckoutRequest{
-		Amount:      amount / 100,
-		TxRef:       txnID,
-		RedirectUrl: req.CustomRedirect,
-		Meta:        metadata,
+		Amount: amount / 100,
+		TxRef:  txnID,
+		Meta:   metadata,
 		Customer: &contracts.FlutterwaveCustomer{
 			Email: req.Email,
 		},

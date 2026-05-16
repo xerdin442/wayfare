@@ -110,13 +110,12 @@ message StartTripResponse {
 }
 
 message InitiatePaymentRequest {
-  string trip_id         = 1;
-  string user_id         = 2;
-  string email           = 3;
-  string custom_redirect = 5;
-  int64  trip_rating     = 6;
-  string rider_comment   = 7;
-  int64  driver_tip      = 8;
+  string trip_id       = 1;
+  string user_id       = 2;
+  string email         = 3;
+  int64  trip_rating   = 4;
+  string rider_comment = 5;
+  int64  driver_tip    = 6;
 }
 
 message InitiatePaymentResponse {
