@@ -37,6 +37,7 @@ func (s *DriverService) GetDriverProfile(ctx context.Context, req *pb.GetProfile
 			Name:                driver.Name,
 			ProfilePicture:      driver.ProfilePicture,
 			CarPlate:            driver.CarPlate,
+			PackageSlug:         string(driver.CarPackage),
 			CurrentRating:       driver.CurrentRating,
 			TotalCompletedTrips: driver.TotalCompletedTrips,
 			Tier:                string(driver.Tier),

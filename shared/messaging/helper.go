@@ -60,9 +60,8 @@ type DriverUpdateQueuePayload struct {
 }
 
 type AssignDriverQueuePayload struct {
-	Trip     types.Trip       `json:"trip"`
-	Pickup   types.Coordinate `json:"pickup"`
-	DriverID string           `json:"driver_id,omitempty"`
+	Trip     types.Trip `json:"trip"`
+	DriverID string     `json:"driver_id,omitempty"`
 }
 
 type TripUpdateQueuePayload struct {

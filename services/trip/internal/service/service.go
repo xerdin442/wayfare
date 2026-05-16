@@ -354,11 +354,25 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 				ID:          req.RideFareId,
 				PackageSlug: trip.CarPackage,
 				Amount:      trip.RideFare,
+				Route: types.Route{
+					Distance: trip.Route.Distance,
+					Duration: trip.Route.Duration,
+					Geometry: []*types.Geometry{
+						{
+							Coordinates: []*types.Coordinate{
+								{
+									Latitude:  trip.Route.Pickup.Coordinates.Lat(),
+									Longitude: trip.Route.Pickup.Coordinates.Lon(),
+								},
+								{
+									Latitude:  trip.Route.Destination.Coordinates.Lat(),
+									Longitude: trip.Route.Destination.Coordinates.Lon(),
+								},
+							},
+						},
+					},
+				},
 			},
-		},
-		Pickup: types.Coordinate{
-			Latitude:  trip.Route.Pickup.Coordinates.Lat(),
-			Longitude: trip.Route.Pickup.Coordinates.Lon(),
 		},
 	}
 

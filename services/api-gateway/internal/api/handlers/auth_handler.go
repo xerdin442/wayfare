@@ -390,6 +390,7 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 					Email:               res.Driver.Email,
 					ProfilePicture:      res.Driver.ProfilePicture,
 					CarPlate:            res.Driver.CarPlate,
+					PackageSlug:         types.CarPackage(res.Driver.PackageSlug),
 					CurrentRating:       res.Driver.CurrentRating,
 					TotalCompletedTrips: res.Driver.TotalCompletedTrips,
 					Tier:                types.DriverTier(res.Driver.Tier),

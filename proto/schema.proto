@@ -32,9 +32,10 @@ message Driver {
   string email                 = 3;
   string profile_picture       = 4;
   string car_plate             = 5;
-  double current_rating        = 6;
-  int64  total_completed_trips = 7;
-  string tier                  = 8;
+  string package_slug          = 6;
+  double current_rating        = 7;
+  int64  total_completed_trips = 8;
+  string tier                  = 9;
 }
 
 message Rider {

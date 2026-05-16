@@ -103,6 +103,7 @@ type Driver struct {
 	Email               string     `json:"email"`
 	ProfilePicture      string     `json:"profilePicture"`
 	CarPlate            string     `json:"carPlate"`
+	PackageSlug         CarPackage `json:"packageSlug"`
 	CurrentRating       float64    `json:"currentRating"`
 	TotalCompletedTrips int64      `json:"totalCompletedTrips"`
 	Tier                DriverTier `json:"tier"`
