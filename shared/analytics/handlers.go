@@ -35,16 +35,18 @@ func (h *AnalyticsEventHandler) HandleAnalyticsEvent(ctx context.Context, p mess
 		INSERT INTO trip_events (
 			trip_id, region, car_package, trip_status, predicted_duration_mins,
 			actual_duration_mins, distance_km, pickup_lat, pickup_lng, rating,
-			transaction_ref, transaction_type, driver_id, payment_provider, payment_status,
-			amount, platform_fee, driver_split, driver_tip, driver_status, timestamp
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+			transaction_ref, transaction_type, driver_id, payment_provider,
+			payment_status, amount, transaction_fee, flutterwave_vat_charge,
+			platform_split, driver_split, driver_tip, driver_status, timestamp
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
 	`
 
 	if err := h.conn.Exec(ctx, insertQuery,
 		e.TripID, e.Region, e.CarPackage, e.TripStatus, e.PredictedDurationMins,
 		e.ActualDurationMins, e.DistanceKm, e.PickupLat, e.PickupLng, e.Rating,
-		e.TransactionRef, e.TransactionType, e.DriverID, e.PaymentProvider, e.PaymentStatus,
-		e.Amount, e.PlatformFee, e.DriverSplit, e.DriverTip, e.DriverStatus,
+		e.TransactionRef, e.TransactionType, e.DriverID, e.PaymentProvider,
+		e.PaymentStatus, e.Amount, e.TransactionFee, e.FlutterwaveVatCharge,
+		e.PlatformSplit, e.DriverSplit, e.DriverTip, e.DriverStatus,
 	); err != nil {
 		return fmt.Errorf("Failed to insert analytics event: %v", err)
 	}

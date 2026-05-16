@@ -23,11 +23,13 @@ type TripEventModel struct {
 	DriverTip             decimal.Decimal    `ch:"driver_tip"`
 
 	// Payment details
-	TransactionRef  string                `ch:"transaction_ref"`
-	TransactionType types.TransactionType `ch:"transaction_type"`
-	PaymentProvider types.PaymentProvider `ch:"payment_provider"`
-	PaymentStatus   types.PaymentStatus   `ch:"payment_status"`
-	Amount          decimal.Decimal       `ch:"amount"`
-	PlatformFee     decimal.Decimal       `ch:"platform_fee"`
-	DriverSplit     decimal.Decimal       `ch:"driver_split"`
+	TransactionRef       string                `ch:"transaction_ref"`
+	TransactionType      types.TransactionType `ch:"transaction_type"`
+	PaymentProvider      types.PaymentProvider `ch:"payment_provider"`
+	PaymentStatus        types.PaymentStatus   `ch:"payment_status"`
+	Amount               decimal.Decimal       `ch:"amount"`
+	TransactionFee       decimal.Decimal       `ch:"transaction_fee"`
+	FlutterwaveVatCharge decimal.Decimal       `ch:"flutterwave_vat_charge"`
+	PlatformSplit        decimal.Decimal       `ch:"platform_split"`
+	DriverSplit          decimal.Decimal       `ch:"driver_split"`
 }

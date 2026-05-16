@@ -195,9 +195,9 @@ func (h *DriverEventsHandler) HandleDriverUpdate(ctx context.Context, p messagin
 
 		if !payload.OutstandingReturnsReset {
 			tripEvent := &models.TripEventModel{
-				DriverID:    payload.DriverID,
-				DriverSplit: decimal.NewFromInt(splitAmount / 100),
-				PlatformFee: decimal.NewFromInt((payload.RideFare - splitAmount) / 100),
+				DriverID:      payload.DriverID,
+				DriverSplit:   decimal.NewFromInt(splitAmount / 100),
+				PlatformSplit: decimal.NewFromInt((payload.RideFare - splitAmount) / 100),
 			}
 			if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 				return err
