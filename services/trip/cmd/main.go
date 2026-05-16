@@ -77,11 +77,12 @@ func main() {
 		eventsHandler.HandleTripUpdate,
 		messaging.TripEventDriverAssigned,
 		messaging.TripEventNoDriversFound,
-		messaging.DriverCmdTripPickup,
 		messaging.DriverCmdEndTrip,
+		messaging.TripCmdStarted,
 		messaging.TripCmdCancelled,
 		messaging.TripCmdCompleted,
 		messaging.TripCmdAborted,
+		messaging.TripCmdRated,
 	)
 
 	// Initialize job scheduler

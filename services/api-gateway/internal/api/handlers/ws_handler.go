@@ -263,10 +263,39 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				continue
 			}
 
+			// Notify rider that the driver has arrived
+			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+				Type: string(messaging.TripEventDriverArrival),
+			})
+			if err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to marshal websocket message")
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				ctx,
+				messaging.GatewayExchange,
+				messaging.AmqpEvent(fmt.Sprintf("user.%s", data.Trip.UserID)),
+				messaging.AmqpMessage{Data: gatewayData},
+			); err != nil {
+				tracing.HandleError(span, err)
+				return
+			}
+
+		case string(messaging.DriverCmdStartTrip):
+			var data contracts.TripUpdateRequest
+			dataBytes, _ := json.Marshal(payload.Data)
+			if err := json.Unmarshal(dataBytes, &data); err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to unmarshal driver start_trip message")
+				continue
+			}
+
 			// Update trip status
 			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
-				TripID:   data.Trip.ID,
-				PickupAt: time.Now(),
+				TripID:    data.Trip.ID,
+				StartedAt: time.Now(),
 			})
 
 			if err != nil {
@@ -278,16 +307,16 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 			if err := h.cfg.Queue.PublishMessage(
 				ctx,
 				messaging.ServicesExchange,
-				messaging.DriverCmdTripPickup,
+				messaging.TripCmdStarted,
 				messaging.AmqpMessage{Data: tripServiceData},
 			); err != nil {
 				tracing.HandleError(span, err)
 				return
 			}
 
-			// Notify rider that the driver has arrived
+			// Notify rider that the trip has started
 			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
-				Type: string(messaging.TripEventDriverArrival),
+				Type: string(messaging.TripCmdStarted),
 			})
 			if err != nil {
 				tracing.HandleError(span, err)

@@ -244,11 +244,12 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		[]AmqpEvent{
 			TripEventDriverAssigned,
 			TripEventNoDriversFound,
-			DriverCmdTripPickup,
+			TripCmdStarted,
 			DriverCmdEndTrip,
 			TripCmdCancelled,
 			TripCmdCompleted,
 			TripCmdAborted,
+			TripCmdRated,
 		},
 		ServicesExchange,
 	); err != nil {

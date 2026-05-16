@@ -68,7 +68,7 @@ type TripModel struct {
 	RideFare     int64            `bson:"ride_fare"`
 	CarPackage   types.CarPackage `bson:"car_package"`
 	Route        RouteDetails     `bson:"route"`
-	PickupAt     time.Time        `bson:"pickup_at,omitempty"`
+	StartedAt    time.Time        `bson:"started_at,omitempty"`
 	EndedAt      time.Time        `bson:"ended_at,omitempty"`
 	Rating       int64            `bson:"rating,omitempty"`
 	RiderComment string           `bson:"rider_comment,omitempty"`

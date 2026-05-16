@@ -41,12 +41,11 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 	var driverStatus types.DriverStatus
 
 	switch messaging.AmqpEvent(p.RoutingKey) {
-	case messaging.TripEventNoDriversFound:
-	case messaging.TripCmdAborted:
+	case messaging.TripEventNoDriversFound, messaging.TripCmdAborted:
 		updatedStatus = types.TripStatusAborted
 	case messaging.TripEventDriverAssigned:
 		updatedStatus = types.TripStatusMatched
-	case messaging.DriverCmdTripPickup:
+	case messaging.TripCmdStarted:
 		updatedStatus = types.TripStatusActive
 	case messaging.DriverCmdEndTrip:
 		updatedStatus = types.TripStatusAwaitingPayment
@@ -61,7 +60,7 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 	updateData := &repo.TripUpdateData{
 		NewStatus:    updatedStatus,
 		DriverID:     payload.DriverID,
-		PickupAt:     payload.PickupAt,
+		StartedAt:    payload.StartedAt,
 		EndedAt:      payload.EndedAt,
 		Rating:       payload.Rating,
 		RiderComment: payload.RiderComment,
@@ -74,9 +73,8 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 
 	if updatedStatus == types.TripStatusCompleted {
 		driverStatus = types.DriverStatusOnline
-		var publishErr error
 
-		// Notify participants that the trip has ended
+		// Notify driver that the trip has ended
 		gatewayData, err := json.Marshal(contracts.WebsocketMessage{
 			Type: string(messaging.TripCmdCompleted),
 		})
@@ -84,17 +82,10 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 			return fmt.Errorf("Failed to marshal websocket message")
 		}
 
-		publishErr = h.bus.PublishMessage(
+		publishErr := h.bus.PublishMessage(
 			ctx,
 			messaging.GatewayExchange,
 			messaging.AmqpEvent(fmt.Sprintf("user.%s", updatedTrip.DriverID.Hex())),
-			messaging.AmqpMessage{Data: gatewayData},
-		)
-
-		publishErr = h.bus.PublishMessage(
-			ctx,
-			messaging.GatewayExchange,
-			messaging.AmqpEvent(fmt.Sprintf("user.%s", updatedTrip.UserID.Hex())),
 			messaging.AmqpMessage{Data: gatewayData},
 		)
 
@@ -131,8 +122,8 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 
 	// Update analytics
 	var actualDuration decimal.Decimal
-	if !payload.EndedAt.IsZero() && updatedTrip.PickupAt.Before(payload.EndedAt) {
-		actualDuration = decimal.NewFromFloat(payload.EndedAt.Sub(updatedTrip.PickupAt).Minutes())
+	if !payload.EndedAt.IsZero() && updatedTrip.StartedAt.Before(payload.EndedAt) {
+		actualDuration = decimal.NewFromFloat(payload.EndedAt.Sub(updatedTrip.StartedAt).Minutes())
 	}
 
 	tripEvent := &models.TripEventModel{

@@ -68,7 +68,7 @@ type AssignDriverQueuePayload struct {
 type TripUpdateQueuePayload struct {
 	TripID       string    `json:"trip_id"`
 	DriverID     string    `json:"driver_id,omitempty"`
-	PickupAt     time.Time `json:"pickup_at,omitempty"`
+	StartedAt    time.Time `json:"started_at,omitempty"`
 	EndedAt      time.Time `json:"ended_at,omitempty"`
 	Rating       int64     `json:"rating,omitempty"`
 	RiderComment string    `json:"rider_comment,omitempty"`
@@ -113,6 +113,7 @@ const (
 	TripCmdCompleted AmqpEvent = "trip.cmd.completed"
 	TripCmdCancelled AmqpEvent = "trip.cmd.cancelled"
 	TripCmdAborted   AmqpEvent = "trip.cmd.aborted"
+	TripCmdStarted   AmqpEvent = "trip.cmd.started"
 	TripCmdRated     AmqpEvent = "trip.cmd.rated"
 
 	// Driver events
@@ -123,6 +124,7 @@ const (
 	DriverCmdTripAccept     AmqpEvent = "driver.cmd.trip_accept"
 	DriverCmdTripDecline    AmqpEvent = "driver.cmd.trip_decline"
 	DriverCmdLocationUpdate AmqpEvent = "driver.cmd.location_update"
+	DriverCmdStartTrip      AmqpEvent = "driver.cmd.start_trip"
 	DriverCmdEndTrip        AmqpEvent = "driver.cmd.end_trip"
 	DriverCmdDetailsUpdate  AmqpEvent = "driver.cmd.details_update"
 
