@@ -120,28 +120,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				continue
 			}
 
-			cacheKey := "drivers_locations"
-
-			if err := h.cfg.Cache.GeoAdd(
-				ctx,
-				cacheKey,
-				&redis.GeoLocation{
-					Name:      userId,
-					Longitude: data.Coords.Longitude,
-					Latitude:  data.Coords.Latitude,
-				},
-			).Err(); err != nil {
-				tracing.HandleError(span, err)
-				logger.Error().Err(err).Msg("Failed to add driver coordinates to location tracker")
-				return
-			}
-
-			if err := h.cfg.Cache.Expire(ctx, cacheKey, 10*time.Second).Err(); err != nil {
-				tracing.HandleError(span, err)
-				logger.Error().Err(err).Msg("Failed to set expiry on location tracker")
-				return
-			}
-
+			// Send location updates of assigned drivers to riders
 			if data.RiderId != "" {
 				msg, err = json.Marshal(contracts.WebsocketMessage{
 					Type: string(messaging.DriverCmdLocationUpdate),
@@ -165,6 +144,29 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 					tracing.HandleError(span, err)
 					return
 				}
+
+				return
+			}
+
+			// Update location tracker for idle drivers
+			if err := h.cfg.Cache.GeoAdd(
+				ctx,
+				"drivers_locations",
+				&redis.GeoLocation{
+					Name:      userId,
+					Longitude: data.Coords.Longitude,
+					Latitude:  data.Coords.Latitude,
+				},
+			).Err(); err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to add driver coordinates to location tracker")
+				return
+			}
+
+			if err := h.cfg.Cache.Expire(ctx, "drivers_locations", 10*time.Second).Err(); err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to set expiry on location tracker")
+				return
 			}
 
 		case string(messaging.DriverCmdTripDecline):
