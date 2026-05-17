@@ -57,6 +57,7 @@ type DriverUpdateQueuePayload struct {
 	BalanceUpdate           bool               `json:"balance_update,omitempty"`
 	PendingReturnsUpdate    bool               `json:"pending_returns_update,omitempty"`
 	OutstandingReturnsReset bool               `json:"outstanding_returns_reset,omitempty"`
+	TransactionFee          int64              `json:"transaction_fee,omitempty"`
 }
 
 type AssignDriverQueuePayload struct {
@@ -65,14 +66,15 @@ type AssignDriverQueuePayload struct {
 }
 
 type TripUpdateQueuePayload struct {
-	TripID       string    `json:"trip_id"`
-	DriverID     string    `json:"driver_id,omitempty"`
-	StartedAt    time.Time `json:"started_at,omitempty"`
-	EndedAt      time.Time `json:"ended_at,omitempty"`
-	Rating       int64     `json:"rating,omitempty"`
-	RiderComment string    `json:"rider_comment,omitempty"`
-	DriverTip    int64     `json:"driver_tip,omitempty"`
-	CashPayment  bool      `json:"cash_payment,omitempty"`
+	TripID         string    `json:"trip_id"`
+	DriverID       string    `json:"driver_id,omitempty"`
+	StartedAt      time.Time `json:"started_at,omitempty"`
+	EndedAt        time.Time `json:"ended_at,omitempty"`
+	Rating         int64     `json:"rating,omitempty"`
+	RiderComment   string    `json:"rider_comment,omitempty"`
+	DriverTip      int64     `json:"driver_tip,omitempty"`
+	CashPayment    bool      `json:"cash_payment,omitempty"`
+	TransactionFee int64     `json:"transaction_fee,omitempty"`
 }
 
 type CashPaymentPayload struct {

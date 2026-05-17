@@ -289,7 +289,7 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
-	if existingTxn != nil {
+	if existingTxn != nil && existingTxn.Status == types.PaymentStatusPending {
 		// Use existing transaction
 		txnID = existingTxn.ID.Hex()
 	} else {

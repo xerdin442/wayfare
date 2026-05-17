@@ -65,6 +65,11 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return fmt.Errorf("Failed to unmarshal Paystack webhook metadata")
 		}
 
+		txnType := types.TransactionPayout
+		if metadata.TripID != "" {
+			txnType = types.TransactionCheckout
+		}
+
 		transaction, err := h.repo.GetTransactionByID(ctx, webhook.Data.Reference)
 		if err != nil {
 			log.Warn().Err(err).Msg("Invalid transaction reference from Paystack webhook")
@@ -76,7 +81,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return nil
 		}
 
-		if transaction.Amount == webhook.Data.Amount/100 {
+		if transaction.Amount == webhook.Data.Amount {
 			switch webhook.Data.Status {
 			case string(types.PaymentStatusSuccess):
 				updatedStatus = types.PaymentStatusSuccess
@@ -111,7 +116,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 				}
 			}
 		} else {
-			return fmt.Errorf("Invalid webhook payload for checkout transaction")
+			return fmt.Errorf("Invalid Paystack webhook payload")
 		}
 
 		if err := h.repo.UpdateTransaction(
@@ -123,6 +128,8 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return err
 		}
 
+		txnFee := h.calculateTransactionFee(transaction.Amount/100, types.ProviderPaystack, txnType)
+
 		if strings.HasPrefix(webhook.Event, "charge.") {
 			// Send transaction status to rider
 			if err := h.sendTransactionStatus(ctx, metadata.UserID, updatedStatus); err != nil {
@@ -131,20 +138,22 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 
 			if updatedStatus == types.PaymentStatusSuccess {
 				tripServicePayload = &messaging.TripUpdateQueuePayload{
-					TripID:       metadata.TripID,
-					RiderComment: metadata.RiderComment,
-					Rating:       metadata.TripRating,
-					DriverTip:    metadata.DriverTip,
+					TripID:         metadata.TripID,
+					RiderComment:   metadata.RiderComment,
+					Rating:         metadata.TripRating,
+					DriverTip:      metadata.DriverTip,
+					TransactionFee: int64(txnFee * 100),
 				}
 			}
+		}
 
-			tripEvent = &models.TripEventModel{
-				TransactionRef:  webhook.Data.Reference,
-				PaymentProvider: payload.Provider,
-				PaymentStatus:   updatedStatus,
-				Amount:          decimal.NewFromInt(webhook.Data.Amount / 100),
-				TransactionType: types.TransactionCheckout,
-			}
+		tripEvent = &models.TripEventModel{
+			TransactionRef:  webhook.Data.Reference,
+			PaymentProvider: payload.Provider,
+			PaymentStatus:   updatedStatus,
+			Amount:          decimal.NewFromInt(transaction.Amount / 100),
+			TransactionType: txnType,
+			TransactionFee:  decimal.NewFromFloat(txnFee),
 		}
 
 	case types.ProviderFlutterwave:
@@ -161,7 +170,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return nil
 		}
 
-		if transaction.Amount == webhook.Data.Amount && webhook.Event == "charge.completed" {
+		if transaction.Amount == webhook.Data.Amount*100 && webhook.Event == "charge.completed" {
 			switch webhook.Data.Status {
 			case "successful":
 				updatedStatus = types.PaymentStatusSuccess
@@ -169,7 +178,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 				updatedStatus = types.PaymentStatusFailed
 			}
 		} else {
-			return fmt.Errorf("Invalid webhook payload for checkout transaction")
+			return fmt.Errorf("Invalid Flutterwave webhook payload")
 		}
 
 		if err := h.repo.UpdateTransaction(
@@ -186,12 +195,15 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
 		}
 
+		txnFee := h.calculateTransactionFee(webhook.Data.Amount, types.ProviderFlutterwave, types.TransactionCheckout)
+
 		if updatedStatus == types.PaymentStatusSuccess {
 			tripServicePayload = &messaging.TripUpdateQueuePayload{
-				TripID:       metadata.TripID,
-				RiderComment: metadata.RiderComment,
-				Rating:       metadata.TripRating,
-				DriverTip:    metadata.DriverTip,
+				TripID:         metadata.TripID,
+				RiderComment:   metadata.RiderComment,
+				Rating:         metadata.TripRating,
+				DriverTip:      metadata.DriverTip,
+				TransactionFee: int64(txnFee * 100),
 			}
 		}
 
@@ -201,6 +213,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			PaymentStatus:   updatedStatus,
 			Amount:          decimal.NewFromInt(webhook.Data.Amount),
 			TransactionType: types.TransactionCheckout,
+			TransactionFee:  decimal.NewFromFloat(txnFee),
 		}
 
 	default:
@@ -325,9 +338,10 @@ func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messagi
 	// Create payout transactions
 	var txnData []repo.CreateTransactionData
 	for _, d := range payoutPayload.Drivers {
+		txnFee := h.calculateTransactionFee(d.PendingPayout/100, types.ProviderPaystack, types.TransactionPayout)
 		txnData = append(txnData, repo.CreateTransactionData{
 			DriverRecipientCode: d.TransferRecipientCode,
-			Amount:              d.PendingPayout,
+			Amount:              d.PendingPayout - int64(txnFee*100),
 			Type:                types.TransactionPayout,
 		})
 	}
@@ -340,8 +354,9 @@ func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messagi
 	// Configure bulk transfer payload
 	var transfers []*contracts.TransferDetails
 	for i, d := range payoutPayload.Drivers {
+		txnFee := h.calculateTransactionFee(d.PendingPayout/100, types.ProviderPaystack, types.TransactionPayout)
 		transfers = append(transfers, &contracts.TransferDetails{
-			Amount:    d.PendingPayout,
+			Amount:    d.PendingPayout - int64(txnFee*100),
 			Recipient: d.TransferRecipientCode,
 			Reference: txnIDs[i],
 			Reason:    "WAYFARE INC. - Driver Payout",

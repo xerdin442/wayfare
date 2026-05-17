@@ -96,6 +96,7 @@ func (h *TripEventsHandler) HandleTripUpdate(ctx context.Context, p messaging.Am
 			RideFare:        updatedTrip.RideFare,
 			Tip:             payload.DriverTip,
 			Status:          driverStatus,
+			TransactionFee:  payload.TransactionFee,
 		}
 		if payload.CashPayment {
 			queuePayload.PendingReturnsUpdate = true
