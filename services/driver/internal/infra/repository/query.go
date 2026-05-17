@@ -60,6 +60,17 @@ func (r *DriverRepository) GetDriverByID(ctx context.Context, driverId string) (
 	return &driver, nil
 }
 
+func (r *DriverRepository) GetDriverByPackage(ctx context.Context, driverIDs []string, packageSlug types.CarPackage) string {
+	for _, id := range driverIDs {
+		driver, err := r.GetDriverByID(ctx, id)
+		if err == nil && driver != nil && driver.CarPackage == packageSlug {
+			return id
+		}
+	}
+
+	return ""
+}
+
 func (r *DriverRepository) GetDriverByEmail(ctx context.Context, email string) (*models.DriverModel, error) {
 	var driver models.DriverModel
 	err := r.driverColl.FindOne(ctx, bson.M{"email": email}).Decode(&driver)

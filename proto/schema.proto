@@ -30,19 +30,23 @@ message Driver {
   string id                    = 1;
   string name                  = 2;
   string email                 = 3;
-  string profile_picture       = 4;
-  string car_plate             = 5;
-  string package_slug          = 6;
-  double current_rating        = 7;
-  int64  total_completed_trips = 8;
-  string tier                  = 9;
+  string phone                 = 4;
+  string profile_picture       = 5;
+  string car_plate             = 6;
+  string car_model             = 7;
+  string car_color             = 8;
+  string package_slug          = 9;
+  double current_rating        = 10;
+  int64  total_completed_trips = 11;
+  string tier                  = 12;
 }
 
 message Rider {
   string id              = 1;
   string name            = 2;
   string email           = 3;
-  string profile_picture = 4;
+  string phone           = 4;
+  string profile_picture = 5;
 }
 
 message Trip {

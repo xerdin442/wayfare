@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -77,13 +78,9 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 		return fmt.Errorf("Failed to find nearby drivers: %v", err)
 	}
 
-	var targetDriverID string
-	targetDriverID = nearbyDrivers[0]
-
 	// Blacklist uninterested driver
+	cacheKey := fmt.Sprintf("blacklisted_drivers:%s", payload.Trip.ID)
 	if p.RoutingKey == string(messaging.TripEventDriverNotInterested) {
-		cacheKey := fmt.Sprintf("blacklisted_drivers:%s", payload.Trip.ID)
-
 		if err := h.cache.SAdd(ctx, cacheKey, payload.DriverID).Err(); err != nil {
 			return fmt.Errorf("Failed to blacklist uninterested driver: %v", err)
 		}
@@ -91,14 +88,24 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 		if err := h.cache.Expire(ctx, cacheKey, 15*time.Minute).Err(); err != nil {
 			return fmt.Errorf("Failed to set expiry on blacklisted drivers: %v", err)
 		}
+	}
 
-		for _, driverID := range nearbyDrivers {
-			if driverID != payload.DriverID {
-				targetDriverID = driverID
-				break
-			}
+	// Fetch blacklisted drivers
+	blacklistedDrivers, err := h.cache.SMembers(ctx, cacheKey).Result()
+	if err != nil && err != redis.Nil {
+		log.Error().Err(err).Msg("Failed to fetch blacklisted drivers")
+	}
+
+	// Filter nearby drivers
+	var eligibleDrivers []string
+	for _, id := range nearbyDrivers {
+		if !slices.Contains(blacklistedDrivers, id) {
+			eligibleDrivers = append(eligibleDrivers, id)
 		}
 	}
+
+	// Find matching driver
+	targetDriverID := h.repo.GetDriverByPackage(ctx, eligibleDrivers, payload.Trip.SelectedFare.PackageSlug)
 
 	// No drivers found
 	if targetDriverID == "" {
@@ -137,6 +144,8 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 		); err != nil {
 			return fmt.Errorf("Failed to publish gateway event: %v", err)
 		}
+
+		return nil
 	}
 
 	// Send trip request to eligible driver
