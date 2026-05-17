@@ -5,6 +5,7 @@ import (
 
 	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
+	"github.com/xerdin442/wayfare/shared/types"
 	"github.com/xerdin442/wayfare/shared/util"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
@@ -29,6 +30,16 @@ func (s *DriverService) GetDriverProfile(ctx context.Context, req *pb.GetProfile
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, status.Error(codes.Internal, "internal server error")
+	}
+
+	// Check driver verification status
+	if !driver.IsVerified || driver.CarPackage == types.PackageDefault {
+		return nil, status.Error(codes.PermissionDenied, "Your account is not verified yet. Please contact support for assistance")
+	}
+
+	// Check if driver has outstanding returns
+	if driver.OutstandingReturns > 0 {
+		return nil, status.Error(codes.PermissionDenied, "Please, clear your outstanding returns to continue using Wayfare")
 	}
 
 	return &pb.DriverProfileResponse{
@@ -57,11 +68,6 @@ func (s *DriverService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Au
 
 	if existingDriver == nil {
 		return nil, status.Error(codes.NotFound, "invalid email address")
-	}
-
-	// Check if driver has outstanding returns
-	if existingDriver.OutstandingReturns > 0 {
-		return nil, status.Error(codes.PermissionDenied, "Please, clear your outstanding returns to continue using Wayfare")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(existingDriver.Password), []byte(req.Password)); err != nil {

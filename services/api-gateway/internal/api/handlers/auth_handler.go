@@ -273,12 +273,9 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 				switch st.Code() {
 				case codes.NotFound, codes.Unauthenticated:
 					c.JSON(http.StatusBadRequest, gin.H{"message": st.Message()})
-				case codes.PermissionDenied:
-					c.JSON(http.StatusForbidden, gin.H{"message": st.Message()})
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver login failed"})
 				}
-
 				return
 			}
 
@@ -388,10 +385,11 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 				switch st.Code() {
 				case codes.NotFound:
 					c.JSON(http.StatusNotFound, gin.H{"message": "Driver account not found"})
+				case codes.PermissionDenied:
+					c.JSON(http.StatusForbidden, gin.H{"message": st.Message()})
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch driver profile"})
 				}
-
 				return
 			}
 
@@ -405,7 +403,10 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 					ID:                  res.Driver.Id,
 					Name:                res.Driver.Name,
 					Email:               res.Driver.Email,
+					Phone:               res.Driver.Phone,
 					ProfilePicture:      res.Driver.ProfilePicture,
+					CarModel:            res.Driver.CarModel,
+					CarColor:            res.Driver.CarColor,
 					CarPlate:            res.Driver.CarPlate,
 					PackageSlug:         types.CarPackage(res.Driver.PackageSlug),
 					CurrentRating:       res.Driver.CurrentRating,
@@ -433,7 +434,6 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rider profile"})
 				}
-
 				return
 			}
 
@@ -447,8 +447,10 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 					ID:             res.Rider.Id,
 					Email:          res.Rider.Email,
 					Name:           res.Rider.Name,
+					Phone:          res.Rider.Phone,
 					ProfilePicture: res.Rider.ProfilePicture,
-				}},
+				},
+			},
 		})
 		return
 	}
