@@ -85,6 +85,7 @@ type DriverModel struct {
 	Password              string             `bson:"password"`
 	ProfilePicture        string             `bson:"profile_picture"`
 	VerificationPhotos    []string           `bson:"verification_photos"`
+	IsVerified            bool               `bson:"is_verified"`
 	CarPackage            types.CarPackage   `bson:"car_package"`
 	CarPlate              string             `bson:"car_plate"`
 	CarModel              string             `bson:"car_model"`

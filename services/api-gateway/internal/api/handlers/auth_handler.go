@@ -1,9 +1,10 @@
 package handlers
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"math/rand"
+	"mime/multipart"
 	"net/http"
 	"strings"
 	"time"
@@ -20,6 +21,24 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func (h *RouteHandler) parseAndUploadFile(ctx context.Context, image *multipart.FileHeader, path string) (string, error) {
+	file, err := image.Open()
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	if err := storage.ParseImageMimetype(file); err != nil {
+		return "", err
+	}
+
+	result, err := storage.ProcessFileUpload(ctx, file, h.cfg.Uploader, path)
+	if err != nil {
+		return "", err
+	}
+	return result.SecureURL, nil
+}
 
 func (h *RouteHandler) HandleSignup(c *gin.Context) {
 	// Start tracer
@@ -53,10 +72,10 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Failed to create transfer recipient")
 
-			switch {
-			case errors.Is(err, util.ErrAccountNameMismatch), errors.Is(err, util.ErrUnsupportedBank):
+			switch err {
+			case util.ErrAccountNameMismatch, util.ErrUnsupportedBank:
 				c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-			case errors.Is(err, util.ErrGatewayUnavailable), errors.Is(err, util.ErrApiRequestFailure):
+			case util.ErrGatewayUnavailable, util.ErrApiRequestFailure:
 				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Driver signup is temporarily unavailable"})
 			default:
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
@@ -65,38 +84,49 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
-		file, err := req.ProfileImage.Open()
+		profileImage, err := h.parseAndUploadFile(ctx, req.ProfileImage, "/drivers/profile")
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Failed to parse profile image")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
-			return
-		}
-		defer file.Close()
 
-		if err := storage.ParseImageMimetype(file); err != nil {
-			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Unsupported file type")
-			c.JSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
+			switch err {
+			case util.ErrUnsupportedFileType:
+				c.JSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
+			}
 			return
 		}
 
-		result, err := storage.ProcessFileUpload(ctx, file, h.cfg.Uploader)
-		if err != nil {
-			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Cloudinary upload error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
-			return
+		verificationPhotos := make([]string, len(req.VerificationPhotos))
+		for i, photo := range req.VerificationPhotos {
+			url, err := h.parseAndUploadFile(ctx, photo, "/drivers/verification")
+			if err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to parse verification photo")
+				switch err {
+				case util.ErrUnsupportedFileType:
+					c.JSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
+				}
+				return
+			}
+			verificationPhotos[i] = url
 		}
 
 		res, err := h.cfg.Clients.Driver.Signup(ctx, &pb.SignupDriverRequest{
 			Name:                  req.Name,
 			Email:                 req.Email,
-			Password:              req.Password,
-			ProfileImage:          result.SecureURL,
-			CarPackage:            req.CarPackage,
+			Phone:                 req.Phone,
+			CarModel:              req.CarModel,
+			CarColor:              req.CarColor,
 			CarPlate:              req.CarPlate,
+			Password:              req.Password,
+			ProfileImage:          profileImage,
+			CarPackage:            req.CarPackage,
 			TransferRecipientCode: transferRecipientCode,
+			VerificationPhotos:    verificationPhotos,
 		})
 		if err != nil {
 			tracing.HandleError(span, err)
@@ -110,7 +140,6 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
 				}
-
 				return
 			}
 
@@ -127,7 +156,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
-		logger.Info().Msg("Driver signup successful")
+		logger.Info().Msg("Driver signup successful. Waiting for admin verification")
 		c.JSON(http.StatusCreated, contracts.APIResponse{
 			Data: gin.H{"token": token},
 		})
@@ -144,41 +173,31 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
-		var profilePicURL string
+		var profileImage string
 		if req.ProfileImage != nil {
-			file, err := req.ProfileImage.Open()
+			url, err := h.parseAndUploadFile(ctx, req.ProfileImage, "/drivers/profile")
 			if err != nil {
 				tracing.HandleError(span, err)
 				logger.Error().Err(err).Msg("Failed to parse profile image")
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider signup failed"})
-				return
-			}
-			defer file.Close()
 
-			if err := storage.ParseImageMimetype(file); err != nil {
-				tracing.HandleError(span, err)
-				logger.Error().Err(err).Msg("Unsupported file type")
-				c.JSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
+				switch err {
+				case util.ErrUnsupportedFileType:
+					c.JSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
+				}
 				return
 			}
-
-			result, err := storage.ProcessFileUpload(ctx, file, h.cfg.Uploader)
-			if err != nil {
-				tracing.HandleError(span, err)
-				logger.Error().Err(err).Msg("Cloudinary upload error")
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider signup failed"})
-				return
-			}
-			profilePicURL = result.SecureURL
+			profileImage = url
 		} else {
-			profilePicURL = fmt.Sprintf("https://randomuser.me/api/portraits/lego/%d.jpg", rand.Intn(100))
+			profileImage = fmt.Sprintf("https://randomuser.me/api/portraits/lego/%d.jpg", rand.Intn(100))
 		}
 
 		res, err := h.cfg.Clients.Rider.Signup(ctx, &pb.SignupRiderRequest{
 			Name:         req.Name,
 			Email:        req.Email,
 			Password:     req.Password,
-			ProfileImage: profilePicURL,
+			ProfileImage: profileImage,
 		})
 		if err != nil {
 			tracing.HandleError(span, err)
@@ -192,7 +211,6 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider signup failed"})
 				}
-
 				return
 			}
 

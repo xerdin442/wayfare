@@ -73,17 +73,22 @@ message SignupRiderRequest {
   string name          = 1;
   string email         = 2;
   string password      = 3;
-  string profile_image = 4;
+  string phone         = 4;
+  string profile_image = 5;
 }
 
 message SignupDriverRequest {
-  string name                    = 1;
-  string email                   = 2;
-  string password                = 3;
-  string profile_image           = 4;
-  string car_package             = 5;
-  string car_plate               = 6;
-  string transfer_recipient_code = 7;
+  string          name                    = 1;
+  string          email                   = 2;
+  string          password                = 3;
+  string          phone                   = 4;
+  string          profile_image           = 5;
+  repeated string verification_photos     = 6;
+  string          car_package             = 7;
+  string          car_model               = 8;
+  string          car_color               = 9;
+  string          car_plate               = 10;
+  string          transfer_recipient_code = 11;
 }
 
 message AuthResponse {

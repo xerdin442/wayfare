@@ -36,6 +36,7 @@ func (s *RiderService) GetRiderProfile(ctx context.Context, req *pb.GetProfileRe
 			Id:             rider.ID.Hex(),
 			Name:           rider.Name,
 			Email:          rider.Email,
+			Phone:          rider.Phone,
 			ProfilePicture: rider.ProfilePicture,
 		},
 	}, nil

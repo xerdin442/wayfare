@@ -73,6 +73,7 @@ func (r *RiderRepository) CreateRiderAccount(ctx context.Context, details *pb.Si
 		ID:             bson.NewObjectID(),
 		Name:           details.Name,
 		Email:          details.Email,
+		Phone:          details.Phone,
 		Password:       string(hashedPassword),
 		ProfilePicture: details.ProfileImage,
 		CreatedAt:      time.Now(),
