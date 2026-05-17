@@ -10,9 +10,10 @@ const (
 type CarPackage string
 
 const (
-	PackageLuxury CarPackage = "luxury"
-	PackageSedan  CarPackage = "sedan"
-	PackageSUV    CarPackage = "suv"
+	PackageLuxury  CarPackage = "luxury"
+	PackageSedan   CarPackage = "sedan"
+	PackageSUV     CarPackage = "suv"
+	PackageDefault CarPackage = "default"
 )
 
 type TripStatus string

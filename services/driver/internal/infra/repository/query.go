@@ -99,7 +99,7 @@ func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *pb.
 		ProfilePicture:        details.ProfileImage,
 		VerificationPhotos:    details.VerificationPhotos,
 		IsVerified:            false,
-		CarPackage:            types.CarPackage(details.CarPackage),
+		CarPackage:            types.PackageDefault,
 		CarModel:              details.CarModel,
 		CarColor:              details.CarColor,
 		CarPlate:              details.CarPlate,

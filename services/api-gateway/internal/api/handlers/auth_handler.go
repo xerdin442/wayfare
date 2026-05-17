@@ -124,7 +124,6 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			CarPlate:              req.CarPlate,
 			Password:              req.Password,
 			ProfileImage:          profileImage,
-			CarPackage:            req.CarPackage,
 			TransferRecipientCode: transferRecipientCode,
 			VerificationPhotos:    verificationPhotos,
 		})
@@ -156,7 +155,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
-		logger.Info().Msg("Driver signup successful. Waiting for admin verification")
+		logger.Info().Msg("Driver signup successful. Awaiting admin verification...")
 		c.JSON(http.StatusCreated, contracts.APIResponse{
 			Data: gin.H{"token": token},
 		})

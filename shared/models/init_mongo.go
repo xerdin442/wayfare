@@ -45,7 +45,7 @@ var routeSchema = bson.M{
 }
 
 var carPackageSchema = bson.M{
-	"enum":        []string{"luxury", "sedan", "suv"},
+	"enum":        []string{"luxury", "sedan", "suv", "default"},
 	"description": "must be a valid car package",
 }
 

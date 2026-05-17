@@ -49,7 +49,6 @@ type SignupDriverRequest struct {
 	SignupDetails
 	ProfileImage       *multipart.FileHeader   `form:"profileImage" binding:"required"`
 	VerificationPhotos []*multipart.FileHeader `form:"verificationPhotos" binding:"required"`
-	CarPackage         string                  `form:"carPackage" binding:"required"`
 	CarModel           string                  `form:"carModel" binding:"required"`
 	CarColor           string                  `form:"carColor" binding:"required"`
 	CarPlate           string                  `form:"carPlate" binding:"required"`
