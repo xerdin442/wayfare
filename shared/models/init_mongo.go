@@ -249,11 +249,12 @@ func CreateRidersCollection(db *mongo.Database, name string) (*mongo.Collection,
 
 	jsonSchema := bson.M{
 		"bsonType": "object",
-		"required": []string{"name", "email", "password", "profile_picture"},
+		"required": []string{"name", "email", "phone", "password", "profile_picture"},
 		"properties": bson.M{
 			"name":            bson.M{"bsonType": "string"},
 			"email":           bson.M{"bsonType": "string"},
 			"password":        bson.M{"bsonType": "string"},
+			"phone":           bson.M{"bsonType": "string"},
 			"profile_picture": bson.M{"bsonType": "string"},
 		},
 	}
@@ -287,17 +288,22 @@ func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection
 		"required": []string{
 			"name", "email", "password", "profile_picture",
 			"car_package", "car_plate", "current_rating",
-			"total_completed_trips", "lifetime_rating_avg",
+			"total_completed_trips", "lifetime_rating_avg", "status",
 			"available_balance", "pending_payout", "pending_returns",
-			"outstanding_returns", "transfer_recipient_code", "tier", "status",
+			"outstanding_returns", "transfer_recipient_code", "tier",
+			"phone", "verification_photos", "car_model", "car_color",
 		},
 		"properties": bson.M{
 			"name":                    bson.M{"bsonType": "string"},
 			"email":                   bson.M{"bsonType": "string"},
+			"phone":                   bson.M{"bsonType": "string"},
 			"password":                bson.M{"bsonType": "string"},
 			"car_package":             carPackageSchema,
 			"profile_picture":         bson.M{"bsonType": "string"},
+			"verification_photos":     bson.M{"bsonType": "array", "items": bson.M{"bsonType": "string"}},
 			"car_plate":               bson.M{"bsonType": "string"},
+			"car_model":               bson.M{"bsonType": "string"},
+			"car_color":               bson.M{"bsonType": "string"},
 			"current_rating":          bson.M{"bsonType": "double", "minimum": 0, "maximum": 5},
 			"total_completed_trips":   bson.M{"bsonType": "int"},
 			"lifetime_rating_avg":     bson.M{"bsonType": "double", "minimum": 0, "maximum": 5},

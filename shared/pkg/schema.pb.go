@@ -250,12 +250,15 @@ type Driver struct {
 	Id                  string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name                string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Email               string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	ProfilePicture      string                 `protobuf:"bytes,4,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
-	CarPlate            string                 `protobuf:"bytes,5,opt,name=car_plate,json=carPlate,proto3" json:"car_plate,omitempty"`
-	PackageSlug         string                 `protobuf:"bytes,6,opt,name=package_slug,json=packageSlug,proto3" json:"package_slug,omitempty"`
-	CurrentRating       float64                `protobuf:"fixed64,7,opt,name=current_rating,json=currentRating,proto3" json:"current_rating,omitempty"`
-	TotalCompletedTrips int64                  `protobuf:"varint,8,opt,name=total_completed_trips,json=totalCompletedTrips,proto3" json:"total_completed_trips,omitempty"`
-	Tier                string                 `protobuf:"bytes,9,opt,name=tier,proto3" json:"tier,omitempty"`
+	Phone               string                 `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
+	ProfilePicture      string                 `protobuf:"bytes,5,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
+	CarPlate            string                 `protobuf:"bytes,6,opt,name=car_plate,json=carPlate,proto3" json:"car_plate,omitempty"`
+	CarModel            string                 `protobuf:"bytes,7,opt,name=car_model,json=carModel,proto3" json:"car_model,omitempty"`
+	CarColor            string                 `protobuf:"bytes,8,opt,name=car_color,json=carColor,proto3" json:"car_color,omitempty"`
+	PackageSlug         string                 `protobuf:"bytes,9,opt,name=package_slug,json=packageSlug,proto3" json:"package_slug,omitempty"`
+	CurrentRating       float64                `protobuf:"fixed64,10,opt,name=current_rating,json=currentRating,proto3" json:"current_rating,omitempty"`
+	TotalCompletedTrips int64                  `protobuf:"varint,11,opt,name=total_completed_trips,json=totalCompletedTrips,proto3" json:"total_completed_trips,omitempty"`
+	Tier                string                 `protobuf:"bytes,12,opt,name=tier,proto3" json:"tier,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -311,6 +314,13 @@ func (x *Driver) GetEmail() string {
 	return ""
 }
 
+func (x *Driver) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
 func (x *Driver) GetProfilePicture() string {
 	if x != nil {
 		return x.ProfilePicture
@@ -321,6 +331,20 @@ func (x *Driver) GetProfilePicture() string {
 func (x *Driver) GetCarPlate() string {
 	if x != nil {
 		return x.CarPlate
+	}
+	return ""
+}
+
+func (x *Driver) GetCarModel() string {
+	if x != nil {
+		return x.CarModel
+	}
+	return ""
+}
+
+func (x *Driver) GetCarColor() string {
+	if x != nil {
+		return x.CarColor
 	}
 	return ""
 }
@@ -358,7 +382,8 @@ type Rider struct {
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Email          string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	ProfilePicture string                 `protobuf:"bytes,4,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
+	Phone          string                 `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
+	ProfilePicture string                 `protobuf:"bytes,5,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -410,6 +435,13 @@ func (x *Rider) GetName() string {
 func (x *Rider) GetEmail() string {
 	if x != nil {
 		return x.Email
+	}
+	return ""
+}
+
+func (x *Rider) GetPhone() string {
+	if x != nil {
+		return x.Phone
 	}
 	return ""
 }
@@ -516,22 +548,27 @@ const file_schema_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fpackage_slug\x18\x02 \x01(\tR\vpackageSlug\x12\x16\n" +
 	"\x06amount\x18\x03 \x01(\x03R\x06amount\x12$\n" +
-	"\x05route\x18\x04 \x01(\v2\x0e.wayfare.RouteR\x05route\"\x9a\x02\n" +
+	"\x05route\x18\x04 \x01(\v2\x0e.wayfare.RouteR\x05route\"\xea\x02\n" +
 	"\x06Driver\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email\x12'\n" +
-	"\x0fprofile_picture\x18\x04 \x01(\tR\x0eprofilePicture\x12\x1b\n" +
-	"\tcar_plate\x18\x05 \x01(\tR\bcarPlate\x12!\n" +
-	"\fpackage_slug\x18\x06 \x01(\tR\vpackageSlug\x12%\n" +
-	"\x0ecurrent_rating\x18\a \x01(\x01R\rcurrentRating\x122\n" +
-	"\x15total_completed_trips\x18\b \x01(\x03R\x13totalCompletedTrips\x12\x12\n" +
-	"\x04tier\x18\t \x01(\tR\x04tier\"j\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12\x14\n" +
+	"\x05phone\x18\x04 \x01(\tR\x05phone\x12'\n" +
+	"\x0fprofile_picture\x18\x05 \x01(\tR\x0eprofilePicture\x12\x1b\n" +
+	"\tcar_plate\x18\x06 \x01(\tR\bcarPlate\x12\x1b\n" +
+	"\tcar_model\x18\a \x01(\tR\bcarModel\x12\x1b\n" +
+	"\tcar_color\x18\b \x01(\tR\bcarColor\x12!\n" +
+	"\fpackage_slug\x18\t \x01(\tR\vpackageSlug\x12%\n" +
+	"\x0ecurrent_rating\x18\n" +
+	" \x01(\x01R\rcurrentRating\x122\n" +
+	"\x15total_completed_trips\x18\v \x01(\x03R\x13totalCompletedTrips\x12\x12\n" +
+	"\x04tier\x18\f \x01(\tR\x04tier\"\x80\x01\n" +
 	"\x05Rider\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email\x12'\n" +
-	"\x0fprofile_picture\x18\x04 \x01(\tR\x0eprofilePicture\"\x9c\x01\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12\x14\n" +
+	"\x05phone\x18\x04 \x01(\tR\x05phone\x12'\n" +
+	"\x0fprofile_picture\x18\x05 \x01(\tR\x0eprofilePicture\"\x9c\x01\n" +
 	"\x04Trip\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1b\n" +

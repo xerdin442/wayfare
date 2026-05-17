@@ -101,8 +101,11 @@ type Driver struct {
 	ID                  string     `json:"id"`
 	Name                string     `json:"name"`
 	Email               string     `json:"email"`
+	Phone               string     `json:"phone"`
 	ProfilePicture      string     `json:"profilePicture"`
 	CarPlate            string     `json:"carPlate"`
+	CarModel            string     `json:"carModel"`
+	CarColor            string     `json:"carColor"`
 	PackageSlug         CarPackage `json:"packageSlug"`
 	CurrentRating       float64    `json:"currentRating"`
 	TotalCompletedTrips int64      `json:"totalCompletedTrips"`
@@ -113,5 +116,6 @@ type Rider struct {
 	ID             string `json:"id"`
 	Name           string `json:"name"`
 	Email          string `json:"email"`
+	Phone          string `json:"phone"`
 	ProfilePicture string `json:"profilePicture"`
 }

@@ -81,10 +81,14 @@ type DriverModel struct {
 	ID                    bson.ObjectID      `bson:"_id,omitempty"`
 	Name                  string             `bson:"name"`
 	Email                 string             `bson:"email"`
+	Phone                 string             `bson:"phone"`
 	Password              string             `bson:"password"`
 	ProfilePicture        string             `bson:"profile_picture"`
+	VerificationPhotos    []string           `bson:"verification_photos"`
 	CarPackage            types.CarPackage   `bson:"car_package"`
 	CarPlate              string             `bson:"car_plate"`
+	CarModel              string             `bson:"car_model"`
+	CarColor              string             `bson:"car_color"`
 	CurrentRating         float64            `bson:"current_rating"`
 	TotalCompletedTrips   int64              `bson:"total_completed_trips"`
 	LifetimeRatingAvg     float64            `bson:"lifetime_rating_avg"`
@@ -103,6 +107,7 @@ type RiderModel struct {
 	ID             bson.ObjectID `bson:"_id,omitempty"`
 	Name           string        `bson:"name"`
 	Email          string        `bson:"email"`
+	Phone          string        `bson:"phone"`
 	Password       string        `bson:"password"`
 	ProfilePicture string        `bson:"profile_picture"`
 	CreatedAt      time.Time     `bson:"created_at"`
