@@ -370,6 +370,7 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 				"enum":        []string{"pending", "success", "failed", "reversed", "aborted"},
 				"description": "must be a valid payment status value",
 			},
+			"transfer_fee": bson.M{"bsonType": "long"},
 		},
 	}
 

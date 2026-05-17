@@ -24,6 +24,7 @@ type CreateTransactionData struct {
 	DriverRecipientCode string
 	Amount              int64
 	Type                types.TransactionType
+	TransferFee         int64
 }
 
 func NewPaymentRepository(db *mongo.Database) *PaymentRepository {
@@ -113,6 +114,10 @@ func (r *PaymentRepository) CreateTransaction(ctx context.Context, data *CreateT
 		}
 
 		txn.DriverRecipientCode = data.DriverRecipientCode
+	}
+
+	if data.TransferFee > 0 {
+		txn.TransferFee = data.TransferFee
 	}
 
 	if _, err := r.txnColl.InsertOne(ctx, txn); err != nil {

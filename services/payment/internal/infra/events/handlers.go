@@ -65,15 +65,17 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return fmt.Errorf("Failed to unmarshal Paystack webhook metadata")
 		}
 
-		txnType := types.TransactionPayout
-		if metadata.TripID != "" {
-			txnType = types.TransactionCheckout
-		}
-
 		transaction, err := h.repo.GetTransactionByID(ctx, webhook.Data.Reference)
 		if err != nil {
 			log.Warn().Err(err).Msg("Invalid transaction reference from Paystack webhook")
 			return err
+		}
+
+		txnType := types.TransactionCheckout
+		txnFee := h.calculateTransactionFee(transaction.Amount/100, types.ProviderPaystack, txnType)
+		if metadata.TripID == "" {
+			txnType = types.TransactionPayout
+			txnFee = float64(transaction.TransferFee / 100)
 		}
 
 		// Idempotent processing to skip settled transactions
@@ -127,8 +129,6 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 		); err != nil {
 			return err
 		}
-
-		txnFee := h.calculateTransactionFee(transaction.Amount/100, types.ProviderPaystack, txnType)
 
 		if strings.HasPrefix(webhook.Event, "charge.") {
 			// Send transaction status to rider
@@ -338,11 +338,12 @@ func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messagi
 	// Create payout transactions
 	var txnData []repo.CreateTransactionData
 	for _, d := range payoutPayload.Drivers {
-		txnFee := h.calculateTransactionFee(d.PendingPayout/100, types.ProviderPaystack, types.TransactionPayout)
+		txnFee := h.calculateTransactionFee(d.PendingPayout/100, types.ProviderPaystack, types.TransactionPayout) * 100
 		txnData = append(txnData, repo.CreateTransactionData{
 			DriverRecipientCode: d.TransferRecipientCode,
-			Amount:              d.PendingPayout - int64(txnFee*100),
+			Amount:              d.PendingPayout - int64(txnFee),
 			Type:                types.TransactionPayout,
+			TransferFee:         int64(txnFee),
 		})
 	}
 

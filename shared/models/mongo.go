@@ -123,6 +123,7 @@ type TransactionModel struct {
 	Amount              int64                 `bson:"amount"`
 	Status              types.PaymentStatus   `bson:"status"`
 	Type                types.TransactionType `bson:"type"`
+	TransferFee         int64                 `bson:"transfer_fee,omitempty"`
 	CreatedAt           time.Time             `bson:"created_at"`
 	UpdatedAt           time.Time             `bson:"updated_at"`
 }
