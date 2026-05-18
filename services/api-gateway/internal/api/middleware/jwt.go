@@ -17,13 +17,13 @@ type AllClaims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(userID string, role types.UserRole, secretKey string) (string, error) {
+func GenerateAccessToken(userID string, role types.UserRole, secretKey string) (string, error) {
 	claims := AllClaims{
 		SubjectID: userID,
 		Role:      role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 		},
 	}
 
@@ -46,13 +46,13 @@ func (m *Middleware) JwtGuard() gin.HandlerFunc {
 		})
 
 		// Check if token is blacklisted
-		n, err := m.cfg.Cache.Exists(c.Request.Context(), tokenString).Result()
+		n, err := m.cfg.Cache.Exists(c.Request.Context(), "token_blacklist:"+tokenString).Result()
 		if err != nil {
 			log.Fatal().Err(err).Msg("Error fetching blacklisted tokens from cache")
 		}
 
 		if err != nil || !token.Valid || n > 0 {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Session expired. Please log in"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Session expired"})
 			return
 		}
 

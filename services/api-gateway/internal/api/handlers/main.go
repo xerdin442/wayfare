@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -24,7 +25,8 @@ func New(c *base.Config) *RouteHandler {
 				}
 
 				origin := r.Header.Get("Origin")
-				return origin == c.Env.FrontendUrl
+				frontendUrl := c.Env.FrontendUrl
+				return origin == fmt.Sprintf("https://%s", frontendUrl) || origin == fmt.Sprintf("https://www.%s", frontendUrl)
 			},
 		},
 	}

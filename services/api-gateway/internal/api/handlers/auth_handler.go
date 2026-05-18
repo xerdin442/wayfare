@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/middleware"
 	"github.com/xerdin442/wayfare/shared/contracts"
@@ -40,6 +41,34 @@ func (h *RouteHandler) parseAndUploadFile(ctx context.Context, image *multipart.
 	return result.SecureURL, nil
 }
 
+func (h *RouteHandler) generateRefreshToken(c *gin.Context, traceCtx context.Context, userId string) error {
+	rfToken := util.GenerateRandomString(32)
+	tokenDuration := 7 * 24 * time.Hour
+
+	err := h.cfg.Cache.Set(traceCtx, "refresh_token:"+rfToken, userId, tokenDuration).Err()
+	if err != nil {
+		return err
+	}
+
+	domain := "localhost"
+	if h.cfg.Env.Environment == "production" {
+		domain = fmt.Sprintf(".%s", h.cfg.Env.FrontendUrl)
+	}
+
+	c.SetCookie(
+		"refresh_token",
+		rfToken,
+		int(tokenDuration.Seconds()),
+		"/api/v1/auth/refresh",
+		domain,
+		h.cfg.Env.Environment == "production",
+		true,
+	)
+	c.SetSameSite(http.SameSiteStrictMode)
+
+	return nil
+}
+
 func (h *RouteHandler) HandleSignup(c *gin.Context) {
 	// Start tracer
 	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleSignup")
@@ -47,14 +76,17 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 
 	logger := log.Ctx(ctx)
 
-	role := c.GetHeader("X-User-Role")
-	if role == "" || (types.UserRole(role) != types.RoleRider && types.UserRole(role) != types.RoleDriver) {
+	roleHeader := c.GetHeader("X-User-Role")
+	role := types.UserRole(roleHeader)
+	if role == "" || (role != types.RoleRider && role != types.RoleDriver) {
 		tracing.HandleError(span, util.ErrMissingRoleHeader)
 		c.JSON(http.StatusBadRequest, gin.H{"message": util.ErrMissingRoleHeader.Error()})
 		return
 	}
 
-	if types.UserRole(role) == types.RoleDriver {
+	var userId string
+
+	if role == types.RoleDriver {
 		var req contracts.SignupDriverRequest
 		if err := c.ShouldBind(&req); err != nil {
 			tracing.HandleError(span, err)
@@ -146,24 +178,10 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
-		// Generate JWT token
-		token, err := middleware.GenerateToken(res.UserId, types.RoleDriver, h.cfg.Env.JwtSecret)
-		if err != nil {
-			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Token generation error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
-			return
-		}
-
-		logger.Info().Msg("Driver signup successful. Awaiting admin verification...")
-		c.JSON(http.StatusCreated, contracts.APIResponse{
-			Data: gin.H{"token": token},
-		})
-
-		return
+		userId = res.UserId
 	}
 
-	if types.UserRole(role) == types.RoleRider {
+	if role == types.RoleRider {
 		var req contracts.SignupRiderRequest
 		if err := c.ShouldBind(&req); err != nil {
 			tracing.HandleError(span, err)
@@ -217,22 +235,28 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
-		// Generate JWT token
-		token, err := middleware.GenerateToken(res.UserId, types.RoleRider, h.cfg.Env.JwtSecret)
-		if err != nil {
-			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Token generation error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider signup failed"})
-			return
-		}
+		userId = res.UserId
+	}
 
-		logger.Info().Str("email", req.Email).Msg("Rider signup successful")
-		c.JSON(http.StatusCreated, contracts.APIResponse{
-			Data: gin.H{"token": token},
-		})
-
+	accessToken, err := middleware.GenerateAccessToken(userId, role, h.cfg.Env.JwtSecret)
+	if err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("Failed to generate access token")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s signup failed", role)})
 		return
 	}
+
+	if err := h.generateRefreshToken(c, ctx, userId); err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("Failed to generate refresh token")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s signup failed", role)})
+		return
+	}
+
+	logger.Info().Msg(fmt.Sprintf("%s signup successful", role))
+	c.JSON(http.StatusCreated, contracts.APIResponse{
+		Data: gin.H{"token": accessToken},
+	})
 }
 
 func (h *RouteHandler) HandleLogin(c *gin.Context) {
@@ -242,8 +266,9 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 
 	logger := log.Ctx(ctx)
 
-	role := c.GetHeader("X-User-Role")
-	if role == "" || (types.UserRole(role) != types.RoleRider && types.UserRole(role) != types.RoleDriver) {
+	roleHeader := c.GetHeader("X-User-Role")
+	role := types.UserRole(roleHeader)
+	if role == "" || (role != types.RoleRider && role != types.RoleDriver) {
 		tracing.HandleError(span, util.ErrMissingRoleHeader)
 		c.JSON(http.StatusBadRequest, gin.H{"message": util.ErrMissingRoleHeader.Error()})
 		return
@@ -257,82 +282,119 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	var authToken string
-
-	if types.UserRole(role) == types.RoleDriver {
-		res, err := h.cfg.Clients.Driver.Login(ctx, &pb.LoginRequest{
+	var authResp *pb.AuthResponse
+	var loginErr error
+	if role == types.RoleDriver {
+		authResp, loginErr = h.cfg.Clients.Driver.Login(ctx, &pb.LoginRequest{
 			Email:    req.Email,
 			Password: req.Password,
 		})
-		if err != nil {
-			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Driver login error")
-
-			st, ok := status.FromError(err)
-			if ok {
-				switch st.Code() {
-				case codes.NotFound, codes.Unauthenticated:
-					c.JSON(http.StatusBadRequest, gin.H{"message": st.Message()})
-				default:
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver login failed"})
-				}
-				return
-			}
-
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver login failed"})
-			return
-		}
-
-		// Generate JWT token
-		token, err := middleware.GenerateToken(res.UserId, types.RoleDriver, h.cfg.Env.JwtSecret)
-		if err != nil {
-			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Token generation error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver login failed"})
-			return
-		}
-
-		authToken = token
 	} else {
-		res, err := h.cfg.Clients.Rider.Login(ctx, &pb.LoginRequest{
+		authResp, loginErr = h.cfg.Clients.Rider.Login(ctx, &pb.LoginRequest{
 			Email:    req.Email,
 			Password: req.Password,
 		})
-		if err != nil {
-			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Rider login error")
-
-			st, ok := status.FromError(err)
-			if ok {
-				switch st.Code() {
-				case codes.NotFound, codes.Unauthenticated:
-					c.JSON(http.StatusBadRequest, gin.H{"message": st.Message()})
-				default:
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider login failed"})
-				}
-
-				return
-			}
-
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider login failed"})
-			return
-		}
-
-		// Generate JWT token
-		token, err := middleware.GenerateToken(res.UserId, types.RoleRider, h.cfg.Env.JwtSecret)
-		if err != nil {
-			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Token generation error")
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider login failed"})
-			return
-		}
-
-		authToken = token
 	}
 
-	logger.Info().Str("email", req.Email).Msg("Login successful")
+	if loginErr != nil {
+		tracing.HandleError(span, loginErr)
+		logger.Error().Err(loginErr).Msg(fmt.Sprintf("%s login error", role))
+
+		st, ok := status.FromError(loginErr)
+		if ok {
+			switch st.Code() {
+			case codes.NotFound, codes.Unauthenticated:
+				c.JSON(http.StatusBadRequest, gin.H{"message": st.Message()})
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s login failed", role)})
+			}
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s login failed", role)})
+		return
+	}
+
+	accessToken, err := middleware.GenerateAccessToken(authResp.UserId, role, h.cfg.Env.JwtSecret)
+	if err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("Failed to generate access token")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s login failed", role)})
+		return
+	}
+
+	if err := h.generateRefreshToken(c, ctx, authResp.UserId); err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("Failed to generate refresh token")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s login failed", role)})
+		return
+	}
+
+	logger.Info().Msg(fmt.Sprintf("%s login successful", role))
 	c.JSON(http.StatusOK, contracts.APIResponse{
-		Data: gin.H{"token": authToken},
+		Data: gin.H{"token": accessToken},
+	})
+}
+
+func (h *RouteHandler) HandleRefresh(c *gin.Context) {
+	// Start tracer
+	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleRefresh")
+	defer span.End()
+
+	logger := log.Ctx(ctx)
+
+	roleHeader := c.GetHeader("X-User-Role")
+	role := types.UserRole(roleHeader)
+	if role == "" || (role != types.RoleRider && role != types.RoleDriver) {
+		tracing.HandleError(span, util.ErrMissingRoleHeader)
+		c.JSON(http.StatusBadRequest, gin.H{"message": util.ErrMissingRoleHeader.Error()})
+		return
+	}
+
+	oldToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("No refresh token found")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing refresh token"})
+		return
+	}
+
+	userId, err := h.cfg.Cache.Get(ctx, "refresh_token:"+oldToken).Result()
+	if err == redis.Nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired. Please log in"})
+		return
+	} else if err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("Failed to verify refresh token")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
+		return
+	}
+
+	if err := h.cfg.Cache.Del(ctx, "refresh_token:"+oldToken).Err(); err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("Failed to delete existing refresh token")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
+		return
+	}
+
+	accessToken, err := middleware.GenerateAccessToken(userId, role, h.cfg.Env.JwtSecret)
+	if err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("Failed to generate access token")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
+		return
+	}
+
+	if err := h.generateRefreshToken(c, ctx, userId); err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("Failed to generate refresh token")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
+		return
+	}
+
+	logger.Info().Msg("Token refresh successful")
+	c.JSON(http.StatusOK, contracts.APIResponse{
+		Data: gin.H{"token": accessToken},
 	})
 }
 
@@ -343,17 +405,31 @@ func (h *RouteHandler) HandleLogout(c *gin.Context) {
 
 	logger := log.Ctx(ctx)
 
+	rfToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("No refresh token found")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing refresh token"})
+		return
+	}
+
 	authHeader := c.GetHeader("Authorization")
-	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	accessToken := strings.TrimPrefix(authHeader, "Bearer ")
 
 	exp, _ := c.Get("token_exp")
 	tokenExp := exp.(time.Time)
 
-	err := h.cfg.Cache.Set(ctx, tokenString, "blacklisted", time.Until(tokenExp)).Err()
-	if err != nil {
+	if err := h.cfg.Cache.Set(ctx, "token_blacklist:"+accessToken, true, time.Until(tokenExp)).Err(); err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Logout error")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token blacklist error"})
+		logger.Error().Err(err).Msg("Failed to blacklist access token")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Logout error"})
+		return
+	}
+
+	if err := h.cfg.Cache.Del(ctx, "refresh_token:"+rfToken).Err(); err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("Failed to delete refresh token")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Logout error"})
 		return
 	}
 
