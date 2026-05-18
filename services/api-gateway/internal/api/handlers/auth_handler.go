@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"mime/multipart"
 	"net/http"
 	"strings"
 	"time"
@@ -22,24 +21,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
-
-func (h *RouteHandler) parseAndUploadFile(ctx context.Context, image *multipart.FileHeader, path string) (string, error) {
-	file, err := image.Open()
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	if err := storage.ParseImageMimetype(file); err != nil {
-		return "", err
-	}
-
-	result, err := storage.ProcessFileUpload(ctx, file, h.cfg.Uploader, path)
-	if err != nil {
-		return "", err
-	}
-	return result.SecureURL, nil
-}
 
 func (h *RouteHandler) generateRefreshToken(c *gin.Context, traceCtx context.Context, userId string) error {
 	rfToken := util.GenerateRandomString(32)
@@ -116,7 +97,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
-		profileImage, err := h.parseAndUploadFile(ctx, req.ProfileImage, "/drivers/profile")
+		profileImage, err := storage.ProcessFileUpload(ctx, h.cfg.Uploader, req.ProfileImage, "/drivers/profile")
 		if err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Failed to parse profile image")
@@ -132,7 +113,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 
 		verificationPhotos := make([]string, len(req.VerificationPhotos))
 		for i, photo := range req.VerificationPhotos {
-			url, err := h.parseAndUploadFile(ctx, photo, "/drivers/verification")
+			url, err := storage.ProcessFileUpload(ctx, h.cfg.Uploader, photo, "/drivers/verification")
 			if err != nil {
 				tracing.HandleError(span, err)
 				logger.Error().Err(err).Msg("Failed to parse verification photo")
@@ -192,7 +173,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 
 		var profileImage string
 		if req.ProfileImage != nil {
-			url, err := h.parseAndUploadFile(ctx, req.ProfileImage, "/drivers/profile")
+			url, err := storage.ProcessFileUpload(ctx, h.cfg.Uploader, req.ProfileImage, "/riders/profile")
 			if err != nil {
 				tracing.HandleError(span, err)
 				logger.Error().Err(err).Msg("Failed to parse profile image")
