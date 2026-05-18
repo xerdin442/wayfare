@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	crypto "crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -23,9 +25,11 @@ import (
 )
 
 func (h *RouteHandler) generateRefreshToken(c *gin.Context, traceCtx context.Context, userId string) error {
-	rfToken := util.GenerateRandomString(32)
-	tokenDuration := 7 * 24 * time.Hour
+	b := make([]byte, 32)
+	crypto.Read(b)
+	rfToken := hex.EncodeToString(b)
 
+	tokenDuration := 7 * 24 * time.Hour
 	err := h.cfg.Cache.Set(traceCtx, "refresh_token:"+rfToken, userId, tokenDuration).Err()
 	if err != nil {
 		return err
