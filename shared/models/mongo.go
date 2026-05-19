@@ -21,6 +21,7 @@ type GeoPolygon struct {
 type RouteDetails struct {
 	Pickup      GeoPoint `bson:"pickup"`
 	Destination GeoPoint `bson:"destination"`
+	Addresses   []string `bson:"addresses"` // [0] = pickup, [1] = destination
 	Duration    float64  `bson:"duration"`
 	Distance    float64  `bson:"distance"`
 	Polyline    string   `bson:"polyline,omitempty"`

@@ -14,6 +14,8 @@ service TripService {
   rpc StartTrip(StartTripRequest) returns (StartTripResponse);
   // GetTripDetails returns the trip details by ID
   rpc GetTripDetails(TripDetailsRequest) returns (TripDetailsResponse);
+  // GetTripHistory returns the trip history for a user
+  rpc GetTripHistory(TripHistoryRequest) returns (TripHistoryResponse);
 }
 
 // DriverService handles drivers' response to trip requests
@@ -50,6 +52,14 @@ message TripDetailsResponse {
   int64  ride_fare = 1;
   string user_id   = 2;
   string region    = 3;
+}
+
+message TripHistoryRequest {
+  string user_id = 1;
+}
+
+message TripHistoryResponse {
+  repeated Trip trips = 1;
 }
 
 message GetProfileRequest {

@@ -385,10 +385,10 @@ func (r *TripRepository) GetActiveTripRequests(ctx context.Context, pickupCoords
 	return count, nil
 }
 
-func (r *TripRepository) GetLastUnratedTrip(ctx context.Context, userID string) (*models.TripModel, error) {
-	userIdHex, err := bson.ObjectIDFromHex(userID)
+func (r *TripRepository) GetLastUnratedTrip(ctx context.Context, userId string) (*models.TripModel, error) {
+	userIdHex, err := bson.ObjectIDFromHex(userId)
 	if err != nil {
-		log.Error().Err(err).Str("id", userID).Msg("Invalid user ID")
+		log.Error().Err(err).Str("id", userId).Msg("Invalid user ID")
 		return nil, err
 	}
 
@@ -403,7 +403,7 @@ func (r *TripRepository) GetLastUnratedTrip(ctx context.Context, userID string) 
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
 		}
-		log.Error().Err(err).Str("user_id", userID).Msg("Failed to find last trip")
+		log.Error().Err(err).Str("user_id", userId).Msg("Failed to find last trip")
 		return nil, err
 	}
 
@@ -412,4 +412,35 @@ func (r *TripRepository) GetLastUnratedTrip(ctx context.Context, userID string) 
 	}
 
 	return &trip, nil
+}
+
+func (r *TripRepository) GetUserTripHistory(ctx context.Context, userId string) ([]*models.TripModel, error) {
+	userIdHex, err := bson.ObjectIDFromHex(userId)
+	if err != nil {
+		log.Error().Err(err).Str("id", userId).Msg("Invalid user ID")
+		return nil, err
+	}
+
+	filter := bson.M{
+		"$or": []bson.M{
+			{"user_id": userIdHex},
+			{"driver_id": userIdHex},
+		},
+		"status": types.TripStatusCompleted,
+	}
+
+	cursor, err := r.tripColl.Find(ctx, filter, options.Find().SetSort(bson.M{"created_at": -1}))
+	if err != nil {
+		log.Error().Err(err).Str("user_id", userId).Msg("Failed to fetch trip history")
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var trips []*models.TripModel
+	if err := cursor.All(ctx, &trips); err != nil {
+		log.Error().Err(err).Msg("Failed to decode trip history")
+		return nil, err
+	}
+
+	return trips, nil
 }

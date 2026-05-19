@@ -319,9 +319,10 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 			Type:        "Point",
 			Coordinates: destinationCoords,
 		},
-		Duration: route.ToProto().Duration,
-		Distance: route.ToProto().Distance,
-		Polyline: polylineString,
+		Addresses: []string{req.Pickup.Address, req.Destination.Address},
+		Duration:  route.ToProto().Duration,
+		Distance:  route.ToProto().Distance,
+		Polyline:  polylineString,
 	}
 
 	// Store generated ride fares
@@ -402,5 +403,16 @@ func (s *TripService) StartTrip(ctx context.Context, req *pb.StartTripRequest) (
 
 	return &pb.StartTripResponse{
 		TripId: trip.ID.Hex(),
+	}, nil
+}
+
+func (s *TripService) GetTripHistory(ctx context.Context, req *pb.TripHistoryRequest) (*pb.TripHistoryResponse, error) {
+	tripModels, err := s.repo.GetUserTripHistory(ctx, req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal server error")
+	}
+
+	return &pb.TripHistoryResponse{
+		Trips: contracts.MapTripModels(tripModels),
 	}, nil
 }

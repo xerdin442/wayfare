@@ -10,7 +10,7 @@ import (
 
 var routeSchema = bson.M{
 	"bsonType": "object",
-	"required": []string{"pickup", "destination", "distance", "duration"},
+	"required": []string{"pickup", "destination", "addresses", "distance", "duration"},
 	"properties": bson.M{
 		"pickup": bson.M{
 			"bsonType": "object",
@@ -37,6 +37,12 @@ var routeSchema = bson.M{
 					"items":    bson.M{"bsonType": "double"},
 				},
 			},
+		},
+		"addresses": bson.M{
+			"bsonType": "array",
+			"minItems": 2,
+			"maxItems": 2,
+			"items":    bson.M{"bsonType": "string"},
 		},
 		"distance": bson.M{"bsonType": "double", "minimum": 0},
 		"duration": bson.M{"bsonType": "double", "minimum": 0},

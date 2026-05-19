@@ -25,6 +25,7 @@ type Coordinate struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Latitude      float64                `protobuf:"fixed64,1,opt,name=latitude,proto3" json:"latitude,omitempty"`
 	Longitude     float64                `protobuf:"fixed64,2,opt,name=longitude,proto3" json:"longitude,omitempty"`
+	Address       string                 `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -71,6 +72,13 @@ func (x *Coordinate) GetLongitude() float64 {
 		return x.Longitude
 	}
 	return 0
+}
+
+func (x *Coordinate) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
 }
 
 type Geometry struct {
@@ -533,11 +541,12 @@ var File_schema_proto protoreflect.FileDescriptor
 
 const file_schema_proto_rawDesc = "" +
 	"\n" +
-	"\fschema.proto\x12\awayfare\"F\n" +
+	"\fschema.proto\x12\awayfare\"`\n" +
 	"\n" +
 	"Coordinate\x12\x1a\n" +
 	"\blatitude\x18\x01 \x01(\x01R\blatitude\x12\x1c\n" +
-	"\tlongitude\x18\x02 \x01(\x01R\tlongitude\"A\n" +
+	"\tlongitude\x18\x02 \x01(\x01R\tlongitude\x12\x18\n" +
+	"\aaddress\x18\x03 \x01(\tR\aaddress\"A\n" +
 	"\bGeometry\x125\n" +
 	"\vcoordinates\x18\x01 \x03(\v2\x13.wayfare.CoordinateR\vcoordinates\"n\n" +
 	"\x05Route\x12\x1a\n" +

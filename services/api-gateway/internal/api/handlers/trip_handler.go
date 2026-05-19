@@ -61,7 +61,7 @@ func (h *RouteHandler) HandleTripPreview(c *gin.Context) {
 
 	c.JSON(http.StatusOK, contracts.APIResponse{
 		Data: gin.H{
-			"rideFares": contracts.MapRideFares(response.RideFares),
+			"rideFares": contracts.MapPbRideFares(response.RideFares),
 		},
 	})
 }
@@ -236,6 +236,33 @@ func (h *RouteHandler) HandleTripChat(c *gin.Context) {
 	c.JSON(http.StatusOK, contracts.APIResponse{
 		Data: gin.H{
 			"history": chatHistory,
+		},
+	})
+}
+
+func (h *RouteHandler) HandleTripHistory(c *gin.Context) {
+	// Start tracer
+	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleTripHistory")
+	defer span.End()
+
+	logger := log.Ctx(ctx)
+
+	userId := c.MustGet("user_id").(string)
+
+	response, err := h.cfg.Clients.Trip.GetTripHistory(ctx, &pb.TripHistoryRequest{
+		UserId: userId,
+	})
+
+	if err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("Failed to fetch trip history")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while fetching trip history"})
+		return
+	}
+
+	c.JSON(http.StatusOK, contracts.APIResponse{
+		Data: gin.H{
+			"trips": contracts.MapPbTrips(response.Trips),
 		},
 	})
 }
