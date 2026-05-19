@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/xerdin442/wayfare/shared/contracts"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
+	"github.com/xerdin442/wayfare/shared/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -196,6 +198,44 @@ func (h *RouteHandler) HandleInitiatePayment(c *gin.Context) {
 	c.JSON(http.StatusOK, contracts.APIResponse{
 		Data: gin.H{
 			"checkoutUrl": checkoutResponse.CheckoutUrl,
+		},
+	})
+}
+
+func (h *RouteHandler) HandleTripChat(c *gin.Context) {
+	// Start tracer
+	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleTripChat")
+	defer span.End()
+
+	logger := log.Ctx(ctx)
+
+	tripId := c.Param("id")
+
+	result, err := h.cfg.Cache.LRange(ctx, fmt.Sprintf("trip_chat_history:%s", tripId), 0, -1).Result()
+	if err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Str("trip_id", tripId).Msg("Failed to fetch trip chat history")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while fetching trip chat history"})
+		return
+	}
+
+	chatHistory := make([]types.ChatMessage, 0, len(result))
+	for _, item := range result {
+		var chatObj types.ChatMessage
+
+		if err := json.Unmarshal([]byte(item), &chatObj); err != nil {
+			tracing.HandleError(span, err)
+			logger.Error().Err(err).Msg("Failed to parse chat history")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while fetching trip chat history"})
+			return
+		}
+
+		chatHistory = append(chatHistory, chatObj)
+	}
+
+	c.JSON(http.StatusOK, contracts.APIResponse{
+		Data: gin.H{
+			"history": chatHistory,
 		},
 	})
 }

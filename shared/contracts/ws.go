@@ -11,10 +11,10 @@ type WebsocketMessage struct {
 	Data any    `json:"data,omitempty"`
 }
 
-type TripChatPayload struct {
+type TripChatRequest struct {
+	TripId    string `json:"tripId"`
 	Message   string `json:"message"`
-	Recipient string `json:"recipient,omitempty"`
-	Sender    string `json:"sender,omitempty"`
+	Recipient string `json:"recipient"`
 }
 
 type DriverTripActionRequest struct {
