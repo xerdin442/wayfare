@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 type UserRole string
 
 const (
@@ -119,4 +121,11 @@ type Rider struct {
 	Email          string `json:"email"`
 	Phone          string `json:"phone"`
 	ProfilePicture string `json:"profilePicture"`
+}
+
+type ChatMessage struct {
+	Sender    string    `json:"sender"`
+	Role      UserRole  `json:"role"`
+	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp"`
 }

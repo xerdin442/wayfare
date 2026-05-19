@@ -109,6 +109,7 @@ const (
 	TripEventDriverNotAvailable  AmqpEvent = "trip.event.driver_not_available"
 	TripEventPaymentRequired     AmqpEvent = "trip.event.payment_required"
 	TripEventRatingRequired      AmqpEvent = "trip.event.rating_required"
+	TripEventChatMessage         AmqpEvent = "trip.event.chat_message"
 
 	// Trip commands
 	TripCmdCompleted AmqpEvent = "trip.cmd.completed"
