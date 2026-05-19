@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-contrib/cors"
@@ -17,13 +18,17 @@ func (app *application) routes() http.Handler {
 	h := handlers.New(app.config)
 
 	corsConfig := cors.DefaultConfig()
+	frontendUrl := app.config.Env.FrontendUrl
 	if app.config.Env.Environment == "production" {
-		corsConfig.AllowOrigins = []string{app.config.Env.FrontendUrl}
+		corsConfig.AllowOrigins = []string{
+			fmt.Sprintf("https://%s", frontendUrl),
+			fmt.Sprintf("https://www.%s", frontendUrl),
+		}
 	} else {
 		corsConfig.AllowAllOrigins = true
 	}
 	corsConfig.AllowCredentials = true
-	corsConfig.AddAllowHeaders("Authorization")
+	corsConfig.AddAllowHeaders("Authorization", "X-User-Role")
 	r.Use(cors.New(corsConfig))
 
 	r.Use(m.CustomRequestLogger())
@@ -55,6 +60,7 @@ func (app *application) routes() http.Handler {
 	{
 		auth.POST("/signup", otelgin.Middleware("auth.signup"), h.HandleSignup)
 		auth.POST("/login", otelgin.Middleware("auth.login"), h.HandleLogin)
+		auth.POST("/refresh", otelgin.Middleware("auth.refresh"), h.HandleRefresh)
 		auth.POST("/logout", m.JwtGuard(), otelgin.Middleware("auth.logout"), h.HandleLogout)
 	}
 

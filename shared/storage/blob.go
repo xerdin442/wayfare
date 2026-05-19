@@ -19,7 +19,7 @@ type FileUploadConfig struct {
 	CloudSecret string
 }
 
-func ParseImageMimetype(file multipart.File) error {
+func parseImageMimetype(file multipart.File) error {
 	buffer := make([]byte, 512)
 	file.Read(buffer)
 
@@ -38,9 +38,24 @@ func ParseImageMimetype(file multipart.File) error {
 	return nil
 }
 
-func ProcessFileUpload(ctx context.Context, file multipart.File, cfg *FileUploadConfig, subfolder string) (*uploader.UploadResult, error) {
+func ProcessFileUpload(ctx context.Context, cfg *FileUploadConfig, part *multipart.FileHeader, path string) (string, error) {
+	file, err := part.Open()
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	if err := parseImageMimetype(file); err != nil {
+		return "", err
+	}
+
 	cld, _ := cloudinary.NewFromParams(cfg.CloudName, cfg.ApiKey, cfg.CloudSecret)
-	return cld.Upload.Upload(ctx, file, uploader.UploadParams{
-		Folder: cfg.Folder + subfolder,
+	result, err := cld.Upload.Upload(ctx, file, uploader.UploadParams{
+		Folder: cfg.Folder + path,
 	})
+	if err != nil {
+		return "", err
+	}
+
+	return result.SecureURL, nil
 }
