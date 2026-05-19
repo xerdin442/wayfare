@@ -11,6 +11,12 @@ type WebsocketMessage struct {
 	Data any    `json:"data,omitempty"`
 }
 
+type TripChatPayload struct {
+	Message   string `json:"message"`
+	Recipient string `json:"recipient,omitempty"`
+	Sender    string `json:"sender,omitempty"`
+}
+
 type DriverTripActionRequest struct {
 	Trip   types.Trip   `json:"trip"`
 	Driver types.Driver `json:"driver,omitempty"`

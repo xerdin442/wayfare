@@ -66,6 +66,36 @@ func (h *RouteHandler) updateDriverStatus(ctx context.Context, driverId string, 
 	}
 }
 
+func (h *RouteHandler) handleChatMessage(ctx context.Context, payload contracts.WebsocketMessage, sender string) error {
+	var data contracts.TripChatPayload
+	dataBytes, _ := json.Marshal(payload.Data)
+	if err := json.Unmarshal(dataBytes, &data); err != nil {
+		return err
+	}
+
+	gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+		Type: string(messaging.TripEventChatMessage),
+		Data: contracts.TripChatPayload{
+			Message: data.Message,
+			Sender:  sender,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	if err := h.cfg.Queue.PublishMessage(
+		ctx,
+		messaging.GatewayExchange,
+		messaging.AmqpEvent(fmt.Sprintf("user.%s", data.Recipient)),
+		messaging.AmqpMessage{Data: gatewayData},
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 	// Start tracer
 	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleDriversConnection")
@@ -212,7 +242,6 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				TripID:   data.Trip.ID,
 				DriverID: data.Driver.ID,
 			})
-
 			if err != nil {
 				tracing.HandleError(span, err)
 				logger.Error().Err(err).Msg("Failed to marshal trip_update queue payload")
@@ -299,7 +328,6 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				TripID:    data.Trip.ID,
 				StartedAt: time.Now(),
 			})
-
 			if err != nil {
 				tracing.HandleError(span, err)
 				logger.Error().Err(err).Msg("Failed to marshal trip_update queue payload")
@@ -350,7 +378,6 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				TripID:  data.Trip.ID,
 				EndedAt: time.Now(),
 			})
-
 			if err != nil {
 				tracing.HandleError(span, err)
 				logger.Error().Err(err).Msg("Failed to marshal trip_update queue payload")
@@ -428,6 +455,13 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				return
 			}
 
+		case string(messaging.TripEventChatMessage):
+			if err := h.handleChatMessage(ctx, payload, userId); err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to send trip chat message")
+				return
+			}
+
 		default:
 			logger.Warn().Str("message_type", string(payload.Type)).Msg("Unknown websocket message type")
 			return
@@ -449,18 +483,18 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 		return
 	}
 
-	userID := c.Query("user_id")
-	if userID == "" {
+	userId := c.Query("user_id")
+	if userId == "" {
 		tracing.HandleError(span, fmt.Errorf("user id not provided"))
 		logger.Warn().Msg("No user ID provided")
 		return
 	}
 
-	h.cfg.ConnManager.Store(userID, conn)
+	h.cfg.ConnManager.Store(userId, conn)
 	h.monitorConnection(conn)
 
 	defer func() {
-		h.cfg.ConnManager.Delete(userID)
+		h.cfg.ConnManager.Delete(userId)
 		conn.Close()
 	}()
 
@@ -585,6 +619,13 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 				messaging.AmqpMessage{Data: gatewayData},
 			); err != nil {
 				tracing.HandleError(span, err)
+				return
+			}
+
+		case string(messaging.TripEventChatMessage):
+			if err := h.handleChatMessage(ctx, payload, userId); err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to send trip chat message")
 				return
 			}
 
