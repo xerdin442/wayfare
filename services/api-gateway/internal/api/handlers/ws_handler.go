@@ -204,7 +204,8 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 			}
 
 			// Update location tracker for idle drivers
-			if err := h.cfg.Cache.GeoAdd(
+			pipe := h.cfg.Cache.Pipeline()
+			pipe.GeoAdd(
 				ctx,
 				"drivers_locations",
 				&redis.GeoLocation{
@@ -212,15 +213,12 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 					Longitude: data.Coords.Longitude,
 					Latitude:  data.Coords.Latitude,
 				},
-			).Err(); err != nil {
-				tracing.HandleError(span, err)
-				logger.Error().Err(err).Msg("Failed to add driver coordinates to location tracker")
-				return
-			}
+			)
+			pipe.Expire(ctx, "drivers_locations", 10*time.Second)
 
-			if err := h.cfg.Cache.Expire(ctx, "drivers_locations", 10*time.Second).Err(); err != nil {
+			if _, err := pipe.Exec(ctx); err != nil {
 				tracing.HandleError(span, err)
-				logger.Error().Err(err).Msg("Failed to set expiry on location tracker")
+				logger.Error().Err(err).Msg("Failed to update driver location tracker")
 				return
 			}
 
@@ -438,6 +436,59 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 				tracing.HandleError(span, err)
 				return
 			}
+
+		case string(messaging.TripCmdCancelled):
+			var data contracts.TripUpdateRequest
+			dataBytes, _ := json.Marshal(payload.Data)
+			if err := json.Unmarshal(dataBytes, &data); err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to unmarshal trip_update request message")
+				continue
+			}
+
+			// Update trip status
+			tripServiceData, err := json.Marshal(messaging.TripUpdateQueuePayload{
+				TripID: data.Trip.ID,
+			})
+			if err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to marshal trip_update queue payload")
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				ctx,
+				messaging.ServicesExchange,
+				messaging.TripCmdCancelled,
+				messaging.AmqpMessage{Data: tripServiceData},
+			); err != nil {
+				tracing.HandleError(span, err)
+				return
+			}
+
+			// Update rider's trip preview
+			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+				Type: string(messaging.TripCmdCancelled),
+			})
+			if err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to marshal websocket message")
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				ctx,
+				messaging.GatewayExchange,
+				messaging.AmqpEvent(fmt.Sprintf("user.%s", data.Trip.UserID)),
+
+				messaging.AmqpMessage{Data: gatewayData},
+			); err != nil {
+				tracing.HandleError(span, err)
+				return
+			}
+
+			// Update driver status
+			h.updateDriverStatus(ctx, data.Trip.DriverID, types.DriverStatusOnline)
 
 		case string(messaging.PaymentEventCashReceived):
 			var data contracts.TripUpdateRequest

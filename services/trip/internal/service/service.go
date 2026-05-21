@@ -205,7 +205,7 @@ func (s *TripService) estimateRideFares(ctx context.Context, route *pb.Route, pi
 		// Apply minimum fare if total cost is below fare threshold
 		estimatedPrice := max(totalCost, cfg.MinFare)
 
-		// Apply surge factor
+		// Apply surge factors
 		surgeFactor := max(2.4, weatherSurgeFactor*demandSupplySurgeFactor)
 		estimatedPrice = int64(float64(estimatedPrice) * surgeFactor)
 
