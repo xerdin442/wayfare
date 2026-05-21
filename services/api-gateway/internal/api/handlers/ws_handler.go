@@ -617,25 +617,27 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 				return
 			}
 
-			// Update driver's trip preview
-			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
-				Type: string(messaging.TripCmdCancelled),
-			})
-			if err != nil {
-				tracing.HandleError(span, err)
-				logger.Error().Err(err).Msg("Failed to marshal websocket message")
-				return
-			}
+			if data.Trip.DriverID != "" {
+				// Update driver's trip preview
+				gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+					Type: string(messaging.TripCmdCancelled),
+				})
+				if err != nil {
+					tracing.HandleError(span, err)
+					logger.Error().Err(err).Msg("Failed to marshal websocket message")
+					return
+				}
 
-			if err := h.cfg.Queue.PublishMessage(
-				ctx,
-				messaging.GatewayExchange,
-				messaging.AmqpEvent(fmt.Sprintf("user.%s", data.Trip.DriverID)),
+				if err := h.cfg.Queue.PublishMessage(
+					ctx,
+					messaging.GatewayExchange,
+					messaging.AmqpEvent(fmt.Sprintf("user.%s", data.Trip.DriverID)),
 
-				messaging.AmqpMessage{Data: gatewayData},
-			); err != nil {
-				tracing.HandleError(span, err)
-				return
+					messaging.AmqpMessage{Data: gatewayData},
+				); err != nil {
+					tracing.HandleError(span, err)
+					return
+				}
 			}
 
 		case string(messaging.TripCmdRated):
