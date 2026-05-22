@@ -68,6 +68,7 @@ type LoginRequest struct {
 }
 
 type PreviewTripRequest struct {
+	RegionId    string           `json:"regionId" binding:"required"`
 	Pickup      types.Coordinate `json:"pickup" binding:"required"`
 	Destination types.Coordinate `json:"destination" binding:"required"`
 }

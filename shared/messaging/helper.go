@@ -112,11 +112,12 @@ const (
 	TripEventChatMessage         AmqpEvent = "trip.event.chat_message"
 
 	// Trip commands
-	TripCmdCompleted AmqpEvent = "trip.cmd.completed"
-	TripCmdCancelled AmqpEvent = "trip.cmd.cancelled"
-	TripCmdAborted   AmqpEvent = "trip.cmd.aborted"
-	TripCmdStarted   AmqpEvent = "trip.cmd.started"
-	TripCmdRated     AmqpEvent = "trip.cmd.rated"
+	TripCmdRegionBoundsRequest AmqpEvent = "trip.cmd.region_bounds_request"
+	TripCmdCompleted           AmqpEvent = "trip.cmd.completed"
+	TripCmdCancelled           AmqpEvent = "trip.cmd.cancelled"
+	TripCmdAborted             AmqpEvent = "trip.cmd.aborted"
+	TripCmdStarted             AmqpEvent = "trip.cmd.started"
+	TripCmdRated               AmqpEvent = "trip.cmd.rated"
 
 	// Driver events
 	DriverEventTripRequest AmqpEvent = "driver.event.trip_request"

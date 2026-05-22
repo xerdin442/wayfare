@@ -99,8 +99,7 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.Rid
 	return nil
 }
 
-func (r *TripRepository) GetPricingPerRegion(ctx context.Context, pickupCoords orb.Point) ([]*models.PricingModel, error) {
-	// Filter region based on pickup coordinates
+func (r *TripRepository) GetRegionBounds(ctx context.Context, pickupCoords orb.Point) (*models.RegionModel, error) {
 	filter := bson.M{
 		"boundary": bson.M{
 			"$geoIntersects": bson.M{
@@ -112,7 +111,7 @@ func (r *TripRepository) GetPricingPerRegion(ctx context.Context, pickupCoords o
 		},
 	}
 
-	var region models.RegionModel
+	var region *models.RegionModel
 	err := r.regionColl.FindOne(ctx, filter).Decode(&region)
 	if err != nil {
 		log.Error().Err(err).Str("collection", "regions").Msg("Database query error")
@@ -123,24 +122,30 @@ func (r *TripRepository) GetPricingPerRegion(ctx context.Context, pickupCoords o
 		return nil, err
 	}
 
-	// Get available pricing categories for the region
-	cursor, err := r.pricingColl.Find(ctx, bson.M{"region_id": region.ID})
+	return region, nil
+}
+
+func (r *TripRepository) GetPricingPerRegion(ctx context.Context, regionId string) ([]*models.PricingModel, error) {
+	regionIdHex, err := bson.ObjectIDFromHex(regionId)
+	if err != nil {
+		log.Error().Err(err).Str("id", regionId).Msg("Invalid region ID")
+		return nil, err
+	}
+
+	cursor, err := r.pricingColl.Find(ctx, bson.M{"region_id": regionIdHex})
 	if err != nil {
 		log.Error().Err(err).Str("collection", "pricing").Msg("Database query error")
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	var pricingModels []*models.PricingModel
-	if err := cursor.All(ctx, &pricingModels); err != nil {
+	var pricingCategories []*models.PricingModel
+	if err := cursor.All(ctx, &pricingCategories); err != nil {
 		log.Error().Err(err).Str("collection", "pricing").Msg("Database cursor error")
 		return nil, err
 	}
-	if len(pricingModels) == 0 {
-		return nil, util.ErrUnsupportedLocation
-	}
 
-	return pricingModels, nil
+	return pricingCategories, nil
 }
 
 func (r *TripRepository) GetTripByID(ctx context.Context, tripId string) (*models.TripModel, error) {

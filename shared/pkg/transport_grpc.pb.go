@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TripService_PreviewTrip_FullMethodName    = "/wayfare.TripService/PreviewTrip"
-	TripService_StartTrip_FullMethodName      = "/wayfare.TripService/StartTrip"
-	TripService_GetTripDetails_FullMethodName = "/wayfare.TripService/GetTripDetails"
-	TripService_GetTripHistory_FullMethodName = "/wayfare.TripService/GetTripHistory"
+	TripService_PreviewTrip_FullMethodName     = "/wayfare.TripService/PreviewTrip"
+	TripService_StartTrip_FullMethodName       = "/wayfare.TripService/StartTrip"
+	TripService_GetTripDetails_FullMethodName  = "/wayfare.TripService/GetTripDetails"
+	TripService_GetTripHistory_FullMethodName  = "/wayfare.TripService/GetTripHistory"
+	TripService_GetRegionBounds_FullMethodName = "/wayfare.TripService/GetRegionBounds"
 )
 
 // TripServiceClient is the client API for TripService service.
@@ -39,6 +40,8 @@ type TripServiceClient interface {
 	GetTripDetails(ctx context.Context, in *TripDetailsRequest, opts ...grpc.CallOption) (*TripDetailsResponse, error)
 	// GetTripHistory returns the trip history for a user
 	GetTripHistory(ctx context.Context, in *TripHistoryRequest, opts ...grpc.CallOption) (*TripHistoryResponse, error)
+	// GetRegionBounds returns the bounding box for a region
+	GetRegionBounds(ctx context.Context, in *RegionBoundsRequest, opts ...grpc.CallOption) (*RegionBoundsResponse, error)
 }
 
 type tripServiceClient struct {
@@ -89,6 +92,16 @@ func (c *tripServiceClient) GetTripHistory(ctx context.Context, in *TripHistoryR
 	return out, nil
 }
 
+func (c *tripServiceClient) GetRegionBounds(ctx context.Context, in *RegionBoundsRequest, opts ...grpc.CallOption) (*RegionBoundsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegionBoundsResponse)
+	err := c.cc.Invoke(ctx, TripService_GetRegionBounds_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TripServiceServer is the server API for TripService service.
 // All implementations must embed UnimplementedTripServiceServer
 // for forward compatibility.
@@ -103,6 +116,8 @@ type TripServiceServer interface {
 	GetTripDetails(context.Context, *TripDetailsRequest) (*TripDetailsResponse, error)
 	// GetTripHistory returns the trip history for a user
 	GetTripHistory(context.Context, *TripHistoryRequest) (*TripHistoryResponse, error)
+	// GetRegionBounds returns the bounding box for a region
+	GetRegionBounds(context.Context, *RegionBoundsRequest) (*RegionBoundsResponse, error)
 	mustEmbedUnimplementedTripServiceServer()
 }
 
@@ -124,6 +139,9 @@ func (UnimplementedTripServiceServer) GetTripDetails(context.Context, *TripDetai
 }
 func (UnimplementedTripServiceServer) GetTripHistory(context.Context, *TripHistoryRequest) (*TripHistoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetTripHistory not implemented")
+}
+func (UnimplementedTripServiceServer) GetRegionBounds(context.Context, *RegionBoundsRequest) (*RegionBoundsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRegionBounds not implemented")
 }
 func (UnimplementedTripServiceServer) mustEmbedUnimplementedTripServiceServer() {}
 func (UnimplementedTripServiceServer) testEmbeddedByValue()                     {}
@@ -218,6 +236,24 @@ func _TripService_GetTripHistory_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TripService_GetRegionBounds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegionBoundsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TripServiceServer).GetRegionBounds(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TripService_GetRegionBounds_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TripServiceServer).GetRegionBounds(ctx, req.(*RegionBoundsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TripService_ServiceDesc is the grpc.ServiceDesc for TripService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -240,6 +276,10 @@ var TripService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTripHistory",
 			Handler:    _TripService_GetTripHistory_Handler,
+		},
+		{
+			MethodName: "GetRegionBounds",
+			Handler:    _TripService_GetRegionBounds_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

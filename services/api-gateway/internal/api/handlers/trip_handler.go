@@ -46,7 +46,7 @@ func (h *RouteHandler) HandleTripPreview(c *gin.Context) {
 		st, ok := status.FromError(err)
 		if ok {
 			switch st.Code() {
-			case codes.InvalidArgument, codes.FailedPrecondition:
+			case codes.FailedPrecondition:
 				c.JSON(http.StatusBadRequest, gin.H{"message": st.Message()})
 			default:
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to request trip preview"})

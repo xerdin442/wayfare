@@ -27,6 +27,10 @@ type DriverLocationUpdateRequest struct {
 	RiderId string           `json:"riderId,omitempty"`
 }
 
+type RegionBoundsRequest struct {
+	Pickup types.Coordinate `json:"pickup"`
+}
+
 type TripUpdateRequest struct {
 	Trip types.Trip `json:"trip"`
 }

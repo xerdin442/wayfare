@@ -16,6 +16,8 @@ service TripService {
   rpc GetTripDetails(TripDetailsRequest) returns (TripDetailsResponse);
   // GetTripHistory returns the trip history for a user
   rpc GetTripHistory(TripHistoryRequest) returns (TripHistoryResponse);
+  // GetRegionBounds returns the bounding box for a region
+  rpc GetRegionBounds(RegionBoundsRequest) returns (RegionBoundsResponse);
 }
 
 // DriverService handles drivers' response to trip requests
@@ -62,6 +64,18 @@ message TripHistoryResponse {
   repeated Trip trips = 1;
 }
 
+message RegionBoundsRequest {
+  Coordinate pickup = 1;
+}
+
+message RegionBoundsResponse {
+  string region_id     = 1;
+  double min_longitude = 2;
+  double min_latitude  = 3;
+  double max_longitude = 4;
+  double max_latitude  = 5;
+}
+
 message GetProfileRequest {
   string user_id = 1;
 }
@@ -106,8 +120,9 @@ message AuthResponse {
 
 message PreviewTripRequest {
   string     user_id     = 1;
-  Coordinate pickup      = 2;
-  Coordinate destination = 3;
+  string     region_id   = 2;
+  Coordinate pickup      = 3;
+  Coordinate destination = 4;
 }
 
 message PreviewTripResponse {

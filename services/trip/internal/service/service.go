@@ -164,36 +164,35 @@ func (s *TripService) checkDemandAndSupply(ctx context.Context, pickupCoords orb
 	}
 }
 
-func (s *TripService) estimateRideFares(ctx context.Context, route *pb.Route, pickupCoords orb.Point) (string, []*pb.RideFare, error) {
+func (s *TripService) estimateRideFares(ctx context.Context, regionId string, route *pb.Route, pickupCoords orb.Point) ([]*pb.RideFare, error) {
 	// priceConfig := map[repo.CarPackage]{
 	// 	repo.PackageSedan:  {BaseFare: 50000, PricePerKm: 15000, PricePerMinute: 2000, MinFare: 150000},
 	// 	repo.PackageSUV:    {BaseFare: 100000, PricePerKm: 25000, PricePerMinute: 4000, MinFare: 250000},
 	// 	repo.PackageLuxury: {BaseFare: 250000, PricePerKm: 45000, PricePerMinute: 8000, MinFare: 500000},
 	// }
 
-	// Get pricing categories per package
-	priceConfig, err := s.repo.GetPricingPerRegion(ctx, pickupCoords)
+	// Get pricing categories per region
+	priceConfig, err := s.repo.GetPricingPerRegion(ctx, regionId)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	// Get multiplier based on weather conditions
 	weatherSurgeFactor, err := s.checkWeatherConditions(pickupCoords)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	// Get multiplier based on demand and supply
 	demandSupplySurgeFactor, err := s.checkDemandAndSupply(ctx, pickupCoords)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	// Convert metric to standard units
 	distKm := route.Distance / 1000.0
 	durMin := route.Duration / 60.0
 
-	regionID := priceConfig[0].RegionID.Hex()
 	rideFares := make([]*pb.RideFare, 0, len(priceConfig))
 
 	// Estimate ride fare per package
@@ -227,7 +226,7 @@ func (s *TripService) estimateRideFares(ctx context.Context, route *pb.Route, pi
 		})
 	}
 
-	return regionID, rideFares, nil
+	return rideFares, nil
 }
 
 func (s *TripService) GetTripDetails(ctx context.Context, req *pb.TripDetailsRequest) (*pb.TripDetailsResponse, error) {
@@ -296,11 +295,8 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	}
 
 	// Estimate ride fares
-	regionId, rideFares, err := s.estimateRideFares(ctx, route.ToProto(), pickupCoords)
+	rideFares, err := s.estimateRideFares(ctx, req.RegionId, route.ToProto(), pickupCoords)
 	if err != nil {
-		if err == util.ErrUnsupportedLocation {
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		}
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
@@ -326,7 +322,7 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	}
 
 	// Store generated ride fares
-	if err := s.repo.StoreRideFares(ctx, rideFares, routeDetails, req.UserId, regionId); err != nil {
+	if err := s.repo.StoreRideFares(ctx, rideFares, routeDetails, req.UserId, req.RegionId); err != nil {
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
@@ -414,5 +410,24 @@ func (s *TripService) GetTripHistory(ctx context.Context, req *pb.TripHistoryReq
 
 	return &pb.TripHistoryResponse{
 		Trips: contracts.MapTripModels(tripModels),
+	}, nil
+}
+
+func (s *TripService) GetRegionBounds(ctx context.Context, req *pb.RegionBoundsRequest) (*pb.RegionBoundsResponse, error) {
+	pickupCoords := orb.Point{req.Pickup.Longitude, req.Pickup.Latitude}
+	region, err := s.repo.GetRegionBounds(ctx, pickupCoords)
+	if err != nil {
+		if err == util.ErrUnsupportedLocation {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		return nil, status.Error(codes.Internal, "internal server error")
+	}
+
+	return &pb.RegionBoundsResponse{
+		RegionId:     region.ID.Hex(),
+		MinLongitude: region.Boundary.Coordinates.Bound().Min.Lon(),
+		MinLatitude:  region.Boundary.Coordinates.Bound().Min.Lat(),
+		MaxLongitude: region.Boundary.Coordinates.Bound().Max.Lon(),
+		MaxLatitude:  region.Boundary.Coordinates.Bound().Max.Lat(),
 	}, nil
 }

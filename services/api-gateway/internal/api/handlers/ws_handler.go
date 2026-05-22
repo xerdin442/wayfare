@@ -588,6 +588,47 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 		}
 
 		switch payload.Type {
+		case string(messaging.TripCmdRegionBoundsRequest):
+			var data contracts.RegionBoundsRequest
+			dataBytes, _ := json.Marshal(payload.Data)
+			if err := json.Unmarshal(dataBytes, &data); err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to unmarshal region_bounds request message")
+				continue
+			}
+
+			details, err := h.cfg.Clients.Trip.GetRegionBounds(ctx, &pb.RegionBoundsRequest{
+				Pickup: &pb.Coordinate{
+					Longitude: data.Pickup.Longitude,
+					Latitude:  data.Pickup.Latitude,
+				},
+			})
+			if err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to fetch region bounds from trip service")
+				return
+			}
+
+			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
+				Type: string(messaging.TripCmdRegionBoundsRequest),
+				Data: details,
+			})
+			if err != nil {
+				tracing.HandleError(span, err)
+				logger.Error().Err(err).Msg("Failed to marshal websocket message")
+				return
+			}
+
+			if err := h.cfg.Queue.PublishMessage(
+				ctx,
+				messaging.GatewayExchange,
+				messaging.AmqpEvent(fmt.Sprintf("user.%s", userId)),
+				messaging.AmqpMessage{Data: gatewayData},
+			); err != nil {
+				tracing.HandleError(span, err)
+				return
+			}
+
 		case string(messaging.TripCmdCancelled):
 			var data contracts.TripUpdateRequest
 			dataBytes, _ := json.Marshal(payload.Data)
@@ -680,7 +721,7 @@ func (h *RouteHandler) HandleRidersConnection(c *gin.Context) {
 				continue
 			}
 
-			// Notify driver that rider prefers cash payment
+			// Notify the driver that the rider prefers cash payment
 			gatewayData, err := json.Marshal(contracts.WebsocketMessage{
 				Type: string(messaging.PaymentEventCashOptionPreferred),
 			})
