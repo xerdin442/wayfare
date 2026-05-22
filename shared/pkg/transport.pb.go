@@ -264,6 +264,8 @@ type RegionBoundsResponse struct {
 	MinLatitude   float64                `protobuf:"fixed64,3,opt,name=min_latitude,json=minLatitude,proto3" json:"min_latitude,omitempty"`
 	MaxLongitude  float64                `protobuf:"fixed64,4,opt,name=max_longitude,json=maxLongitude,proto3" json:"max_longitude,omitempty"`
 	MaxLatitude   float64                `protobuf:"fixed64,5,opt,name=max_latitude,json=maxLatitude,proto3" json:"max_latitude,omitempty"`
+	Unavailable   bool                   `protobuf:"varint,6,opt,name=unavailable,proto3" json:"unavailable,omitempty"`
+	Error         string                 `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -331,6 +333,20 @@ func (x *RegionBoundsResponse) GetMaxLatitude() float64 {
 		return x.MaxLatitude
 	}
 	return 0
+}
+
+func (x *RegionBoundsResponse) GetUnavailable() bool {
+	if x != nil {
+		return x.Unavailable
+	}
+	return false
+}
+
+func (x *RegionBoundsResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
 }
 
 type GetProfileRequest struct {
@@ -1105,13 +1121,15 @@ const file_transport_proto_rawDesc = "" +
 	"\x13TripHistoryResponse\x12#\n" +
 	"\x05trips\x18\x01 \x03(\v2\r.wayfare.TripR\x05trips\"B\n" +
 	"\x13RegionBoundsRequest\x12+\n" +
-	"\x06pickup\x18\x01 \x01(\v2\x13.wayfare.CoordinateR\x06pickup\"\xc3\x01\n" +
+	"\x06pickup\x18\x01 \x01(\v2\x13.wayfare.CoordinateR\x06pickup\"\xfb\x01\n" +
 	"\x14RegionBoundsResponse\x12\x1b\n" +
 	"\tregion_id\x18\x01 \x01(\tR\bregionId\x12#\n" +
 	"\rmin_longitude\x18\x02 \x01(\x01R\fminLongitude\x12!\n" +
 	"\fmin_latitude\x18\x03 \x01(\x01R\vminLatitude\x12#\n" +
 	"\rmax_longitude\x18\x04 \x01(\x01R\fmaxLongitude\x12!\n" +
-	"\fmax_latitude\x18\x05 \x01(\x01R\vmaxLatitude\",\n" +
+	"\fmax_latitude\x18\x05 \x01(\x01R\vmaxLatitude\x12 \n" +
+	"\vunavailable\x18\x06 \x01(\bR\vunavailable\x12\x14\n" +
+	"\x05error\x18\a \x01(\tR\x05error\",\n" +
 	"\x11GetProfileRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"@\n" +
 	"\x15DriverProfileResponse\x12'\n" +

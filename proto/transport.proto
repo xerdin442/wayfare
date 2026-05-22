@@ -74,6 +74,8 @@ message RegionBoundsResponse {
   double min_latitude  = 3;
   double max_longitude = 4;
   double max_latitude  = 5;
+  bool   unavailable   = 6;
+  string error         = 7;
 }
 
 message GetProfileRequest {

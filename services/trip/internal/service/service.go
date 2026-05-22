@@ -418,7 +418,10 @@ func (s *TripService) GetRegionBounds(ctx context.Context, req *pb.RegionBoundsR
 	region, err := s.repo.GetRegionBounds(ctx, pickupCoords)
 	if err != nil {
 		if err == util.ErrUnsupportedLocation {
-			return nil, status.Error(codes.InvalidArgument, err.Error())
+			return &pb.RegionBoundsResponse{
+				Unavailable: true,
+				Error:       err.Error(),
+			}, nil
 		}
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
