@@ -178,7 +178,7 @@ func (s *PaymentService) buildCheckoutPayloads(req *pb.InitiatePaymentRequest, t
 		Email:     req.Email,
 		Amount:    amount,
 		Reference: txnID,
-		Channels:  []string{"card", "apple_pay", "bank_transfer"},
+		Channels:  []string{"bank_transfer"},
 		Metadata:  string(paystackMetadata),
 	}
 
