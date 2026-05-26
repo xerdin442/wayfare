@@ -50,8 +50,9 @@ const (
 type TransactionType string
 
 const (
-	TransactionCheckout TransactionType = "checkout"
+	TransactionRideFare TransactionType = "ride_fare"
 	TransactionPayout   TransactionType = "payout"
+	TransactionReturns  TransactionType = "returns"
 )
 
 type DriverTier string

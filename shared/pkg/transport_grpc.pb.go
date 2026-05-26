@@ -663,7 +663,7 @@ var RiderService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	PaymentService_InitiatePayment_FullMethodName = "/wayfare.PaymentService/InitiatePayment"
+	PaymentService_InitiateCheckout_FullMethodName = "/wayfare.PaymentService/InitiateCheckout"
 )
 
 // PaymentServiceClient is the client API for PaymentService service.
@@ -672,8 +672,8 @@ const (
 //
 // PaymentService handles payments
 type PaymentServiceClient interface {
-	// InitiatePayment initiates payment processing for a trip and returns checkout URL
-	InitiatePayment(ctx context.Context, in *InitiatePaymentRequest, opts ...grpc.CallOption) (*InitiatePaymentResponse, error)
+	// InitiateCheckout initiates payment processing for a trip and returns checkout URL
+	InitiateCheckout(ctx context.Context, in *InitiateCheckoutRequest, opts ...grpc.CallOption) (*InitiateCheckoutResponse, error)
 }
 
 type paymentServiceClient struct {
@@ -684,10 +684,10 @@ func NewPaymentServiceClient(cc grpc.ClientConnInterface) PaymentServiceClient {
 	return &paymentServiceClient{cc}
 }
 
-func (c *paymentServiceClient) InitiatePayment(ctx context.Context, in *InitiatePaymentRequest, opts ...grpc.CallOption) (*InitiatePaymentResponse, error) {
+func (c *paymentServiceClient) InitiateCheckout(ctx context.Context, in *InitiateCheckoutRequest, opts ...grpc.CallOption) (*InitiateCheckoutResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(InitiatePaymentResponse)
-	err := c.cc.Invoke(ctx, PaymentService_InitiatePayment_FullMethodName, in, out, cOpts...)
+	out := new(InitiateCheckoutResponse)
+	err := c.cc.Invoke(ctx, PaymentService_InitiateCheckout_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -700,8 +700,8 @@ func (c *paymentServiceClient) InitiatePayment(ctx context.Context, in *Initiate
 //
 // PaymentService handles payments
 type PaymentServiceServer interface {
-	// InitiatePayment initiates payment processing for a trip and returns checkout URL
-	InitiatePayment(context.Context, *InitiatePaymentRequest) (*InitiatePaymentResponse, error)
+	// InitiateCheckout initiates payment processing for a trip and returns checkout URL
+	InitiateCheckout(context.Context, *InitiateCheckoutRequest) (*InitiateCheckoutResponse, error)
 	mustEmbedUnimplementedPaymentServiceServer()
 }
 
@@ -712,8 +712,8 @@ type PaymentServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedPaymentServiceServer struct{}
 
-func (UnimplementedPaymentServiceServer) InitiatePayment(context.Context, *InitiatePaymentRequest) (*InitiatePaymentResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method InitiatePayment not implemented")
+func (UnimplementedPaymentServiceServer) InitiateCheckout(context.Context, *InitiateCheckoutRequest) (*InitiateCheckoutResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InitiateCheckout not implemented")
 }
 func (UnimplementedPaymentServiceServer) mustEmbedUnimplementedPaymentServiceServer() {}
 func (UnimplementedPaymentServiceServer) testEmbeddedByValue()                        {}
@@ -736,20 +736,20 @@ func RegisterPaymentServiceServer(s grpc.ServiceRegistrar, srv PaymentServiceSer
 	s.RegisterService(&PaymentService_ServiceDesc, srv)
 }
 
-func _PaymentService_InitiatePayment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InitiatePaymentRequest)
+func _PaymentService_InitiateCheckout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InitiateCheckoutRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PaymentServiceServer).InitiatePayment(ctx, in)
+		return srv.(PaymentServiceServer).InitiateCheckout(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PaymentService_InitiatePayment_FullMethodName,
+		FullMethod: PaymentService_InitiateCheckout_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PaymentServiceServer).InitiatePayment(ctx, req.(*InitiatePaymentRequest))
+		return srv.(PaymentServiceServer).InitiateCheckout(ctx, req.(*InitiateCheckoutRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -762,8 +762,8 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*PaymentServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "InitiatePayment",
-			Handler:    _PaymentService_InitiatePayment_Handler,
+			MethodName: "InitiateCheckout",
+			Handler:    _PaymentService_InitiateCheckout_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

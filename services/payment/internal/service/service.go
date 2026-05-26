@@ -155,7 +155,7 @@ func (s *PaymentService) generateFlutterwaveCheckout(ctx context.Context, req *c
 	return checkoutInfo.Data.Link, nil
 }
 
-func (s *PaymentService) buildCheckoutPayloads(req *pb.InitiatePaymentRequest, txnID string, amount int64) (
+func (s *PaymentService) buildCheckoutPayloads(req *pb.InitiateCheckoutRequest, txnID string, amount int64) (
 	*contracts.PaystackCheckoutRequest,
 	*contracts.FlutterwaveCheckoutRequest,
 	error,
@@ -211,6 +211,7 @@ func (s *PaymentService) resolvePaymentProvider(ctx context.Context, cacheKey st
 func (s *PaymentService) generateCheckoutUrl(
 	ctx context.Context,
 	provider types.PaymentProvider,
+	txnType types.TransactionType,
 	paystackPayload *contracts.PaystackCheckoutRequest,
 	flutterwavePayload *contracts.FlutterwaveCheckoutRequest,
 ) (string, error) {
@@ -252,6 +253,7 @@ func (s *PaymentService) generateCheckoutUrl(
 					PaymentProvider: types.ProviderFlutterwave,
 					PaymentStatus:   types.PaymentStatusAborted,
 					Amount:          decimal.NewFromInt(flutterwavePayload.Amount),
+					TransactionType: txnType,
 				}
 				err = analytics.SendEvent(ctx, s.bus, tripEvent)
 				if err != nil {
@@ -269,38 +271,73 @@ func (s *PaymentService) generateCheckoutUrl(
 	return url, err
 }
 
-func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePaymentRequest) (*pb.InitiatePaymentResponse, error) {
+func (s *PaymentService) InitiateCheckout(ctx context.Context, req *pb.InitiateCheckoutRequest) (*pb.InitiateCheckoutResponse, error) {
 	const gatewayStatusKey = "gateway:paystack:status"
+
 	var checkoutUrl string
 	var txnID string
+	var txAmount int64
 
-	// Get trip details
-	trip, err := s.repo.GetTripByID(ctx, req.TripId)
-	if err != nil {
-		if err == util.ErrDocumentNotFound {
-			return nil, status.Error(codes.NotFound, "invalid trip id")
+	if req.TxnType == string(types.TransactionRideFare) {
+		trip, err := s.repo.GetTripByID(ctx, req.TripId)
+		if err != nil {
+			if err == util.ErrDocumentNotFound {
+				return nil, status.Error(codes.NotFound, "invalid trip id")
+			}
+			return nil, status.Error(codes.Internal, "internal server error")
 		}
-		return nil, status.Error(codes.Internal, "internal server error")
-	}
 
-	// Check for pending transaction from unfinished checkout session
-	existingTxn, err := s.repo.GetTransactionByTripID(ctx, trip.ID.Hex())
-	if err != nil {
-		return nil, status.Error(codes.Internal, "internal server error")
-	}
-
-	if existingTxn != nil && existingTxn.Status == types.PaymentStatusPending {
-		// Use existing transaction
-		txnID = existingTxn.ID.Hex()
-	} else {
-		// Create new transaction
-		txnID, err = s.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
-			TripID: trip.ID.Hex(),
-			Amount: trip.RideFare,
-			Type:   types.TransactionCheckout,
-		})
+		// Check for unfinished checkout session for ride fare
+		existingTxn, err := s.repo.GetTransactionByFilterID(ctx, trip.ID.Hex())
 		if err != nil {
 			return nil, status.Error(codes.Internal, "internal server error")
+		}
+
+		if existingTxn != nil && existingTxn.Status == types.PaymentStatusPending {
+			// Use existing transaction
+			txnID = existingTxn.ID.Hex()
+			txAmount = existingTxn.Amount
+		} else {
+			// Create new transaction
+			txnID, err = s.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
+				TripID: trip.ID.Hex(),
+				Amount: trip.RideFare,
+				Type:   types.TransactionRideFare,
+			})
+			if err != nil {
+				return nil, status.Error(codes.Internal, "internal server error")
+			}
+
+			txAmount = trip.RideFare
+		}
+	} else {
+		driver, err := s.repo.GetDriverByID(ctx, req.UserId)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "internal server error")
+		}
+
+		// Check for unfinished checkout session for driver returns
+		existingTxn, err := s.repo.GetTransactionByFilterID(ctx, driver.ID.Hex())
+		if err != nil {
+			return nil, status.Error(codes.Internal, "internal server error")
+		}
+
+		if existingTxn != nil && existingTxn.Status == types.PaymentStatusPending {
+			// Use existing transaction
+			txnID = existingTxn.ID.Hex()
+			txAmount = existingTxn.Amount
+		} else {
+			// Create new transaction
+			txnID, err = s.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
+				DriverID: driver.ID.Hex(),
+				Amount:   driver.OutstandingReturns,
+				Type:     types.TransactionReturns,
+			})
+			if err != nil {
+				return nil, status.Error(codes.Internal, "internal server error")
+			}
+
+			txAmount = driver.OutstandingReturns
 		}
 	}
 
@@ -308,13 +345,19 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 	provider := s.resolvePaymentProvider(ctx, gatewayStatusKey)
 
 	// Configure checkout request payloads
-	paystackPayload, flutterwavePayload, err := s.buildCheckoutPayloads(req, txnID, trip.RideFare)
+	paystackPayload, flutterwavePayload, err := s.buildCheckoutPayloads(req, txnID, txAmount)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	// Generate checkout url
-	checkoutUrl, err = s.generateCheckoutUrl(ctx, provider, paystackPayload, flutterwavePayload)
+	checkoutUrl, err = s.generateCheckoutUrl(
+		ctx,
+		provider,
+		types.TransactionType(req.TxnType),
+		paystackPayload,
+		flutterwavePayload,
+	)
 	if err != nil {
 		if s.isGatewayUnavailable(err) && provider == types.ProviderPaystack {
 			// Mark primary payment gateway as unavailable
@@ -323,7 +366,13 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 			}
 
 			// Retry payment attempt with fallback gateway
-			checkoutUrl, err = s.generateCheckoutUrl(ctx, types.ProviderFlutterwave, nil, flutterwavePayload)
+			checkoutUrl, err = s.generateCheckoutUrl(
+				ctx,
+				types.ProviderFlutterwave,
+				types.TransactionType(req.TxnType),
+				nil,
+				flutterwavePayload,
+			)
 			if err != nil {
 				// Notify the client that payment gateways are unavailable
 				if s.isGatewayUnavailable(err) {
@@ -337,5 +386,5 @@ func (s *PaymentService) InitiatePayment(ctx context.Context, req *pb.InitiatePa
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
-	return &pb.InitiatePaymentResponse{CheckoutUrl: checkoutUrl}, nil
+	return &pb.InitiateCheckoutResponse{CheckoutUrl: checkoutUrl}, nil
 }

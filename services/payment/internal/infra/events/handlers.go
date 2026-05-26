@@ -71,10 +71,8 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return err
 		}
 
-		txnType := types.TransactionCheckout
-		txnFee := h.calculateTransactionFee(transaction.Amount/100, types.ProviderPaystack, txnType)
-		if metadata.TripID == "" {
-			txnType = types.TransactionPayout
+		txnFee := h.calculateTransactionFee(transaction.Amount/100, types.ProviderPaystack, transaction.Type)
+		if transaction.Type == types.TransactionPayout {
 			txnFee = float64(transaction.TransferFee / 100)
 		}
 
@@ -136,7 +134,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 				log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
 			}
 
-			if updatedStatus == types.PaymentStatusSuccess {
+			if updatedStatus == types.PaymentStatusSuccess && metadata.TripID != "" {
 				tripServicePayload = &messaging.TripUpdateQueuePayload{
 					TripID:         metadata.TripID,
 					RiderComment:   metadata.RiderComment,
@@ -152,7 +150,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			PaymentProvider: payload.Provider,
 			PaymentStatus:   updatedStatus,
 			Amount:          decimal.NewFromInt(transaction.Amount / 100),
-			TransactionType: txnType,
+			TransactionType: transaction.Type,
 			TransactionFee:  decimal.NewFromFloat(txnFee),
 		}
 
@@ -195,7 +193,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
 		}
 
-		txnFee := h.calculateTransactionFee(webhook.Data.Amount, types.ProviderFlutterwave, types.TransactionCheckout)
+		txnFee := h.calculateTransactionFee(webhook.Data.Amount, types.ProviderFlutterwave, transaction.Type)
 
 		if updatedStatus == types.PaymentStatusSuccess {
 			tripServicePayload = &messaging.TripUpdateQueuePayload{
@@ -212,7 +210,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			PaymentProvider: payload.Provider,
 			PaymentStatus:   updatedStatus,
 			Amount:          decimal.NewFromInt(webhook.Data.Amount),
-			TransactionType: types.TransactionCheckout,
+			TransactionType: transaction.Type,
 			TransactionFee:  decimal.NewFromFloat(txnFee),
 		}
 
@@ -250,7 +248,7 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 	var txnID string
 
 	// Check for pending transaction
-	existingTxn, err := h.repo.GetTransactionByTripID(ctx, payload.TripID)
+	existingTxn, err := h.repo.GetTransactionByFilterID(ctx, payload.TripID)
 	if err != nil {
 		return err
 	}
@@ -271,7 +269,7 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		txnID, err = h.repo.CreateTransaction(ctx, &repo.CreateTransactionData{
 			TripID: payload.TripID,
 			Amount: payload.Amount,
-			Type:   types.TransactionCheckout,
+			Type:   types.TransactionRideFare,
 		})
 		if err != nil {
 			return err
@@ -303,7 +301,7 @@ func (h *PaymentEventsHandler) HandleCashPayment(ctx context.Context, p messagin
 		PaymentProvider: "none",
 		PaymentStatus:   types.PaymentStatusSuccess,
 		Amount:          decimal.NewFromInt(payload.Amount / 100),
-		TransactionType: types.TransactionCheckout,
+		TransactionType: types.TransactionRideFare,
 	}
 	if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
 		return err
@@ -403,6 +401,20 @@ func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messagi
 		// Update all newly created payout transactions
 		if err := h.repo.UpdateBatchTransactions(ctx, txnIDs, types.PaymentStatusAborted, types.ProviderPaystack); err != nil {
 			return err
+		}
+
+		// Update analytics
+		for _, t := range transfers {
+			tripEvent := &models.TripEventModel{
+				TransactionRef:  t.Reference,
+				PaymentProvider: types.ProviderPaystack,
+				PaymentStatus:   types.PaymentStatusAborted,
+				Amount:          decimal.NewFromInt(t.Amount / 100),
+				TransactionType: types.TransactionPayout,
+			}
+			if err := analytics.SendEvent(ctx, h.bus, tripEvent); err != nil {
+				return err
+			}
 		}
 
 		return fmt.Errorf("Payment gateway is currently unavailable")

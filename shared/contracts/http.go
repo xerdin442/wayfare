@@ -77,7 +77,7 @@ type StartTripRequest struct {
 	RideFareId string `json:"rideFareId" binding:"required"`
 }
 
-type InitiatePaymentRequest struct {
+type InitiateCheckoutRequest struct {
 	Email        string `json:"email" binding:"required,email"`
 	TripRating   int64  `json:"tripRating" binding:"required,min=1,max=5"`
 	RiderComment string `json:"riderComment,omitempty"`

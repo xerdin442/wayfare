@@ -119,6 +119,7 @@ type RiderModel struct {
 type TransactionModel struct {
 	ID                  bson.ObjectID         `bson:"_id,omitempty"`
 	TripID              bson.ObjectID         `bson:"trip_id,omitempty"`
+	DriverID            bson.ObjectID         `bson:"driver_id,omitempty"`
 	DriverRecipientCode string                `bson:"driver_recipient_code,omitempty"`
 	Provider            types.PaymentProvider `bson:"provider,omitempty"`
 	Amount              int64                 `bson:"amount"`

@@ -15,12 +15,14 @@ import (
 )
 
 type PaymentRepository struct {
-	tripColl *mongo.Collection
-	txnColl  *mongo.Collection
+	tripColl   *mongo.Collection
+	driverColl *mongo.Collection
+	txnColl    *mongo.Collection
 }
 
 type CreateTransactionData struct {
 	TripID              string
+	DriverID            string
 	DriverRecipientCode string
 	Amount              int64
 	Type                types.TransactionType
@@ -33,14 +35,20 @@ func NewPaymentRepository(db *mongo.Database) *PaymentRepository {
 		log.Fatal().Err(err).Msg("Failed to create trips collection")
 	}
 
+	driverCollection, err := models.CreateDriversCollection(db, "drivers")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create drivers collection")
+	}
+
 	txnCollection, err := models.CreateTransactionsCollection(db, "transactions")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create transactions collection")
 	}
 
 	return &PaymentRepository{
-		tripColl: tripCollection,
-		txnColl:  txnCollection,
+		tripColl:   tripCollection,
+		driverColl: driverCollection,
+		txnColl:    txnCollection,
 	}
 }
 
@@ -65,15 +73,22 @@ func (r *PaymentRepository) GetTransactionByID(ctx context.Context, txnId string
 	return &transaction, nil
 }
 
-func (r *PaymentRepository) GetTransactionByTripID(ctx context.Context, tripId string) (*models.TransactionModel, error) {
-	tripIdHex, err := bson.ObjectIDFromHex(tripId)
+func (r *PaymentRepository) GetTransactionByFilterID(ctx context.Context, id string) (*models.TransactionModel, error) {
+	idHex, err := bson.ObjectIDFromHex(id)
 	if err != nil {
-		log.Error().Err(err).Str("id", tripId).Msg("Invalid trip ID")
+		log.Error().Err(err).Str("id", id).Msg("Invalid filter ID")
 		return nil, err
 	}
 
+	filter := bson.M{
+		"$or": []bson.M{
+			{"trip_id": idHex},
+			{"driver_id": idHex},
+		},
+	}
+
 	var transaction models.TransactionModel
-	err = r.txnColl.FindOne(ctx, bson.M{"trip_id": tripIdHex}).Decode(&transaction)
+	err = r.txnColl.FindOne(ctx, filter).Decode(&transaction)
 	if err != nil {
 		log.Error().Err(err).Str("collection", "transactions").Msg("Database query error")
 		return nil, err
@@ -99,12 +114,27 @@ func (r *PaymentRepository) CreateTransaction(ctx context.Context, data *CreateT
 			return "", err
 		}
 
-		if data.Type != types.TransactionCheckout {
-			log.Error().Str("type", string(data.Type)).Msg("Invalid payload type for checkout transaction")
-			return "", fmt.Errorf("invalid payload type for checkout transaction")
+		if data.Type != types.TransactionRideFare {
+			log.Error().Str("type", string(data.Type)).Msg("Invalid payload type for ride_fare transaction")
+			return "", fmt.Errorf("invalid payload type for ride_fare transaction")
 		}
 
 		txn.TripID = tripIDHex
+	}
+
+	if data.DriverID != "" {
+		driverIDHex, err := bson.ObjectIDFromHex(data.DriverID)
+		if err != nil {
+			log.Error().Err(err).Str("id", data.DriverID).Msg("Invalid driver ID")
+			return "", err
+		}
+
+		if data.Type != types.TransactionReturns {
+			log.Error().Str("type", string(data.Type)).Msg("Invalid payload type for returns transaction")
+			return "", fmt.Errorf("invalid payload type for returns transaction")
+		}
+
+		txn.DriverID = driverIDHex
 	}
 
 	if data.DriverRecipientCode != "" {
@@ -259,4 +289,25 @@ func (r *PaymentRepository) GetTripByID(ctx context.Context, tripId string) (*mo
 	}
 
 	return &trip, nil
+}
+
+func (r *PaymentRepository) GetDriverByID(ctx context.Context, driverId string) (*models.DriverModel, error) {
+	driverIdHex, err := bson.ObjectIDFromHex(driverId)
+	if err != nil {
+		log.Error().Err(err).Str("id", driverId).Msg("Invalid driver ID")
+		return nil, err
+	}
+
+	var driver models.DriverModel
+	err = r.driverColl.FindOne(ctx, bson.M{"_id": driverIdHex}).Decode(&driver)
+	if err != nil {
+		log.Error().Err(err).Str("collection", "drivers").Msg("Database query error")
+
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, util.ErrDocumentNotFound
+		}
+		return nil, err
+	}
+
+	return &driver, nil
 }

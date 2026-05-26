@@ -42,8 +42,8 @@ service RiderService {
 
 // PaymentService handles payments
 service PaymentService {
-  // InitiatePayment initiates payment processing for a trip and returns checkout URL
-  rpc InitiatePayment(InitiatePaymentRequest) returns (InitiatePaymentResponse);
+  // InitiateCheckout initiates payment processing and returns checkout URL
+  rpc InitiateCheckout(InitiateCheckoutRequest) returns (InitiateCheckoutResponse);
 }
 
 message TripDetailsRequest {
@@ -140,15 +140,16 @@ message StartTripResponse {
   string trip_id = 1;
 }
 
-message InitiatePaymentRequest {
-  string trip_id       = 1;
-  string user_id       = 2;
-  string email         = 3;
-  int64  trip_rating   = 4;
-  string rider_comment = 5;
-  int64  driver_tip    = 6;
+message InitiateCheckoutRequest {
+  string txn_type      = 1;
+  string trip_id       = 2;
+  string user_id       = 3;
+  string email         = 4;
+  int64  trip_rating   = 5;
+  string rider_comment = 6;
+  int64  driver_tip    = 7;
 }
 
-message InitiatePaymentResponse {
+message InitiateCheckoutResponse {
   string checkout_url = 1;
 }

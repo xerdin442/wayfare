@@ -69,11 +69,16 @@ func (app *application) routes() http.Handler {
 		user.GET("/profile", otelgin.Middleware("user.profile"), h.HandleUserProfile)
 	}
 
+	driver := v1.Group("/driver", m.JwtGuard())
+	{
+		driver.POST("/returns/pay", otelgin.Middleware("driver.pay_returns"), h.HandleInitiateCheckout)
+	}
+
 	trip := v1.Group("/trip", m.JwtGuard())
 	{
 		trip.POST("/start", otelgin.Middleware("trip.start"), h.HandleStartTrip)
 		trip.POST("/preview", otelgin.Middleware("trip.preview"), h.HandleTripPreview)
-		trip.POST("/:id/pay", otelgin.Middleware("trip.pay"), h.HandleInitiatePayment)
+		trip.POST("/:id/pay", otelgin.Middleware("trip.pay"), h.HandleInitiateCheckout)
 		trip.GET("/:id/chat", otelgin.Middleware("trip.chat"), h.HandleTripChat)
 		trip.GET("/history", otelgin.Middleware("trip.history"), h.HandleTripHistory)
 	}

@@ -20,7 +20,7 @@ func CreateAnalyticsTable(ctx context.Context, conn clickhouse.Conn) error {
 			pickup_lng              Float64,
 			rating                  UInt64,
 			transaction_ref         String,
-			transaction_type        Enum('checkout', 'payout'),
+			transaction_type        Enum('ride_fare', 'payout', 'returns'),
 			driver_id               String,
 			payment_provider        Enum('paystack', 'flutterwave', 'none'),
 			payment_status   				Enum('pending', 'success', 'failed', 'reversed', 'aborted'),

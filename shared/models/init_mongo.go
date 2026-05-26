@@ -74,7 +74,6 @@ func CreateRegionsCollection(db *mongo.Database, name string) (*mongo.Collection
 						"bsonType": "array",
 						"items": bson.M{
 							"bsonType": "array",
-							"minItems": 5,
 							"items": bson.M{
 								"bsonType": "array",
 								"minItems": 2,
@@ -362,9 +361,10 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 		"required": []string{"amount", "status", "type"},
 		"properties": bson.M{
 			"trip_id":               bson.M{"bsonType": "objectId"},
+			"driver_id":             bson.M{"bsonType": "objectId"},
 			"driver_recipient_code": bson.M{"bsonType": "string"},
 			"type": bson.M{
-				"enum":        []string{"checkout", "payout"},
+				"enum":        []string{"ride_fare", "payout", "returns"},
 				"description": "must be a valid transaction type",
 			},
 			"provider": bson.M{
@@ -394,6 +394,7 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 	tripIndex := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "trip_id", Value: 1},
+			{Key: "driver_id", Value: 1},
 			{Key: "driver_recipient_code", Value: 1},
 		},
 	}

@@ -977,32 +977,33 @@ func (x *StartTripResponse) GetTripId() string {
 	return ""
 }
 
-type InitiatePaymentRequest struct {
+type InitiateCheckoutRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TripId        string                 `protobuf:"bytes,1,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	TripRating    int64                  `protobuf:"varint,4,opt,name=trip_rating,json=tripRating,proto3" json:"trip_rating,omitempty"`
-	RiderComment  string                 `protobuf:"bytes,5,opt,name=rider_comment,json=riderComment,proto3" json:"rider_comment,omitempty"`
-	DriverTip     int64                  `protobuf:"varint,6,opt,name=driver_tip,json=driverTip,proto3" json:"driver_tip,omitempty"`
+	TxnType       string                 `protobuf:"bytes,1,opt,name=txn_type,json=txnType,proto3" json:"txn_type,omitempty"`
+	TripId        string                 `protobuf:"bytes,2,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Email         string                 `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
+	TripRating    int64                  `protobuf:"varint,5,opt,name=trip_rating,json=tripRating,proto3" json:"trip_rating,omitempty"`
+	RiderComment  string                 `protobuf:"bytes,6,opt,name=rider_comment,json=riderComment,proto3" json:"rider_comment,omitempty"`
+	DriverTip     int64                  `protobuf:"varint,7,opt,name=driver_tip,json=driverTip,proto3" json:"driver_tip,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *InitiatePaymentRequest) Reset() {
-	*x = InitiatePaymentRequest{}
+func (x *InitiateCheckoutRequest) Reset() {
+	*x = InitiateCheckoutRequest{}
 	mi := &file_transport_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *InitiatePaymentRequest) String() string {
+func (x *InitiateCheckoutRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*InitiatePaymentRequest) ProtoMessage() {}
+func (*InitiateCheckoutRequest) ProtoMessage() {}
 
-func (x *InitiatePaymentRequest) ProtoReflect() protoreflect.Message {
+func (x *InitiateCheckoutRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1014,74 +1015,81 @@ func (x *InitiatePaymentRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InitiatePaymentRequest.ProtoReflect.Descriptor instead.
-func (*InitiatePaymentRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use InitiateCheckoutRequest.ProtoReflect.Descriptor instead.
+func (*InitiateCheckoutRequest) Descriptor() ([]byte, []int) {
 	return file_transport_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *InitiatePaymentRequest) GetTripId() string {
+func (x *InitiateCheckoutRequest) GetTxnType() string {
+	if x != nil {
+		return x.TxnType
+	}
+	return ""
+}
+
+func (x *InitiateCheckoutRequest) GetTripId() string {
 	if x != nil {
 		return x.TripId
 	}
 	return ""
 }
 
-func (x *InitiatePaymentRequest) GetUserId() string {
+func (x *InitiateCheckoutRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
 	}
 	return ""
 }
 
-func (x *InitiatePaymentRequest) GetEmail() string {
+func (x *InitiateCheckoutRequest) GetEmail() string {
 	if x != nil {
 		return x.Email
 	}
 	return ""
 }
 
-func (x *InitiatePaymentRequest) GetTripRating() int64 {
+func (x *InitiateCheckoutRequest) GetTripRating() int64 {
 	if x != nil {
 		return x.TripRating
 	}
 	return 0
 }
 
-func (x *InitiatePaymentRequest) GetRiderComment() string {
+func (x *InitiateCheckoutRequest) GetRiderComment() string {
 	if x != nil {
 		return x.RiderComment
 	}
 	return ""
 }
 
-func (x *InitiatePaymentRequest) GetDriverTip() int64 {
+func (x *InitiateCheckoutRequest) GetDriverTip() int64 {
 	if x != nil {
 		return x.DriverTip
 	}
 	return 0
 }
 
-type InitiatePaymentResponse struct {
+type InitiateCheckoutResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CheckoutUrl   string                 `protobuf:"bytes,1,opt,name=checkout_url,json=checkoutUrl,proto3" json:"checkout_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *InitiatePaymentResponse) Reset() {
-	*x = InitiatePaymentResponse{}
+func (x *InitiateCheckoutResponse) Reset() {
+	*x = InitiateCheckoutResponse{}
 	mi := &file_transport_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *InitiatePaymentResponse) String() string {
+func (x *InitiateCheckoutResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*InitiatePaymentResponse) ProtoMessage() {}
+func (*InitiateCheckoutResponse) ProtoMessage() {}
 
-func (x *InitiatePaymentResponse) ProtoReflect() protoreflect.Message {
+func (x *InitiateCheckoutResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_transport_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1093,12 +1101,12 @@ func (x *InitiatePaymentResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use InitiatePaymentResponse.ProtoReflect.Descriptor instead.
-func (*InitiatePaymentResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use InitiateCheckoutResponse.ProtoReflect.Descriptor instead.
+func (*InitiateCheckoutResponse) Descriptor() ([]byte, []int) {
 	return file_transport_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *InitiatePaymentResponse) GetCheckoutUrl() string {
+func (x *InitiateCheckoutResponse) GetCheckoutUrl() string {
 	if x != nil {
 		return x.CheckoutUrl
 	}
@@ -1172,17 +1180,18 @@ const file_transport_proto_rawDesc = "" +
 	"\fride_fare_id\x18\x02 \x01(\tR\n" +
 	"rideFareId\",\n" +
 	"\x11StartTripResponse\x12\x17\n" +
-	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"\xc5\x01\n" +
-	"\x16InitiatePaymentRequest\x12\x17\n" +
-	"\atrip_id\x18\x01 \x01(\tR\x06tripId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email\x12\x1f\n" +
-	"\vtrip_rating\x18\x04 \x01(\x03R\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"\xe1\x01\n" +
+	"\x17InitiateCheckoutRequest\x12\x19\n" +
+	"\btxn_type\x18\x01 \x01(\tR\atxnType\x12\x17\n" +
+	"\atrip_id\x18\x02 \x01(\tR\x06tripId\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x14\n" +
+	"\x05email\x18\x04 \x01(\tR\x05email\x12\x1f\n" +
+	"\vtrip_rating\x18\x05 \x01(\x03R\n" +
 	"tripRating\x12#\n" +
-	"\rrider_comment\x18\x05 \x01(\tR\friderComment\x12\x1d\n" +
+	"\rrider_comment\x18\x06 \x01(\tR\friderComment\x12\x1d\n" +
 	"\n" +
-	"driver_tip\x18\x06 \x01(\x03R\tdriverTip\"<\n" +
-	"\x17InitiatePaymentResponse\x12!\n" +
+	"driver_tip\x18\a \x01(\x03R\tdriverTip\"=\n" +
+	"\x18InitiateCheckoutResponse\x12!\n" +
 	"\fcheckout_url\x18\x01 \x01(\tR\vcheckoutUrl2\x85\x03\n" +
 	"\vTripService\x12H\n" +
 	"\vPreviewTrip\x12\x1b.wayfare.PreviewTripRequest\x1a\x1c.wayfare.PreviewTripResponse\x12B\n" +
@@ -1197,9 +1206,9 @@ const file_transport_proto_rawDesc = "" +
 	"\fRiderService\x12L\n" +
 	"\x0fGetRiderProfile\x12\x1a.wayfare.GetProfileRequest\x1a\x1d.wayfare.RiderProfileResponse\x125\n" +
 	"\x05Login\x12\x15.wayfare.LoginRequest\x1a\x15.wayfare.AuthResponse\x12<\n" +
-	"\x06Signup\x12\x1b.wayfare.SignupRiderRequest\x1a\x15.wayfare.AuthResponse2f\n" +
-	"\x0ePaymentService\x12T\n" +
-	"\x0fInitiatePayment\x12\x1f.wayfare.InitiatePaymentRequest\x1a .wayfare.InitiatePaymentResponseB,Z*github.com/xerdin442/wayfare/shared/pkg/pbb\x06proto3"
+	"\x06Signup\x12\x1b.wayfare.SignupRiderRequest\x1a\x15.wayfare.AuthResponse2i\n" +
+	"\x0ePaymentService\x12W\n" +
+	"\x10InitiateCheckout\x12 .wayfare.InitiateCheckoutRequest\x1a!.wayfare.InitiateCheckoutResponseB,Z*github.com/xerdin442/wayfare/shared/pkg/pbb\x06proto3"
 
 var (
 	file_transport_proto_rawDescOnce sync.Once
@@ -1215,30 +1224,30 @@ func file_transport_proto_rawDescGZIP() []byte {
 
 var file_transport_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_transport_proto_goTypes = []any{
-	(*TripDetailsRequest)(nil),      // 0: wayfare.TripDetailsRequest
-	(*TripDetailsResponse)(nil),     // 1: wayfare.TripDetailsResponse
-	(*TripHistoryRequest)(nil),      // 2: wayfare.TripHistoryRequest
-	(*TripHistoryResponse)(nil),     // 3: wayfare.TripHistoryResponse
-	(*RegionBoundsRequest)(nil),     // 4: wayfare.RegionBoundsRequest
-	(*RegionBoundsResponse)(nil),    // 5: wayfare.RegionBoundsResponse
-	(*GetProfileRequest)(nil),       // 6: wayfare.GetProfileRequest
-	(*DriverProfileResponse)(nil),   // 7: wayfare.DriverProfileResponse
-	(*RiderProfileResponse)(nil),    // 8: wayfare.RiderProfileResponse
-	(*LoginRequest)(nil),            // 9: wayfare.LoginRequest
-	(*SignupRiderRequest)(nil),      // 10: wayfare.SignupRiderRequest
-	(*SignupDriverRequest)(nil),     // 11: wayfare.SignupDriverRequest
-	(*AuthResponse)(nil),            // 12: wayfare.AuthResponse
-	(*PreviewTripRequest)(nil),      // 13: wayfare.PreviewTripRequest
-	(*PreviewTripResponse)(nil),     // 14: wayfare.PreviewTripResponse
-	(*StartTripRequest)(nil),        // 15: wayfare.StartTripRequest
-	(*StartTripResponse)(nil),       // 16: wayfare.StartTripResponse
-	(*InitiatePaymentRequest)(nil),  // 17: wayfare.InitiatePaymentRequest
-	(*InitiatePaymentResponse)(nil), // 18: wayfare.InitiatePaymentResponse
-	(*Trip)(nil),                    // 19: wayfare.Trip
-	(*Coordinate)(nil),              // 20: wayfare.Coordinate
-	(*Driver)(nil),                  // 21: wayfare.Driver
-	(*Rider)(nil),                   // 22: wayfare.Rider
-	(*RideFare)(nil),                // 23: wayfare.RideFare
+	(*TripDetailsRequest)(nil),       // 0: wayfare.TripDetailsRequest
+	(*TripDetailsResponse)(nil),      // 1: wayfare.TripDetailsResponse
+	(*TripHistoryRequest)(nil),       // 2: wayfare.TripHistoryRequest
+	(*TripHistoryResponse)(nil),      // 3: wayfare.TripHistoryResponse
+	(*RegionBoundsRequest)(nil),      // 4: wayfare.RegionBoundsRequest
+	(*RegionBoundsResponse)(nil),     // 5: wayfare.RegionBoundsResponse
+	(*GetProfileRequest)(nil),        // 6: wayfare.GetProfileRequest
+	(*DriverProfileResponse)(nil),    // 7: wayfare.DriverProfileResponse
+	(*RiderProfileResponse)(nil),     // 8: wayfare.RiderProfileResponse
+	(*LoginRequest)(nil),             // 9: wayfare.LoginRequest
+	(*SignupRiderRequest)(nil),       // 10: wayfare.SignupRiderRequest
+	(*SignupDriverRequest)(nil),      // 11: wayfare.SignupDriverRequest
+	(*AuthResponse)(nil),             // 12: wayfare.AuthResponse
+	(*PreviewTripRequest)(nil),       // 13: wayfare.PreviewTripRequest
+	(*PreviewTripResponse)(nil),      // 14: wayfare.PreviewTripResponse
+	(*StartTripRequest)(nil),         // 15: wayfare.StartTripRequest
+	(*StartTripResponse)(nil),        // 16: wayfare.StartTripResponse
+	(*InitiateCheckoutRequest)(nil),  // 17: wayfare.InitiateCheckoutRequest
+	(*InitiateCheckoutResponse)(nil), // 18: wayfare.InitiateCheckoutResponse
+	(*Trip)(nil),                     // 19: wayfare.Trip
+	(*Coordinate)(nil),               // 20: wayfare.Coordinate
+	(*Driver)(nil),                   // 21: wayfare.Driver
+	(*Rider)(nil),                    // 22: wayfare.Rider
+	(*RideFare)(nil),                 // 23: wayfare.RideFare
 }
 var file_transport_proto_depIdxs = []int32{
 	19, // 0: wayfare.TripHistoryResponse.trips:type_name -> wayfare.Trip
@@ -1259,7 +1268,7 @@ var file_transport_proto_depIdxs = []int32{
 	6,  // 15: wayfare.RiderService.GetRiderProfile:input_type -> wayfare.GetProfileRequest
 	9,  // 16: wayfare.RiderService.Login:input_type -> wayfare.LoginRequest
 	10, // 17: wayfare.RiderService.Signup:input_type -> wayfare.SignupRiderRequest
-	17, // 18: wayfare.PaymentService.InitiatePayment:input_type -> wayfare.InitiatePaymentRequest
+	17, // 18: wayfare.PaymentService.InitiateCheckout:input_type -> wayfare.InitiateCheckoutRequest
 	14, // 19: wayfare.TripService.PreviewTrip:output_type -> wayfare.PreviewTripResponse
 	16, // 20: wayfare.TripService.StartTrip:output_type -> wayfare.StartTripResponse
 	1,  // 21: wayfare.TripService.GetTripDetails:output_type -> wayfare.TripDetailsResponse
@@ -1271,7 +1280,7 @@ var file_transport_proto_depIdxs = []int32{
 	8,  // 27: wayfare.RiderService.GetRiderProfile:output_type -> wayfare.RiderProfileResponse
 	12, // 28: wayfare.RiderService.Login:output_type -> wayfare.AuthResponse
 	12, // 29: wayfare.RiderService.Signup:output_type -> wayfare.AuthResponse
-	18, // 30: wayfare.PaymentService.InitiatePayment:output_type -> wayfare.InitiatePaymentResponse
+	18, // 30: wayfare.PaymentService.InitiateCheckout:output_type -> wayfare.InitiateCheckoutResponse
 	19, // [19:31] is the sub-list for method output_type
 	7,  // [7:19] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name

@@ -64,31 +64,30 @@ func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, p *messa
 func (h *PaymentEventsHandler) calculateTransactionFee(amount int64, p types.PaymentProvider, t types.TransactionType) float64 {
 	switch p {
 	case types.ProviderPaystack:
-		if t == types.TransactionCheckout {
-			fee := float64(amount) * 0.015
+		if t == types.TransactionPayout {
+			var fee float64
+			switch {
+			case amount <= 5000:
+				fee = 10
+			case amount > 5000 && amount <= 50000:
+				fee = 25
+			case amount > 50000:
+				fee = 50
+			}
 
-			if amount >= 2500 {
-				fee += 100
-				if fee > 2000 {
-					fee = 2000
-				}
+			if amount >= 10000 {
+				fee += 50
 			}
 
 			return fee
 		}
 
-		var fee float64
-		switch {
-		case amount <= 5000:
-			fee = 10
-		case amount > 5000 && amount <= 50000:
-			fee = 25
-		case amount > 50000:
-			fee = 50
-		}
-
-		if amount >= 10000 {
-			fee += 50
+		fee := float64(amount) * 0.015
+		if amount >= 2500 {
+			fee += 100
+			if fee > 2000 {
+				fee = 2000
+			}
 		}
 
 		return fee
