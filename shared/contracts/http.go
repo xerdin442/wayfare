@@ -79,7 +79,7 @@ type StartTripRequest struct {
 
 type InitiateCheckoutRequest struct {
 	Email        string `json:"email" binding:"required,email"`
-	TripRating   int64  `json:"tripRating" binding:"required,min=1,max=5"`
+	TripRating   int64  `json:"tripRating,omitempty" binding:"min=1,max=5"`
 	RiderComment string `json:"riderComment,omitempty"`
 	DriverTip    int64  `json:"driverTip,omitempty"` // Naira amount
 }
