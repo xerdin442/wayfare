@@ -96,12 +96,30 @@ func (h *DriverEventsHandler) FindAndAssignDriver(ctx context.Context, p messagi
 		log.Error().Err(err).Msg("Failed to fetch blacklisted drivers")
 	}
 
+	// Check active presence of nearby drivers
+	pipe := h.cache.Pipeline()
+	presenceCmds := make([]*redis.IntCmd, len(nearbyDrivers))
+	for i, driverID := range nearbyDrivers {
+		presenceCmds[i] = pipe.Exists(ctx, "active_driver:"+driverID)
+	}
+	pipe.Exec(ctx)
+
 	// Filter nearby drivers
 	var eligibleDrivers []string
-	for _, id := range nearbyDrivers {
-		if !slices.Contains(blacklistedDrivers, id) {
-			eligibleDrivers = append(eligibleDrivers, id)
+	var staleIDs []any
+	for i, driverID := range nearbyDrivers {
+		if presenceCmds[i].Val() == 0 {
+			staleIDs = append(staleIDs, driverID)
+			continue
 		}
+		if !slices.Contains(blacklistedDrivers, driverID) {
+			eligibleDrivers = append(eligibleDrivers, driverID)
+		}
+	}
+
+	// Remove inactive drivers from location tracker
+	if len(staleIDs) > 0 {
+		h.cache.ZRem(ctx, "drivers_locations", staleIDs...)
 	}
 
 	// Find matching driver

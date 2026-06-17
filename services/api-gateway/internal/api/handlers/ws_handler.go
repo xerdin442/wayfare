@@ -214,7 +214,7 @@ func (h *RouteHandler) HandleDriversConnection(c *gin.Context) {
 					Latitude:  data.Coords.Latitude,
 				},
 			)
-			pipe.Expire(ctx, "drivers_locations", 10*time.Second)
+			pipe.Set(ctx, "active_driver:"+userId, 1, 10*time.Second)
 
 			if _, err := pipe.Exec(ctx); err != nil {
 				tracing.HandleError(span, err)
