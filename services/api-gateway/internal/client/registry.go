@@ -1,10 +1,14 @@
 package client
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+
 	"github.com/rs/zerolog/log"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -16,9 +20,24 @@ type Registry struct {
 	conns   []*grpc.ClientConn
 }
 
-func NewRegistry() *Registry {
+func NewRegistry(isDev bool) *Registry {
 	dialOptions := tracing.DialOptionsWithTracing()
-	dialOptions = append(dialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if isDev {
+		dialOptions = append(dialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	} else {
+		// Load CA certificates
+		systemRoots, err := x509.SystemCertPool()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to load CA certificates from system roots")
+		}
+
+		// Create TLS credentials
+		creds := credentials.NewTLS(&tls.Config{
+			RootCAs: systemRoots,
+		})
+
+		dialOptions = append(dialOptions, grpc.WithTransportCredentials(creds))
+	}
 
 	tripConn, err := grpc.NewClient("trip-service:80", dialOptions...)
 	if err != nil {

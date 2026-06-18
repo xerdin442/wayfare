@@ -73,13 +73,13 @@ func main() {
 	defer rmq.Close()
 
 	// Initialize gRPC clients
-	clients := client.NewRegistry()
-	defer clients.Close()
+	grpcClients := client.NewRegistry(env.Environment == "development")
+	defer grpcClients.Close()
 
 	baseCfg := &base.Config{
 		Env:     env,
 		Cache:   cache,
-		Clients: clients,
+		Clients: grpcClients,
 		Queue:   rmq,
 		Uploader: &storage.FileUploadConfig{
 			Folder:      "wayfare/uploads",
