@@ -27,11 +27,11 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "125m"
+              memory: "64Mi"
+              cpu: "100m"
             limits:
               memory: "128Mi"
-              cpu: "125m"
+              cpu: "200m"
           env:
             - name: GATEWAY_PORT
               valueFrom:

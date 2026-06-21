@@ -29,6 +29,14 @@ spec:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:9.3.3
           env:
+            - name: ES_JAVA_OPTS
+              value: "-Xms256m -Xmx256m"
+            - name: xpack.ml.enabled
+              value: "false"
+            - name: xpack.profiling.enabled
+              value: "false"
+            - name: xpack.watcher.enabled
+              value: "false"
             - name: ELASTIC_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -40,10 +48,10 @@ spec:
             - containerPort: 9200
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
-            limits:
               memory: "512Mi"
+              cpu: "256m"
+            limits:
+              memory: "1Gi"
               cpu: "500m"
           volumeMounts:
             - name: es-data
