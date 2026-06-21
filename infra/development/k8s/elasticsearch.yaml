@@ -28,7 +28,6 @@ spec:
       containers:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:9.3.3
-          imagePullPolicy: Always
           env:
             - name: ELASTIC_PASSWORD
               valueFrom:
