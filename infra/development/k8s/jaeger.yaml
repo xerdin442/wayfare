@@ -1,3 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-config
+data:
+  config.yaml: |
+    service:
+      extensions: [jaeger_storage, jaeger_query]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          exporters: [jaeger_storage_exporter]
+
+    extensions:
+      jaeger_storage:
+        backends:
+          main_storage:
+            elasticsearch:
+              server_urls: ["http://elasticsearch:9200"]
+              auth:
+                basic:
+                  password: "${ELASTIC_PASSWORD}"
+      jaeger_query:
+        storage:
+          traces: main_storage
+
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "0.0.0.0:4317"
+          http:
+            endpoint: "0.0.0.0:4318"
+
+    exporters:
+      jaeger_storage_exporter:
+        trace_storage: main_storage
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -12,19 +50,32 @@ spec:
       labels:
         app: jaeger
     spec:
+      initContainers:
+        - name: wait-for-es
+          image: busybox
+          command:
+            [
+              "sh",
+              "-c",
+              "until wget -qO- http://elasticsearch:9200/_cluster/health; do echo waiting for elasticsearch; sleep 5; done",
+            ]
       containers:
         - name: jaeger
-          image: jaegertracing/all-in-one:latest
+          image: jaegertracing/jaeger:latest
+          args: ["--config", "/etc/jaeger/config.yaml"]
+          env:
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: ROOT_PASSWORD
           ports:
             - containerPort: 16686
-            - containerPort: 14268
-          env:
-            - name: COLLECTOR_OTLP_ENABLED
-              value: "true"
-            - name: SPAN_STORAGE_TYPE
-              value: "elasticsearch"
-            - name: ES_SERVER_URLS
-              value: "http://elasticsearch:9200"
+            - containerPort: 4317
+            - containerPort: 4318
+          volumeMounts:
+            - name: jaeger-config-volume
+              mountPath: /etc/jaeger/config.yaml
           resources:
             requests:
               memory: "64Mi"
@@ -32,6 +83,10 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "250m"
+      volumes:
+        - name: jaeger-config-volume
+          configMap:
+            name: jaeger-config
 ---
 apiVersion: v1
 kind: Service
@@ -41,7 +96,9 @@ spec:
   ports:
     - name: ui
       port: 16686
-    - name: collector
-      port: 14268
+    - name: otlp-http
+      port: 4318
+    - name: otlp-grpc
+      port: 4317
   selector:
     app: jaeger
