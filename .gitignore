@@ -30,6 +30,9 @@ go.work.sum
 # env file
 .env
 
+# wsl
+*.tar.gz
+
 # Editor/IDE
 # .idea/
 # .vscode/
