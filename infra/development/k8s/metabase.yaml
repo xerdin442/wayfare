@@ -15,6 +15,7 @@ spec:
       containers:
         - name: metabase
           image: metabase/metabase:v0.60.10.x
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           resources:

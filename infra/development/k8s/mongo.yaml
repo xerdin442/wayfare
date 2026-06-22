@@ -27,6 +27,7 @@ spec:
       containers:
         - name: mongodb
           image: mongo:latest
+          imagePullPolicy: IfNotPresent
           env:
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:

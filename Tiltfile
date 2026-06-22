@@ -15,12 +15,7 @@ k8s_yaml('./infra/development/k8s/mongo.yaml')
 k8s_resource('mongodb', port_forwards=['27017:27017'], labels="infra")
 
 k8s_yaml('./infra/development/k8s/metabase.yaml')
-k8s_resource(
-  'metabase',
-  port_forwards=['3300:3000'],
-  resource_deps=['mongodb'],
-  labels="infra"
-)
+k8s_resource('metabase', port_forwards=['3300:3000'], resource_deps=['mongodb'], labels="infra")
 
 k8s_yaml('./infra/development/k8s/rabbitmq.yaml')
 k8s_resource('rabbitmq', port_forwards=['15672:15672'], labels="infra")
@@ -28,19 +23,11 @@ k8s_resource('rabbitmq', port_forwards=['15672:15672'], labels="infra")
 k8s_yaml('./infra/development/k8s/prometheus.yaml')
 k8s_resource('prometheus', port_forwards=['9090:9090'], labels="infra")
 
-k8s_yaml('./infra/development/k8s/elasticsearch.yaml')
-k8s_resource('elasticsearch', port_forwards=['9200:9200'], labels="infra")
-
 k8s_yaml('./infra/development/k8s/clickhouse.yaml')
 k8s_resource('clickhouse', port_forwards=['8123:8123', '9000:9000'], labels="infra")
 
 k8s_yaml('./infra/development/k8s/jaeger.yaml')
-k8s_resource(
-  'jaeger',
-  port_forwards=['16686:16686'],
-  resource_deps=['elasticsearch'],
-  labels="infra"
-)
+k8s_resource('jaeger', port_forwards=['16686:16686'], labels="infra")
 
 ### End of K8s Config ###
 ### API Gateway ###

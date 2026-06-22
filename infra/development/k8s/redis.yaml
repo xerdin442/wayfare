@@ -27,6 +27,7 @@ spec:
       containers:
         - name: redis
           image: redis:latest
+          imagePullPolicy: IfNotPresent
           args:
             [
               "redis-server",
