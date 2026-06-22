@@ -4,7 +4,6 @@ load('ext://restart_process', 'docker_build_with_restart')
 ### K8s Config ###
 
 local('kubectl create secret generic app-secrets --from-env-file=.env --dry-run=client -o yaml > ./infra/development/k8s/secrets.yaml')
-# local('kubectl create configmap prometheus-config --from-file=prometheus.yml')
 
 k8s_yaml('./infra/development/k8s/secrets.yaml')
 
@@ -16,9 +15,6 @@ k8s_resource('mongodb', port_forwards=['27017:27017'], labels="infra")
 
 k8s_yaml('./infra/development/k8s/metabase.yaml')
 k8s_resource('metabase', port_forwards=['3300:3000'], resource_deps=['mongodb'], labels="infra")
-
-k8s_yaml('./infra/development/k8s/rabbitmq.yaml')
-k8s_resource('rabbitmq', port_forwards=['15672:15672'], labels="infra")
 
 k8s_yaml('./infra/development/k8s/prometheus.yaml')
 k8s_resource('prometheus', port_forwards=['9090:9090'], labels="infra")
@@ -52,7 +48,7 @@ k8s_yaml('./infra/development/k8s/api-gateway-deployment.yaml')
 k8s_resource(
   'api-gateway',
   port_forwards=8080,
-  resource_deps=['redis', 'rabbitmq', 'clickhouse'],
+  resource_deps=['redis', 'clickhouse'],
   labels="services",
 )
 
@@ -79,7 +75,7 @@ k8s_yaml('./infra/development/k8s/trip-service-deployment.yaml')
 k8s_resource(
   'trip-service',
   port_forwards=2112,
-  resource_deps=['mongodb', 'rabbitmq', 'redis', 'clickhouse'],
+  resource_deps=['mongodb', 'redis', 'clickhouse'],
   labels="services",
 )
 
@@ -106,7 +102,7 @@ k8s_yaml('./infra/development/k8s/driver-service-deployment.yaml')
 k8s_resource(
   'driver-service',
   port_forwards=2112,
-  resource_deps=['redis', 'mongodb', 'rabbitmq', 'clickhouse'],
+  resource_deps=['redis', 'mongodb', 'clickhouse'],
   labels="services",
 )
 
@@ -160,7 +156,7 @@ k8s_yaml('./infra/development/k8s/payment-service-deployment.yaml')
 k8s_resource(
   'payment-service',
   port_forwards=2112,
-  resource_deps=['redis', 'mongodb', 'rabbitmq', 'clickhouse'],
+  resource_deps=['redis', 'mongodb', 'clickhouse'],
   labels="services",
 )
 
