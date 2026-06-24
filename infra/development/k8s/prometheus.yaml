@@ -39,7 +39,7 @@ spec:
   storageClassName: hostpath
   resources:
     requests:
-      storage: 10Gi
+      storage: 1Gi
 ---
 apiVersion: apps/v1
 kind: StatefulSet
