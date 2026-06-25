@@ -7,7 +7,8 @@ COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
     go mod download
 
-COPY . .
+COPY shared ./shared
+COPY services/driver ./services/driver
 
 RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
     --mount=type=cache,target=/root/.cache/go-build,sharing=locked \

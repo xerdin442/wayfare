@@ -1,0 +1,10 @@
+infra/
+proto/
+.git/
+.gitignore
+.gitattributes
+README.md
+Makefile
+Tiltfile
+*.log
+.vscode/
