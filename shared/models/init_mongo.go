@@ -55,6 +55,14 @@ var carPackageSchema = bson.M{
 	"description": "must be a valid car package",
 }
 
+func collectionExists(ctx context.Context, db *mongo.Database, name string) (bool, error) {
+	names, err := db.ListCollectionNames(ctx, bson.M{"name": name})
+	if err != nil {
+		return false, err
+	}
+	return len(names) > 0, nil
+}
+
 func CreateRegionsCollection(db *mongo.Database, name string) (*mongo.Collection, error) {
 	ctx := context.Background()
 
@@ -86,13 +94,26 @@ func CreateRegionsCollection(db *mongo.Database, name string) (*mongo.Collection
 			},
 		},
 	}
-
-	// Set schema validator
 	validator := bson.M{"$jsonSchema": jsonSchema}
-	opts := options.CreateCollection().SetValidator(validator)
 
-	if err := db.CreateCollection(ctx, name, opts); err != nil {
+	exists, err := collectionExists(ctx, db, name)
+	if err != nil {
 		return nil, err
+	}
+
+	if !exists {
+		opts := options.CreateCollection().SetValidator(validator)
+		if err := db.CreateCollection(ctx, name, opts); err != nil {
+			return nil, err
+		}
+	} else {
+		cmd := bson.D{
+			{Key: "collMod", Value: name},
+			{Key: "validator", Value: validator},
+		}
+		if err := db.RunCommand(ctx, cmd).Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	collection := db.Collection(name)
@@ -128,13 +149,26 @@ func CreatePricingColelction(db *mongo.Database, name string) (*mongo.Collection
 			"min_fare":        bson.M{"bsonType": "long"},
 		},
 	}
-
-	// Set schema validator
 	validator := bson.M{"$jsonSchema": jsonSchema}
-	opts := options.CreateCollection().SetValidator(validator)
 
-	if err := db.CreateCollection(ctx, name, opts); err != nil {
+	exists, err := collectionExists(ctx, db, name)
+	if err != nil {
 		return nil, err
+	}
+
+	if !exists {
+		opts := options.CreateCollection().SetValidator(validator)
+		if err := db.CreateCollection(ctx, name, opts); err != nil {
+			return nil, err
+		}
+	} else {
+		cmd := bson.D{
+			{Key: "collMod", Value: name},
+			{Key: "validator", Value: validator},
+		}
+		if err := db.RunCommand(ctx, cmd).Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	collection := db.Collection(name)
@@ -166,13 +200,26 @@ func CreateRideFaresColelction(db *mongo.Database, name string) (*mongo.Collecti
 			"route":       routeSchema,
 		},
 	}
-
-	// Set schema validator
 	validator := bson.M{"$jsonSchema": jsonSchema}
-	opts := options.CreateCollection().SetValidator(validator)
 
-	if err := db.CreateCollection(ctx, name, opts); err != nil {
+	exists, err := collectionExists(ctx, db, name)
+	if err != nil {
 		return nil, err
+	}
+
+	if !exists {
+		opts := options.CreateCollection().SetValidator(validator)
+		if err := db.CreateCollection(ctx, name, opts); err != nil {
+			return nil, err
+		}
+	} else {
+		cmd := bson.D{
+			{Key: "collMod", Value: name},
+			{Key: "validator", Value: validator},
+		}
+		if err := db.RunCommand(ctx, cmd).Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	collection := db.Collection(name)
@@ -213,13 +260,26 @@ func CreateTripsColelction(db *mongo.Database, name string) (*mongo.Collection, 
 			"driver_tip":    bson.M{"bsonType": "long"},
 		},
 	}
-
-	// Set schema validator
 	validator := bson.M{"$jsonSchema": jsonSchema}
-	opts := options.CreateCollection().SetValidator(validator)
 
-	if err := db.CreateCollection(ctx, name, opts); err != nil {
+	exists, err := collectionExists(ctx, db, name)
+	if err != nil {
 		return nil, err
+	}
+
+	if !exists {
+		opts := options.CreateCollection().SetValidator(validator)
+		if err := db.CreateCollection(ctx, name, opts); err != nil {
+			return nil, err
+		}
+	} else {
+		cmd := bson.D{
+			{Key: "collMod", Value: name},
+			{Key: "validator", Value: validator},
+		}
+		if err := db.RunCommand(ctx, cmd).Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	collection := db.Collection(name)
@@ -263,13 +323,26 @@ func CreateRidersCollection(db *mongo.Database, name string) (*mongo.Collection,
 			"profile_picture": bson.M{"bsonType": "string"},
 		},
 	}
-
-	// Set schema validator
 	validator := bson.M{"$jsonSchema": jsonSchema}
-	opts := options.CreateCollection().SetValidator(validator)
 
-	if err := db.CreateCollection(ctx, name, opts); err != nil {
+	exists, err := collectionExists(ctx, db, name)
+	if err != nil {
 		return nil, err
+	}
+
+	if !exists {
+		opts := options.CreateCollection().SetValidator(validator)
+		if err := db.CreateCollection(ctx, name, opts); err != nil {
+			return nil, err
+		}
+	} else {
+		cmd := bson.D{
+			{Key: "collMod", Value: name},
+			{Key: "validator", Value: validator},
+		}
+		if err := db.RunCommand(ctx, cmd).Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	collection := db.Collection(name)
@@ -328,13 +401,26 @@ func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection
 			},
 		},
 	}
-
-	// Set schema validator
 	validator := bson.M{"$jsonSchema": jsonSchema}
-	opts := options.CreateCollection().SetValidator(validator)
 
-	if err := db.CreateCollection(ctx, name, opts); err != nil {
+	exists, err := collectionExists(ctx, db, name)
+	if err != nil {
 		return nil, err
+	}
+
+	if !exists {
+		opts := options.CreateCollection().SetValidator(validator)
+		if err := db.CreateCollection(ctx, name, opts); err != nil {
+			return nil, err
+		}
+	} else {
+		cmd := bson.D{
+			{Key: "collMod", Value: name},
+			{Key: "validator", Value: validator},
+		}
+		if err := db.RunCommand(ctx, cmd).Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	collection := db.Collection(name)
@@ -379,13 +465,26 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 			"transfer_fee": bson.M{"bsonType": "long"},
 		},
 	}
-
-	// Set schema validator
 	validator := bson.M{"$jsonSchema": jsonSchema}
-	opts := options.CreateCollection().SetValidator(validator)
 
-	if err := db.CreateCollection(ctx, name, opts); err != nil {
+	exists, err := collectionExists(ctx, db, name)
+	if err != nil {
 		return nil, err
+	}
+
+	if !exists {
+		opts := options.CreateCollection().SetValidator(validator)
+		if err := db.CreateCollection(ctx, name, opts); err != nil {
+			return nil, err
+		}
+	} else {
+		cmd := bson.D{
+			{Key: "collMod", Value: name},
+			{Key: "validator", Value: validator},
+		}
+		if err := db.RunCommand(ctx, cmd).Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	collection := db.Collection(name)

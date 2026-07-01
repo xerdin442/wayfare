@@ -128,8 +128,6 @@ func main() {
 	})
 
 	g.Go(func() error {
-		log.Info().Msg("Starting gRPC server...")
-
 		srv := server.New()
 		return srv.Start(svc, env.ServicePort)
 	})
