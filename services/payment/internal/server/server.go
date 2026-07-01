@@ -36,7 +36,7 @@ func (s *Server) Start(svc *service.PaymentService, port int) error {
 	// Register service
 	pb.RegisterPaymentServiceServer(s.grpcServer, svc)
 
-	log.Info().Int("port", port).Msg("Starting gRPC server...")
+	log.Info().Msg("Starting gRPC server...")
 
 	// Start server
 	errChan := make(chan error, 1)
