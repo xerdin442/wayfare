@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog/log"
@@ -26,9 +27,21 @@ func NewRabbitMQ(uri string) *RabbitMQ {
 		log.Fatal().Err(err).Msg("Invalid AMQP connection URI")
 	}
 
-	conn, err := amqp.Dial(uri)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to RabbitMQ")
+	var conn *amqp.Connection
+	var dialErr error
+
+	for range 20 {
+		conn, dialErr = amqp.Dial(uri)
+		if dialErr == nil {
+			break
+		}
+
+		log.Warn().Err(dialErr).Msg("Waiting for RabbitMQ...")
+		time.Sleep(10 * time.Second)
+	}
+
+	if dialErr != nil {
+		log.Fatal().Err(dialErr).Msg("Failed to connect to RabbitMQ")
 	}
 
 	ch, err := conn.Channel()
@@ -281,8 +294,9 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 
 func (r *RabbitMQ) declareAndBindQueue(queueName AmqpQueue, messageTypes []AmqpEvent, exchange AmqpExchange) error {
 	// Add configuration for dead letter queue
-	args := amqp.Table{
-		"x-dead-letter-exchange": DeadLetterExchange,
+	var args amqp.Table
+	if queueName != DeadLetterQueue {
+		args = amqp.Table{"x-dead-letter-exchange": string(DeadLetterExchange)}
 	}
 
 	q, err := r.channel.QueueDeclare(

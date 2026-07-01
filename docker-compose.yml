@@ -18,6 +18,20 @@ services:
     networks:
       - wayfare
 
+  rabbitmq:
+    image: rabbitmq:4.2.5-management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=${ROOT_USERNAME}
+      - RABBITMQ_DEFAULT_PASS=${ROOT_PASSWORD}
+      - RABBITMQ_MNESIA_BASE=/var/lib/rabbitmq/mnesia
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - wayfare
+
   mongodb:
     image: mongo:latest
     environment:
@@ -71,13 +85,6 @@ services:
     networks:
       - wayfare
 
-  metabase:
-    image: metabase/metabase:v0.60.10.x
-    ports:
-      - "3300:3000"
-    networks:
-      - wayfare
-
   api-gateway:
     build:
       context: .
@@ -88,6 +95,7 @@ services:
     depends_on:
       - redis
       - mongodb
+      - rabbitmq
       - clickhouse
       - trip-service
       - driver-service
@@ -109,6 +117,7 @@ services:
     depends_on:
       - mongodb
       - redis
+      - rabbitmq
     networks:
       - wayfare
 
@@ -123,6 +132,7 @@ services:
     depends_on:
       - mongodb
       - redis
+      - rabbitmq
     networks:
       - wayfare
 
@@ -150,11 +160,13 @@ services:
     depends_on:
       - mongodb
       - redis
+      - rabbitmq
     networks:
       - wayfare
 
 volumes:
   redis_data:
+  rabbitmq_data:
   mongo_data:
   clickhouse_data:
   clickhouse_logs:
