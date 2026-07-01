@@ -46,7 +46,7 @@ func MapPbRideFares(resp []*pb.RideFare) []types.RideFare {
 	for _, fare := range resp {
 		var routeGeometry []*types.Geometry
 		for _, geometry := range fare.Route.Geometry {
-			coords := make([]*types.Coordinate, len(geometry.Coordinates))
+			coords := make([]*types.Coordinate, 0, len(geometry.Coordinates))
 			for _, coord := range geometry.Coordinates {
 				coords = append(coords, &types.Coordinate{
 					Latitude:  coord.Latitude,
@@ -141,7 +141,7 @@ func MapPbTrips(trips []*pb.Trip) []types.Trip {
 	for _, trip := range trips {
 		var routeGeometry []*types.Geometry
 		for _, geometry := range trip.SelectedFare.Route.Geometry {
-			coords := make([]*types.Coordinate, len(geometry.Coordinates))
+			coords := make([]*types.Coordinate, 0, len(geometry.Coordinates))
 			for _, coord := range geometry.Coordinates {
 				coords = append(coords, &types.Coordinate{
 					Latitude:  coord.Latitude,
