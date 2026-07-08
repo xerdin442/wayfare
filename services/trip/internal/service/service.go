@@ -134,15 +134,13 @@ func (s *TripService) checkWeatherConditions(pickupCoords orb.Point) (float64, e
 }
 
 func (s *TripService) checkDemandAndSupply(ctx context.Context, pickupCoords orb.Point) (float64, error) {
-	// Find available drivers within 5km of the trip request
-	availableDrivers, err := s.cache.GeoSearch(ctx, "drivers_locations", &redis.GeoSearchQuery{
-		Longitude:  pickupCoords.Lon(),
-		Latitude:   pickupCoords.Lat(),
-		Radius:     5,
-		RadiusUnit: "km",
-		Sort:       "ASC",
-	}).Result()
-	if err != nil {
+	activeDrivers := 0
+	iter := s.cache.Scan(ctx, 0, "*active_driver*", 100).Iterator()
+
+	for iter.Next(ctx) {
+		activeDrivers++
+	}
+	if err := iter.Err(); err != nil {
 		return 0, err
 	}
 
@@ -151,7 +149,7 @@ func (s *TripService) checkDemandAndSupply(ctx context.Context, pickupCoords orb
 		return 0, err
 	}
 
-	ratio := float64(tripRequests) / float64(len(availableDrivers))
+	ratio := float64(tripRequests) / float64(activeDrivers)
 	switch {
 	case ratio >= 5:
 		return 1.8, nil
