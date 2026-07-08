@@ -284,7 +284,7 @@ func CreateTripsColelction(db *mongo.Database, name string) (*mongo.Collection, 
 
 	collection := db.Collection(name)
 
-	// Create 2dsphere indices for spatial queries on trip routes
+	// Create 2dsphere indexes for spatial queries on trip routes
 	pickupIndex := mongo.IndexModel{
 		Keys: bson.D{{Key: "route.pickup", Value: "2dsphere"}},
 	}
@@ -292,16 +292,16 @@ func CreateTripsColelction(db *mongo.Database, name string) (*mongo.Collection, 
 		Keys: bson.D{{Key: "route.destination", Value: "2dsphere"}},
 	}
 
-	// Create search index
-	searchIndex := mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "user_id", Value: 1},
-			{Key: "driver_id", Value: 1},
-		},
+	// Create search indexes
+	userIndex := mongo.IndexModel{
+		Keys: bson.D{{Key: "user_id", Value: 1}},
+	}
+	driverIndex := mongo.IndexModel{
+		Keys: bson.D{{Key: "driver_id", Value: 1}},
 	}
 
 	if _, err := collection.Indexes().CreateMany(ctx, []mongo.IndexModel{
-		pickupIndex, destinationIndex, searchIndex,
+		pickupIndex, destinationIndex, userIndex, driverIndex,
 	}); err != nil {
 		return nil, err
 	}
@@ -425,14 +425,19 @@ func CreateDriversCollection(db *mongo.Database, name string) (*mongo.Collection
 
 	collection := db.Collection(name)
 
+	// Create search indexes
+	emailIndex := mongo.IndexModel{
+		Keys: bson.D{{Key: "email", Value: 1}},
+	}
 	recipientCodeIndex := mongo.IndexModel{
 		Keys: bson.D{
-			{Key: "email", Value: 1},
 			{Key: "transfer_recipient_code", Value: 1},
 		},
 	}
 
-	if _, err := collection.Indexes().CreateOne(ctx, recipientCodeIndex); err != nil {
+	if _, err := collection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		emailIndex, recipientCodeIndex,
+	}); err != nil {
 		return nil, err
 	}
 
@@ -489,16 +494,26 @@ func CreateTransactionsCollection(db *mongo.Database, name string) (*mongo.Colle
 
 	collection := db.Collection(name)
 
-	// Create search index
+	// Create search indexes
 	tripIndex := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "trip_id", Value: 1},
+		},
+	}
+	driverIndex := mongo.IndexModel{
+		Keys: bson.D{
 			{Key: "driver_id", Value: 1},
+		},
+	}
+	recipientCodeIndex := mongo.IndexModel{
+		Keys: bson.D{
 			{Key: "driver_recipient_code", Value: 1},
 		},
 	}
 
-	if _, err := collection.Indexes().CreateOne(ctx, tripIndex); err != nil {
+	if _, err := collection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		tripIndex, driverIndex, recipientCodeIndex,
+	}); err != nil {
 		return nil, err
 	}
 
