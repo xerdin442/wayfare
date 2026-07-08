@@ -73,7 +73,7 @@ func main() {
 	defer rmq.Close()
 
 	// Initialize gRPC clients
-	grpcClients := client.NewRegistry(env.Environment == "development")
+	grpcClients := client.NewRegistry(env.ServicePort, env.Environment == "development")
 	defer grpcClients.Close()
 
 	baseCfg := &base.Config{

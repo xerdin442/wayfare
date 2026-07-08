@@ -10,6 +10,7 @@ import (
 
 type Secrets struct {
 	GatewayPort            int
+	ServicePort            int
 	Environment            string
 	RedisUri               string
 	AmqpUri                string
@@ -30,6 +31,7 @@ type Secrets struct {
 func Load() *Secrets {
 	return &Secrets{
 		GatewayPort:            getInt("GATEWAY_PORT"),
+		ServicePort:            getInt("SERVICE_PORT"),
 		Environment:            getStr("ENVIRONMENT"),
 		RedisUri:               getStr("REDIS_URI"),
 		AmqpUri:                getStr("AMQP_URI"),
