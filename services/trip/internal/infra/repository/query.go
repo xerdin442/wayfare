@@ -364,7 +364,6 @@ func (r *TripRepository) GetActiveTripRequests(ctx context.Context, pickupCoords
 	filter := bson.M{
 		"status": bson.M{
 			"$in": []types.TripStatus{
-				types.TripStatusSearching,
 				types.TripStatusMatched,
 				types.TripStatusActive,
 				types.TripStatusAwaitingPayment,
