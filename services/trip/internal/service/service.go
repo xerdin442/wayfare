@@ -163,12 +163,6 @@ func (s *TripService) checkDemandAndSupply(ctx context.Context, pickupCoords orb
 }
 
 func (s *TripService) estimateRideFares(ctx context.Context, regionId string, route *pb.Route, pickupCoords orb.Point) ([]*pb.RideFare, error) {
-	// priceConfig := map[repo.CarPackage]{
-	// 	repo.PackageSedan:  {BaseFare: 50000, PricePerKm: 15000, PricePerMinute: 2000, MinFare: 150000},
-	// 	repo.PackageSUV:    {BaseFare: 100000, PricePerKm: 25000, PricePerMinute: 4000, MinFare: 250000},
-	// 	repo.PackageLuxury: {BaseFare: 250000, PricePerKm: 45000, PricePerMinute: 8000, MinFare: 500000},
-	// }
-
 	// Get pricing categories per region
 	priceConfig, err := s.repo.GetPricingPerRegion(ctx, regionId)
 	if err != nil {
