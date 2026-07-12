@@ -75,6 +75,9 @@ func (r *DriverRepository) GetDriverByEmail(ctx context.Context, email string) (
 	var driver models.DriverModel
 	err := r.driverColl.FindOne(ctx, bson.M{"email": email}).Decode(&driver)
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
 		log.Error().Err(err).Str("collection", "drivers").Msg("Database query error")
 		return nil, err
 	}

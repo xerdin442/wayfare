@@ -54,6 +54,9 @@ func (r *RiderRepository) GetRiderByEmail(ctx context.Context, email string) (*m
 	var rider models.RiderModel
 	err := r.riderColl.FindOne(ctx, bson.M{"email": email}).Decode(&rider)
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
 		log.Error().Err(err).Str("collection", "riders").Msg("Database query error")
 		return nil, err
 	}
