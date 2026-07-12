@@ -41,17 +41,23 @@ func (m *Middleware) JwtGuard() gin.HandlerFunc {
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-		token, err := jwt.ParseWithClaims(tokenString, &AllClaims{}, func(token *jwt.Token) (any, error) {
-			return m.cfg.Env.JwtSecret, nil
+		token, parseErr := jwt.ParseWithClaims(tokenString, &AllClaims{}, func(token *jwt.Token) (any, error) {
+			return []byte(m.cfg.Env.JwtSecret), nil
 		})
 
-		// Check if token is blacklisted
-		n, err := m.cfg.Cache.Exists(c.Request.Context(), "token_blacklist:"+tokenString).Result()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Error fetching blacklisted tokens from cache")
+		if parseErr != nil || !token.Valid {
+			log.Warn().Err(parseErr).Msg("Failed to parse JWT")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Session expired"})
+			return
 		}
 
-		if err != nil || !token.Valid || n > 0 {
+		n, err := m.cfg.Cache.Exists(c.Request.Context(), "token_blacklist:"+tokenString).Result()
+		if err != nil {
+			log.Error().Err(err).Msg("Error fetching blacklisted tokens from cache")
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+			return
+		}
+		if n > 0 {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Session expired"})
 			return
 		}

@@ -25,7 +25,7 @@ func (app *application) routes() http.Handler {
 			fmt.Sprintf("https://www.%s", frontendUrl),
 		}
 	} else {
-		corsConfig.AllowAllOrigins = true
+		corsConfig.AllowOrigins = []string{"http://localhost:3000"}
 	}
 	corsConfig.AllowCredentials = true
 	corsConfig.AddAllowHeaders("Authorization", "X-User-Role")
