@@ -32,10 +32,12 @@ func (r *PreviewTripRequest) ToProto() *pb.PreviewTripRequest {
 		Pickup: &pb.Coordinate{
 			Latitude:  r.Pickup.Latitude,
 			Longitude: r.Pickup.Longitude,
+			Address:   r.Pickup.Address,
 		},
 		Destination: &pb.Coordinate{
 			Latitude:  r.Destination.Latitude,
 			Longitude: r.Destination.Longitude,
+			Address:   r.Destination.Address,
 		},
 	}
 }

@@ -78,8 +78,11 @@ func (r *TripRepository) StoreRideFares(ctx context.Context, rideFares []*pb.Rid
 	docs := make([]*models.RideFareModel, 0, len(rideFares))
 
 	for _, fare := range rideFares {
+		id := bson.NewObjectID()
+		fare.Id = id.Hex() // Mutate the pb.RideFare pointer
+
 		docs = append(docs, &models.RideFareModel{
-			ID:         bson.NewObjectID(),
+			ID:         id,
 			UserID:     userIdHex,
 			RegionID:   regionIdHex,
 			CarPackage: types.CarPackage(fare.PackageSlug),
