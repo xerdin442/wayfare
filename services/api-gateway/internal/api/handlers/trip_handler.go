@@ -34,6 +34,7 @@ func (h *RouteHandler) HandleTripPreview(c *gin.Context) {
 
 	response, err := h.cfg.Clients.Trip.PreviewTrip(ctx, &pb.PreviewTripRequest{
 		UserId:      userID,
+		RegionId:    req.RegionId,
 		Pickup:      req.ToProto().Pickup,
 		Destination: req.ToProto().Destination,
 	})
