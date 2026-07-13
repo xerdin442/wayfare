@@ -361,6 +361,9 @@ func (r *TripRepository) UpdateDriverRatingAndTier(ctx context.Context) error {
 }
 
 func (r *TripRepository) GetActiveTripRequests(ctx context.Context, pickupCoords orb.Point) (int64, error) {
+	const maxDistanceMeters = 5000
+	const earthRadiusMeters = 6378137 // WGS84 mean radius for earth
+
 	filter := bson.M{
 		"status": bson.M{
 			"$in": []types.TripStatus{
@@ -369,13 +372,12 @@ func (r *TripRepository) GetActiveTripRequests(ctx context.Context, pickupCoords
 				types.TripStatusAwaitingPayment,
 			},
 		},
-		"route.pickup": bson.M{
-			"$near": bson.M{
-				"$geometry": bson.M{
-					"type":        "Point",
-					"coordinates": pickupCoords,
+		"route.pickup.coordinates": bson.M{
+			"$geoWithin": bson.M{
+				"$centerSphere": []any{
+					[]float64{pickupCoords.Lon(), pickupCoords.Lat()},
+					maxDistanceMeters / earthRadiusMeters,
 				},
-				"$maxDistance": 5000,
 			},
 		},
 	}

@@ -197,7 +197,7 @@ func (s *TripService) estimateRideFares(ctx context.Context, regionId string, ro
 		estimatedPrice := max(totalCost, cfg.MinFare)
 
 		// Apply surge factors
-		surgeFactor := max(2.4, weatherSurgeFactor*demandSupplySurgeFactor)
+		surgeFactor := min(2.4, weatherSurgeFactor*demandSupplySurgeFactor)
 		estimatedPrice = int64(float64(estimatedPrice) * surgeFactor)
 
 		// Check if trip is eligible for after hours fee
@@ -209,7 +209,8 @@ func (s *TripService) estimateRideFares(ctx context.Context, regionId string, ro
 		}
 
 		// Round up to nearest hundred
-		rideAmount := ((estimatedPrice + 99) / 100) * 100
+		const nearestNaira = 100 * 100
+		rideAmount := ((estimatedPrice + nearestNaira - 1) / nearestNaira) * nearestNaira
 
 		rideFares = append(rideFares, &pb.RideFare{
 			PackageSlug: string(cfg.CarPackage),
