@@ -111,11 +111,12 @@ type BulkTransferPayload struct {
 type PaystackWebhookPayload struct {
 	Event string `json:"event"`
 	Data  struct {
-		Reference string `json:"reference"`
-		Status    string `json:"status"`
-		Amount    int64  `json:"amount"`
-		Metadata  string `json:"metadata"`
-		Recipient struct {
+		Reference     string `json:"reference"`
+		Status        string `json:"status"`
+		Amount        int64  `json:"amount"`
+		ProcessingFee int64  `json:"fees"`
+		Metadata      string `json:"metadata"`
+		Recipient     struct {
 			Email         string `json:"email"`
 			RecipientCode string `json:"recipient_code"`
 		} `json:"recipient"`
@@ -125,9 +126,10 @@ type PaystackWebhookPayload struct {
 type FlutterwaveWebhookPayload struct {
 	Event string `json:"event"`
 	Data  struct {
-		Status string          `json:"status"`
-		Amount int64           `json:"amount"`
-		TxRef  string          `json:"tx_ref"`
-		Meta   PaymentMetadata `json:"meta"`
+		Status        string          `json:"status"`
+		Amount        float64         `json:"amount"`
+		TxRef         string          `json:"tx_ref"`
+		ProcessingFee float64         `json:"app_fee"`
+		Meta          PaymentMetadata `json:"meta"`
 	} `json:"data"`
 }

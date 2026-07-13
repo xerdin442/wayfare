@@ -61,43 +61,22 @@ func (h *PaymentEventsHandler) markTripAsCompleted(ctx context.Context, p *messa
 	return nil
 }
 
-func (h *PaymentEventsHandler) calculateTransactionFee(amount int64, p types.PaymentProvider, t types.TransactionType) float64 {
-	switch p {
-	case types.ProviderPaystack:
-		if t == types.TransactionPayout {
-			var fee float64
-			switch {
-			case amount <= 5000:
-				fee = 10
-			case amount > 5000 && amount <= 50000:
-				fee = 25
-			case amount > 50000:
-				fee = 50
-			}
-
-			if amount >= 10000 {
-				fee += 50
-			}
-
-			return fee
-		}
-
-		fee := float64(amount) * 0.015
-		if amount >= 2500 {
-			fee += 100
-			if fee > 2000 {
-				fee = 2000
-			}
-		}
-
-		return fee
-	case types.ProviderFlutterwave:
-		charge := float64(amount) * 0.02
-		vat := charge * 0.075
-		return charge + vat
+func (h *PaymentEventsHandler) calculateTransferFee(amount int64) int64 {
+	var fee int64
+	switch {
+	case amount <= 500000:
+		fee = 1000
+	case amount > 500000 && amount <= 5000000:
+		fee = 2500
+	case amount > 5000000:
+		fee = 5000
 	}
 
-	return 0
+	if amount >= 1000000 {
+		fee += 5000 // stamp duty
+	}
+
+	return fee
 }
 
 func (h *PaymentEventsHandler) checkTransferRetries(ctx context.Context, recipientCode string) error {

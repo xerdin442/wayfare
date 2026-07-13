@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -71,11 +72,6 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return err
 		}
 
-		txnFee := h.calculateTransactionFee(transaction.Amount/100, types.ProviderPaystack, transaction.Type)
-		if transaction.Type == types.TransactionPayout {
-			txnFee = float64(transaction.TransferFee / 100)
-		}
-
 		// Idempotent processing to skip settled transactions
 		if transaction.Status != types.PaymentStatusPending {
 			return nil
@@ -140,7 +136,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 					RiderComment:   metadata.RiderComment,
 					Rating:         metadata.TripRating,
 					DriverTip:      metadata.DriverTip,
-					TransactionFee: int64(txnFee * 100),
+					TransactionFee: webhook.Data.ProcessingFee,
 				}
 			}
 		}
@@ -151,12 +147,15 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			PaymentStatus:   updatedStatus,
 			Amount:          decimal.NewFromInt(transaction.Amount / 100),
 			TransactionType: transaction.Type,
-			TransactionFee:  decimal.NewFromFloat(txnFee),
+			TransactionFee:  decimal.NewFromInt(webhook.Data.ProcessingFee / 100),
 		}
 
 	case types.ProviderFlutterwave:
 		webhook := payload.FlutterwaveWebhook
 		metadata := webhook.Data.Meta
+
+		paidAmount := int64(math.Round(webhook.Data.Amount * 100))
+		txnFee := int64(math.Round(webhook.Data.ProcessingFee * 100))
 
 		transaction, err := h.repo.GetTransactionByID(ctx, webhook.Data.TxRef)
 		if err != nil {
@@ -168,7 +167,7 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			return nil
 		}
 
-		if transaction.Amount == webhook.Data.Amount*100 && webhook.Event == "charge.completed" {
+		if transaction.Amount == paidAmount && webhook.Event == "charge.completed" {
 			switch webhook.Data.Status {
 			case "successful":
 				updatedStatus = types.PaymentStatusSuccess
@@ -193,15 +192,13 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			log.Warn().Err(err).Str("txn_id", transaction.ID.Hex()).Msg("Failed to send transaction status to rider")
 		}
 
-		txnFee := h.calculateTransactionFee(webhook.Data.Amount, types.ProviderFlutterwave, transaction.Type)
-
 		if updatedStatus == types.PaymentStatusSuccess {
 			tripServicePayload = &messaging.TripUpdateQueuePayload{
 				TripID:         metadata.TripID,
 				RiderComment:   metadata.RiderComment,
 				Rating:         metadata.TripRating,
 				DriverTip:      metadata.DriverTip,
-				TransactionFee: int64(txnFee * 100),
+				TransactionFee: txnFee,
 			}
 		}
 
@@ -209,9 +206,9 @@ func (h *PaymentEventsHandler) HandleWebhook(ctx context.Context, p messaging.Am
 			TransactionRef:  webhook.Data.TxRef,
 			PaymentProvider: payload.Provider,
 			PaymentStatus:   updatedStatus,
-			Amount:          decimal.NewFromInt(webhook.Data.Amount),
+			Amount:          decimal.NewFromInt(paidAmount),
 			TransactionType: transaction.Type,
-			TransactionFee:  decimal.NewFromFloat(txnFee),
+			TransactionFee:  decimal.NewFromInt(txnFee),
 		}
 
 	default:
@@ -336,12 +333,12 @@ func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messagi
 	// Create payout transactions
 	var txnData []repo.CreateTransactionData
 	for _, d := range payoutPayload.Drivers {
-		txnFee := h.calculateTransactionFee(d.PendingPayout/100, types.ProviderPaystack, types.TransactionPayout) * 100
+		txnFee := h.calculateTransferFee(d.PendingPayout)
 		txnData = append(txnData, repo.CreateTransactionData{
 			DriverRecipientCode: d.TransferRecipientCode,
-			Amount:              d.PendingPayout - int64(txnFee),
+			Amount:              d.PendingPayout - txnFee,
 			Type:                types.TransactionPayout,
-			TransferFee:         int64(txnFee),
+			TransferFee:         txnFee,
 		})
 	}
 
@@ -353,9 +350,9 @@ func (h *PaymentEventsHandler) HandleDriverPayout(ctx context.Context, p messagi
 	// Configure bulk transfer payload
 	var transfers []*contracts.TransferDetails
 	for i, d := range payoutPayload.Drivers {
-		txnFee := h.calculateTransactionFee(d.PendingPayout/100, types.ProviderPaystack, types.TransactionPayout)
+		txnFee := h.calculateTransferFee(d.PendingPayout)
 		transfers = append(transfers, &contracts.TransferDetails{
-			Amount:    d.PendingPayout - int64(txnFee*100),
+			Amount:    d.PendingPayout - txnFee,
 			Recipient: d.TransferRecipientCode,
 			Reference: txnIDs[i],
 			Reason:    "WAYFARE INC. - Driver Payout",

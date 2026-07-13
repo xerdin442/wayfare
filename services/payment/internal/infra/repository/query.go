@@ -226,17 +226,12 @@ func (r *PaymentRepository) UpdateBatchTransactions(ctx context.Context, txnIDs 
 		idsHex = append(idsHex, hex)
 	}
 
-	updateData := bson.M{
-		"status":     status,
-		"updated_at": time.Now().UTC(),
-	}
-
-	if provider != "" {
-		updateData["provider"] = provider
-	}
-
 	update := bson.M{
-		"$set": updateData,
+		"$set": bson.M{
+			"status":     status,
+			"updated_at": time.Now().UTC(),
+			"provider":   provider,
+		},
 	}
 
 	if _, err := r.txnColl.UpdateMany(ctx, bson.M{"_id": bson.M{"$in": idsHex}}, update); err != nil {

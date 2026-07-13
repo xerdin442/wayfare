@@ -176,14 +176,14 @@ func (s *PaymentService) buildCheckoutPayloads(req *pb.InitiateCheckoutRequest, 
 
 	paystackPayload := &contracts.PaystackCheckoutRequest{
 		Email:     req.Email,
-		Amount:    amount,
+		Amount:    amount + metadata.DriverTip, // kobo amount
 		Reference: txnID,
 		Channels:  []string{"bank_transfer"},
 		Metadata:  string(paystackMetadata),
 	}
 
 	flutterwavePayload := &contracts.FlutterwaveCheckoutRequest{
-		Amount: amount / 100,
+		Amount: (amount / 100) + req.DriverTip, // naira amount
 		TxRef:  txnID,
 		Meta:   metadata,
 		Customer: &contracts.FlutterwaveCustomer{
@@ -381,6 +381,8 @@ func (s *PaymentService) InitiateCheckout(ctx context.Context, req *pb.InitiateC
 
 				return nil, status.Error(codes.Internal, "internal server error")
 			}
+
+			return &pb.InitiateCheckoutResponse{CheckoutUrl: checkoutUrl}, nil
 		}
 
 		return nil, status.Error(codes.Internal, "internal server error")
