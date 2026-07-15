@@ -59,6 +59,17 @@ func main() {
 	}
 	defer metricsShutdown(ctx)
 
+	// Initialize analytics
+	conn, err := analytics.SetupProvider(ctx, &analytics.AnalyticsConfig{
+		ConnectionUri: env.ClickHouseUri,
+		Username:      env.ClickHouseUsername,
+		Password:      env.ClickHousePassword,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize analytics")
+	}
+	defer conn.Close()
+
 	// Initialize logger
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
@@ -72,7 +83,6 @@ func main() {
 	rmq := messaging.NewRabbitMQ(env.AmqpUri)
 	defer rmq.Close()
 
-	// Initialize gRPC clients
 	grpcClients := client.NewRegistry(env.ServicePort, env.Environment == "development")
 	defer grpcClients.Close()
 
@@ -91,9 +101,13 @@ func main() {
 		HttpClient: tracing.NewHttpClient(),
 	}
 
-	h := events.NewGatewayEventsHandler(baseCfg)
-	w := messaging.NewEventWorker(rmq, messaging.GatewayQueue)
-	w.RegisterHandler(h.HandleOutgoingWebsocketMessages, "user.*")
+	gatewayHandler := events.NewGatewayEventsHandler(baseCfg)
+	w1 := messaging.NewEventWorker(rmq, messaging.GatewayQueue)
+	w1.RegisterHandler(gatewayHandler.HandleOutgoingWebsocketMessages, "user.*")
+
+	analyticsHandler := analytics.NewAnalyticsEventHandler(conn)
+	w2 := messaging.NewEventWorker(rmq, messaging.AnalyticsQueue)
+	w2.RegisterHandler(analyticsHandler.HandleAnalyticsEvent, messaging.AnalyticsEventUpdate)
 
 	app := &application{
 		port:   env.GatewayPort,
@@ -101,21 +115,13 @@ func main() {
 	}
 
 	g.Go(func() error {
-		log.Info().Msg("Setting up analytics provider...")
-
-		cfg := &analytics.AnalyticsConfig{
-			Bus:           rmq,
-			ConnectionUri: env.ClickHouseUri,
-			Username:      env.ClickHouseUsername,
-			Password:      env.ClickHousePassword,
-		}
-
-		return analytics.SetupProvider(ctx, cfg)
+		log.Info().Msg("Starting gateway event worker...")
+		return w1.Start()
 	})
 
 	g.Go(func() error {
-		log.Info().Msg("Starting event worker...")
-		return w.Start()
+		log.Info().Msg("Starting analytics event worker...")
+		return w2.Start()
 	})
 
 	g.Go(func() error {

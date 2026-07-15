@@ -6,18 +6,18 @@ import (
 	"fmt"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	"github.com/xerdin442/wayfare/shared/models"
 )
 
 type AnalyticsConfig struct {
-	Bus           messaging.MessageBus
 	ConnectionUri string
 	Username      string
 	Password      string
 }
 
-func SetupProvider(ctx context.Context, cfg *AnalyticsConfig) error {
+func SetupProvider(ctx context.Context, cfg *AnalyticsConfig) (driver.Conn, error) {
 	conn, err := clickhouse.Open(&clickhouse.Options{
 		Addr: []string{cfg.ConnectionUri},
 		Auth: clickhouse.Auth{
@@ -36,19 +36,14 @@ func SetupProvider(ctx context.Context, cfg *AnalyticsConfig) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("Failed to connect to analytics provider: %v", err)
+		return nil, fmt.Errorf("Failed to connect to analytics provider: %v", err)
 	}
-	defer conn.Close()
 
 	if err := models.CreateAnalyticsTable(ctx, conn); err != nil {
-		return fmt.Errorf("Failed to create analytics table: %v", err)
+		return nil, fmt.Errorf("Failed to create analytics table: %v", err)
 	}
 
-	h := NewAnalyticsEventHandler(conn)
-	w := messaging.NewEventWorker(cfg.Bus, messaging.AnalyticsQueue)
-	w.RegisterHandler(h.HandleAnalyticsEvent, messaging.AnalyticsEventUpdate)
-
-	return w.Start()
+	return conn, nil
 }
 
 func SendEvent(ctx context.Context, bus messaging.MessageBus, e *models.TripEventModel) error {
