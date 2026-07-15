@@ -45,6 +45,7 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     environment:
+      - CLICKHOUSE_DB=wayfare
       - CLICKHOUSE_USER=${ROOT_USERNAME}
       - CLICKHOUSE_PASSWORD=${ROOT_PASSWORD}
       - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
