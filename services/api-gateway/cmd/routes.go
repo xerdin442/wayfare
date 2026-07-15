@@ -78,7 +78,7 @@ func (app *application) routes() http.Handler {
 	{
 		trip.POST("/start", otelgin.Middleware("trip.start"), h.HandleStartTrip)
 		trip.POST("/preview", otelgin.Middleware("trip.preview"), h.HandleTripPreview)
-		trip.POST("/:id/pay", otelgin.Middleware("trip.pay"), h.HandleInitiateCheckout)
+		trip.POST("/:id/pay", otelgin.Middleware("trip.checkout"), h.HandleInitiateCheckout)
 		trip.GET("/:id/chat", otelgin.Middleware("trip.chat"), h.HandleTripChat)
 		trip.GET("/history", otelgin.Middleware("trip.history"), h.HandleTripHistory)
 	}
