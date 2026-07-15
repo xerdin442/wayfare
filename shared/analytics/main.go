@@ -38,8 +38,11 @@ func SetupProvider(ctx context.Context, cfg *AnalyticsConfig) error {
 	if err != nil {
 		return fmt.Errorf("Failed to connect to analytics provider: %v", err)
 	}
-
 	defer conn.Close()
+
+	if err := conn.Exec(ctx, "CREATE DATABASE IF NOT EXISTS wayfare"); err != nil {
+		return fmt.Errorf("Failed to create analytics database: %v", err)
+	}
 
 	if err := models.CreateAnalyticsTable(ctx, conn); err != nil {
 		return fmt.Errorf("Failed to create analytics table: %v", err)

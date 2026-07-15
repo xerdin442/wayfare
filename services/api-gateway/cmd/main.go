@@ -101,11 +101,6 @@ func main() {
 	}
 
 	g.Go(func() error {
-		log.Info().Msg("Starting event worker...")
-		return w.Start()
-	})
-
-	g.Go(func() error {
 		log.Info().Msg("Setting up analytics provider...")
 
 		cfg := &analytics.AnalyticsConfig{
@@ -116,6 +111,11 @@ func main() {
 		}
 
 		return analytics.SetupProvider(ctx, cfg)
+	})
+
+	g.Go(func() error {
+		log.Info().Msg("Starting event worker...")
+		return w.Start()
 	})
 
 	g.Go(func() error {
