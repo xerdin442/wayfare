@@ -253,10 +253,12 @@ func (s *TripService) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 				Pickup: types.Coordinate{
 					Latitude:  lastTrip.Route.Pickup.Coordinates.Lat(),
 					Longitude: lastTrip.Route.Pickup.Coordinates.Lon(),
+					Address:   lastTrip.Route.Addresses[0],
 				},
 				Destination: types.Coordinate{
 					Latitude:  lastTrip.Route.Destination.Coordinates.Lat(),
 					Longitude: lastTrip.Route.Destination.Coordinates.Lon(),
+					Address:   lastTrip.Route.Addresses[1],
 				},
 				Date: lastTrip.CreatedAt,
 			},
