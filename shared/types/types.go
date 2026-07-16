@@ -113,7 +113,7 @@ type Driver struct {
 	CarColor            string     `json:"carColor"`
 	PackageSlug         CarPackage `json:"packageSlug"`
 	CurrentRating       float64    `json:"currentRating"`
-	TotalCompletedTrips int64      `json:"totalCompletedTrips"`
+	TotalCompletedTrips int32      `json:"totalCompletedTrips"`
 	Tier                DriverTier `json:"tier"`
 }
 

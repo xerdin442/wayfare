@@ -2,15 +2,18 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
+	"github.com/xerdin442/wayfare/shared/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,8 +30,16 @@ func (h *RouteHandler) HandleTripPreview(c *gin.Context) {
 	var req contracts.PreviewTripRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Error parsing preview trip request")
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": "Validation failed",
+				"errors":  util.FormatValidationErrors(err, &req),
+			})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 		return
 	}
 
@@ -78,8 +89,16 @@ func (h *RouteHandler) HandleStartTrip(c *gin.Context) {
 	var req contracts.StartTripRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Start trip request failed")
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": "Validation failed",
+				"errors":  util.FormatValidationErrors(err, &req),
+			})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 		return
 	}
 

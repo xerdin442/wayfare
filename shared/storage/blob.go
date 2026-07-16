@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -49,7 +50,11 @@ func ProcessFileUpload(ctx context.Context, cfg *FileUploadConfig, part *multipa
 		return "", err
 	}
 
-	cld, _ := cloudinary.NewFromParams(cfg.CloudName, cfg.ApiKey, cfg.CloudSecret)
+	cld, err := cloudinary.NewFromParams(cfg.CloudName, cfg.ApiKey, cfg.CloudSecret)
+	if err != nil {
+		return "", fmt.Errorf("failed to init cloudinary instance: %v", err)
+	}
+
 	result, err := cld.Upload.Upload(ctx, file, uploader.UploadParams{
 		Folder: cfg.Folder + path,
 	})

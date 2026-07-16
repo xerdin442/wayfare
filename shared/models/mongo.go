@@ -71,7 +71,7 @@ type TripModel struct {
 	Route        RouteDetails     `bson:"route"`
 	StartedAt    time.Time        `bson:"started_at,omitempty"`
 	EndedAt      time.Time        `bson:"ended_at,omitempty"`
-	Rating       int64            `bson:"rating,omitempty"`
+	Rating       int32            `bson:"rating,omitempty"`
 	RiderComment string           `bson:"rider_comment,omitempty"`
 	DriverTip    int64            `bson:"driver_tip,omitempty"`
 	CreatedAt    time.Time        `bson:"created_at"`
@@ -92,7 +92,7 @@ type DriverModel struct {
 	CarModel              string             `bson:"car_model"`
 	CarColor              string             `bson:"car_color"`
 	CurrentRating         float64            `bson:"current_rating"`
-	TotalCompletedTrips   int64              `bson:"total_completed_trips"`
+	TotalCompletedTrips   int32              `bson:"total_completed_trips"`
 	LifetimeRatingAvg     float64            `bson:"lifetime_rating_avg"`
 	AvailableBalance      int64              `bson:"available_balance"`
 	PendingPayout         int64              `bson:"pending_payout"`

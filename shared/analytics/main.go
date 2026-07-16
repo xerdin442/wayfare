@@ -20,7 +20,7 @@ type AnalyticsConfig struct {
 }
 
 func SetupProvider(ctx context.Context, cfg *AnalyticsConfig) (driver.Conn, error) {
-	opts := &clickhouse.Options{
+	conn, _ := clickhouse.Open(&clickhouse.Options{
 		Addr: []string{cfg.ConnectionUri},
 		Auth: clickhouse.Auth{
 			Database: "wayfare",
@@ -35,23 +35,21 @@ func SetupProvider(ctx context.Context, cfg *AnalyticsConfig) (driver.Conn, erro
 		Compression: &clickhouse.Compression{
 			Method: clickhouse.CompressionLZ4,
 		},
-	}
+	})
 
-	var conn driver.Conn
-	var err error
-
-	for range 3 {
-		conn, err = clickhouse.Open(opts)
-		if err == nil {
+	var pingErr error
+	for range 10 {
+		pingErr = conn.Ping(ctx)
+		if pingErr == nil {
 			break
 		}
 
 		log.Warn().Msg("Waiting for analytics provider...")
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 20)
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("Could not connect to analytics provider after 3 attempts. %v", err)
+	if pingErr != nil {
+		return nil, fmt.Errorf("Could not connect to analytics provider after 10 attempts. %v", pingErr)
 	}
 
 	if err := models.CreateAnalyticsTable(ctx, conn); err != nil {

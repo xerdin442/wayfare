@@ -38,7 +38,7 @@ message Driver {
   string car_color             = 8;
   string package_slug          = 9;
   double current_rating        = 10;
-  int64  total_completed_trips = 11;
+  int32  total_completed_trips = 11;
   string tier                  = 12;
 }
 

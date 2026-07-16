@@ -4,6 +4,7 @@ import (
 	"context"
 	crypto "crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/middleware"
@@ -75,8 +77,16 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		var req contracts.SignupDriverRequest
 		if err := c.ShouldBind(&req); err != nil {
 			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Failed to parse driver signup request")
-			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+
+			var ve validator.ValidationErrors
+			if errors.As(err, &ve) {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"message": "Validation failed",
+					"errors":  util.FormatValidationErrors(err, &req),
+				})
+				return
+			}
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -115,8 +125,8 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
-		verificationPhotos := make([]string, len(req.VerificationPhotos))
-		for i, photo := range req.VerificationPhotos {
+		verificationPhotos := make([]string, 0, len(req.VerificationPhotos))
+		for _, photo := range req.VerificationPhotos {
 			url, err := storage.ProcessFileUpload(ctx, h.cfg.Uploader, photo, "/drivers/verification")
 			if err != nil {
 				tracing.HandleError(span, err)
@@ -129,7 +139,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 				}
 				return
 			}
-			verificationPhotos[i] = url
+			verificationPhotos = append(verificationPhotos, url)
 		}
 
 		res, err := h.cfg.Clients.Driver.Signup(ctx, &pb.SignupDriverRequest{
@@ -170,8 +180,16 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		var req contracts.SignupRiderRequest
 		if err := c.ShouldBind(&req); err != nil {
 			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Failed to parse rider signup request")
-			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+
+			var ve validator.ValidationErrors
+			if errors.As(err, &ve) {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"message": "Validation failed",
+					"errors":  util.FormatValidationErrors(err, &req),
+				})
+				return
+			}
+			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 			return
 		}
 
@@ -262,8 +280,16 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 	var req contracts.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Failed to parse login request")
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": "Validation failed",
+				"errors":  util.FormatValidationErrors(err, &req),
+			})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 		return
 	}
 

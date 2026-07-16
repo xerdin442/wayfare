@@ -12,12 +12,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/shared/contracts"
 	"github.com/xerdin442/wayfare/shared/messaging"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
+	"github.com/xerdin442/wayfare/shared/util"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -46,8 +48,16 @@ func (h *RouteHandler) HandleInitiateCheckout(c *gin.Context) {
 	var req contracts.InitiateCheckoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Error parsing initiate checkout request")
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": "Validation failed",
+				"errors":  util.FormatValidationErrors(err, &req),
+			})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 		return
 	}
 
