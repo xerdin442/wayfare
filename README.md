@@ -60,14 +60,18 @@ Clone this repository and follow the instructions to set up the project locally:
 ### 4. Run the Services
 
 - All services run inside Docker by default. Use `docker compose up -d --build` to start the full stack (infra + services).
-
-- > Remove the `--build` flag when not making any changes to the services.
+  > Remove the `--build` flag when not making any changes to the services.
 
 - When all services are running, the API gateway will be available at: `http://localhost:8080`
 - After making updates to a service, rebuild and restart using: `docker compose up -d --no-deps --build <service-name>` (e.g., `docker compose up -d --no-deps --build api-gateway`)
 - To stop all services, use: `docker compose down` (To remove data volumes, use `docker compose down -v`)
 
-### 5. Monitoring
+### 5. Seed Database
+
+- The database must be seeded with `regions` and `pricing` documents for trip previews to work.
+- These may be imported as JSON documents into MongoDB using the MongoDB Compass GUI.
+
+### 6. Monitoring
 
 - **Jaeger UI**: View distributed traces at `http://localhost:16686`
 - **Prometheus**: View application metrics at `http://localhost:9090`
@@ -132,8 +136,8 @@ All endpoints are prefixed with `/api/v1` except system and websocket endpoints.
 
 ```mermaid
 flowchart TD
-    A[Rider: Preview Trip] -->|POST /trip/preview| B[TripService: Calculate Fares]
-    B --> C[Return Fare Estimates]
+    A[Rider: Preview Trip] -->|POST /trip/preview| B[TripService: Check Demand/Supply & Weather Conditions]
+    B --> C[TripService: Calculate Fare Estimates]
     C --> D[Rider: Start Trip]
     D -->|POST /trip/start| E[TripService: Create Trip]
     E --> F[trip.event.created]
@@ -142,7 +146,7 @@ flowchart TD
     H -->|No| I[trip.event.no_drivers_found]
     I --> J[Trip Status: aborted]
     J --> K[Notify Rider: No Drivers]
-    H -->|Yes| L[Send trip_request via WebSocket]
+    H -->|Yes| L[driver.event.trip_request]
     L --> M{Driver Response}
     M -->|Decline| N[trip.event.driver_not_interested]
     N --> G
@@ -157,7 +161,7 @@ flowchart TD
     V -->|POST /trip/:id/pay| W[PaymentService: Initiate Checkout]
     W --> X[Checkout URL → Redirect to Provider]
     X --> Y[Provider Webhook]
-    Y -->|POST /payment/callback| Z{Payment Status?}
+    Y -->|POST /payment/callback| Z{Payment Status}
     Z -->|Failed| AA[Trip Status: cancelled]
     Z -->|Success| AB[Trip Status: completed]
 ```
