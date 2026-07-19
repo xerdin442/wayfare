@@ -61,7 +61,7 @@ Clone this repository and follow the instructions to set up the project locally:
 
 - All services run inside Docker by default. Use `docker compose up -d --build` to start the full stack (infra + services).
 
-> Remove the `--build` flag when not making any changes to the services.
+- > Remove the `--build` flag when not making any changes to the services.
 
 - When all services are running, the API gateway will be available at: `http://localhost:8080`
 - After making updates to a service, rebuild and restart using: `docker compose up -d --no-deps --build <service-name>` (e.g., `docker compose up -d --no-deps --build api-gateway`)
@@ -136,31 +136,30 @@ flowchart TD
     B --> C[Return Fare Estimates]
     C --> D[Rider: Start Trip]
     D -->|POST /trip/start| E[TripService: Create Trip]
-    E --> F[Publish trip.event.created]
+    E --> F[trip.event.created]
     F --> G[DriverService: Find Nearby Drivers]
     G -->|Redis GeoSearch| H{Driver Available?}
-    H -->|Yes| I[Send trip_request via WebSocket]
-    H -->|No| J[trip.event.no_drivers_found]
+    H -->|No| I[trip.event.no_drivers_found]
+    I --> J[Trip Status: aborted]
     J --> K[Notify Rider: No Drivers]
-    I --> L{Driver Response}
-    L -->|Accept| M[trip.event.driver_assigned]
-    L -->|Decline| N[trip.event.driver_not_interested]
+    H -->|Yes| L[Send trip_request via WebSocket]
+    L --> M{Driver Response}
+    M -->|Decline| N[trip.event.driver_not_interested]
     N --> G
-    M --> O[Trip Status: matched]
-    O --> P[Driver: Confirm Pickup]
-    P --> Q[Driver: Start Trip]
-    Q --> R[Trip Status: active]
-    R --> S[Driver: End Trip]
-    S --> T[trip.event.payment_required]
-    T --> U[Rider: Pay for Trip]
-    U -->|POST /trip/:id/pay| V[PaymentService: Initiate Checkout]
-    V --> W[Checkout URL → Redirect to Provider]
-    W --> X[Provider Webhook]
-    X -->|POST /payment/callback| Y{Payment Status?}
-    Y -->|Success| Z[Trip Status: completed]
-    Y -->|Failed| AA[Trip Status: cancelled]
-    Z --> AB[Rider: Rate Trip]
-    AB --> AC[trip.cmd.rated]
+    M -->|Accept| O[trip.event.driver_assigned]
+    O --> P[Trip Status: matched]
+    P --> Q[Driver: Confirm Pickup]
+    Q --> R[Driver: Start Trip]
+    R --> S[Trip Status: active]
+    S --> T[Driver: End Trip]
+    T --> U[trip.event.payment_required]
+    U --> V[Rider: Pay for Trip]
+    V -->|POST /trip/:id/pay| W[PaymentService: Initiate Checkout]
+    W --> X[Checkout URL → Redirect to Provider]
+    X --> Y[Provider Webhook]
+    Y -->|POST /payment/callback| Z{Payment Status?}
+    Z -->|Failed| AA[Trip Status: cancelled]
+    Z -->|Success| AB[Trip Status: completed]
 ```
 
 ## Payment Processing
