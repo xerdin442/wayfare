@@ -90,6 +90,9 @@ func (r *PaymentRepository) GetTransactionByFilterID(ctx context.Context, id str
 	var transaction models.TransactionModel
 	err = r.txnColl.FindOne(ctx, filter).Decode(&transaction)
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		}
 		log.Error().Err(err).Str("collection", "transactions").Msg("Database query error")
 		return nil, err
 	}

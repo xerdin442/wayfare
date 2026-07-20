@@ -26,16 +26,29 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type paymentRepository interface {
+	GetTripByID(ctx context.Context, tripId string) (*models.TripModel, error)
+	GetDriverByID(ctx context.Context, driverId string) (*models.DriverModel, error)
+	GetTransactionByFilterID(ctx context.Context, id string) (*models.TransactionModel, error)
+	CreateTransaction(ctx context.Context, data *repo.CreateTransactionData) (string, error)
+	UpdateTransaction(ctx context.Context, txnId string, status types.PaymentStatus, provider types.PaymentProvider) error
+}
+
+type paymentCache interface {
+	Exists(ctx context.Context, keys ...string) *redis.IntCmd
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+}
+
 type PaymentService struct {
 	pb.UnimplementedPaymentServiceServer
-	repo       *repo.PaymentRepository
-	cache      *redis.Client
+	repo       paymentRepository
+	cache      paymentCache
 	bus        messaging.MessageBus
 	env        *secrets.Secrets
 	httpClient *http.Client
 }
 
-func NewPaymentService(r *repo.PaymentRepository, b messaging.MessageBus, c *redis.Client, s *secrets.Secrets) *PaymentService {
+func NewPaymentService(r paymentRepository, b messaging.MessageBus, c paymentCache, s *secrets.Secrets) *PaymentService {
 	return &PaymentService{
 		repo:       r,
 		cache:      c,

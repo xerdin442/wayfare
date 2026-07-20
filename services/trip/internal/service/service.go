@@ -13,7 +13,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/shopspring/decimal"
 	"github.com/twpayne/go-polyline"
-	repo "github.com/xerdin442/wayfare/services/trip/internal/infra/repository"
 	"github.com/xerdin442/wayfare/services/trip/internal/secrets"
 	"github.com/xerdin442/wayfare/shared/analytics"
 	"github.com/xerdin442/wayfare/shared/contracts"
@@ -27,16 +26,31 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type tripRepository interface {
+	GetLastUnratedTrip(ctx context.Context, userId string) (*models.TripModel, error)
+	GetPricingPerRegion(ctx context.Context, regionId string) ([]*models.PricingModel, error)
+	GetActiveTripRequests(ctx context.Context, pickupCoords orb.Point) (int64, error)
+	StoreRideFares(ctx context.Context, rideFares []*pb.RideFare, route models.RouteDetails, userId, regionId string) error
+	CreateTrip(ctx context.Context, fareId, userId string) (*models.TripModel, error)
+	GetTripByID(ctx context.Context, tripId string) (*models.TripModel, error)
+	GetUserTripHistory(ctx context.Context, userId string) ([]*models.TripModel, error)
+	GetRegionBounds(ctx context.Context, pickupCoords orb.Point) (*models.RegionModel, error)
+}
+
+type tripCache interface {
+	Scan(ctx context.Context, cursor uint64, match string, count int64) *redis.ScanCmd
+}
+
 type TripService struct {
 	pb.UnimplementedTripServiceServer
-	repo       *repo.TripRepository
+	repo       tripRepository
 	queue      messaging.MessageBus
-	cache      *redis.Client
+	cache      tripCache
 	env        *secrets.Secrets
 	httpClient *http.Client
 }
 
-func NewTripService(r *repo.TripRepository, q messaging.MessageBus, c *redis.Client, s *secrets.Secrets) *TripService {
+func NewTripService(r tripRepository, q messaging.MessageBus, c tripCache, s *secrets.Secrets) *TripService {
 	return &TripService{
 		repo:       r,
 		queue:      q,
