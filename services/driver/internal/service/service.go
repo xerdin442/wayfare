@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	repo "github.com/xerdin442/wayfare/services/driver/internal/infra/repository"
+	"github.com/xerdin442/wayfare/shared/models"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/types"
 	"github.com/xerdin442/wayfare/shared/util"
@@ -12,12 +12,18 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type DriverService struct {
-	pb.UnimplementedDriverServiceServer
-	repo *repo.DriverRepository
+type driverRepository interface {
+	GetDriverByID(ctx context.Context, driverId string) (*models.DriverModel, error)
+	GetDriverByEmail(ctx context.Context, email string) (*models.DriverModel, error)
+	CreateDriverAccount(ctx context.Context, details *pb.SignupDriverRequest) (*models.DriverModel, error)
 }
 
-func NewDriverService(r *repo.DriverRepository) *DriverService {
+type DriverService struct {
+	pb.UnimplementedDriverServiceServer
+	repo driverRepository
+}
+
+func NewDriverService(r driverRepository) *DriverService {
 	return &DriverService{
 		repo: r,
 	}

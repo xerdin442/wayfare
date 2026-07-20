@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	repo "github.com/xerdin442/wayfare/services/rider/internal/repository"
+	"github.com/xerdin442/wayfare/shared/models"
 	pb "github.com/xerdin442/wayfare/shared/pkg"
 	"github.com/xerdin442/wayfare/shared/util"
 	"golang.org/x/crypto/bcrypt"
@@ -11,12 +11,18 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type RiderService struct {
-	pb.UnimplementedRiderServiceServer
-	repo *repo.RiderRepository
+type riderRepository interface {
+	GetRiderByID(ctx context.Context, riderId string) (*models.RiderModel, error)
+	GetRiderByEmail(ctx context.Context, email string) (*models.RiderModel, error)
+	CreateRiderAccount(ctx context.Context, details *pb.SignupRiderRequest) (*models.RiderModel, error)
 }
 
-func NewRiderService(r *repo.RiderRepository) *RiderService {
+type RiderService struct {
+	pb.UnimplementedRiderServiceServer
+	repo riderRepository
+}
+
+func NewRiderService(r riderRepository) *RiderService {
 	return &RiderService{
 		repo: r,
 	}
