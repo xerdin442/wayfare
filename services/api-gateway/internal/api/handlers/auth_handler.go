@@ -1,9 +1,6 @@
 package handlers
 
 import (
-	"context"
-	crypto "crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -13,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/redis/go-redis/v9"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/middleware"
 	"github.com/xerdin442/wayfare/shared/contracts"
@@ -26,17 +23,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (h *RouteHandler) generateRefreshToken(c *gin.Context, traceCtx context.Context, userId string) error {
-	b := make([]byte, 32)
-	crypto.Read(b)
-	rfToken := hex.EncodeToString(b)
-
-	tokenDuration := 7 * 24 * time.Hour
-	err := h.cfg.Cache.Set(traceCtx, "refresh_token:"+rfToken, userId, tokenDuration).Err()
-	if err != nil {
-		return err
-	}
-
+func (h *RouteHandler) setRefreshCookie(c *gin.Context, refreshToken string) {
 	domain := "localhost"
 	if h.cfg.Env.Environment == "production" {
 		domain = fmt.Sprintf(".%s", h.cfg.Env.FrontendUrl)
@@ -44,20 +31,17 @@ func (h *RouteHandler) generateRefreshToken(c *gin.Context, traceCtx context.Con
 
 	c.SetCookie(
 		"refresh_token",
-		rfToken,
-		int(tokenDuration.Seconds()),
+		refreshToken,
+		int(middleware.RefreshTokenExpiry.Seconds()),
 		"/api/v1/auth/refresh",
 		domain,
 		h.cfg.Env.Environment == "production",
 		true,
 	)
 	c.SetSameSite(http.SameSiteStrictMode)
-
-	return nil
 }
 
 func (h *RouteHandler) HandleSignup(c *gin.Context) {
-	// Start tracer
 	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleSignup")
 	defer span.End()
 
@@ -204,7 +188,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 				case util.ErrUnsupportedFileType:
 					c.JSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
 				default:
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider signup failed"})
 				}
 				return
 			}
@@ -241,29 +225,23 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		userId = res.UserId
 	}
 
-	accessToken, err := middleware.GenerateAccessToken(userId, role, h.cfg.Env.JwtSecret)
+	pair, err := middleware.GenerateTokenPair(userId, role, h.cfg.Env.JwtSecret)
 	if err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Failed to generate access token")
+		logger.Error().Err(err).Msg("Failed to generate token pair")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s signup failed", role)})
 		return
 	}
 
-	if err := h.generateRefreshToken(c, ctx, userId); err != nil {
-		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Failed to generate refresh token")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s signup failed", role)})
-		return
-	}
+	h.setRefreshCookie(c, pair.RefreshToken)
 
 	logger.Info().Msg(fmt.Sprintf("%s signup successful", role))
 	c.JSON(http.StatusCreated, contracts.APIResponse{
-		Data: gin.H{"token": accessToken},
+		Data: gin.H{"token": pair.AccessToken},
 	})
 }
 
 func (h *RouteHandler) HandleLogin(c *gin.Context) {
-	// Start tracer
 	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleLogin")
 	defer span.End()
 
@@ -326,29 +304,23 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := middleware.GenerateAccessToken(authResp.UserId, role, h.cfg.Env.JwtSecret)
+	pair, err := middleware.GenerateTokenPair(authResp.UserId, role, h.cfg.Env.JwtSecret)
 	if err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Failed to generate access token")
+		logger.Error().Err(err).Msg("Failed to generate token pair")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s login failed", role)})
 		return
 	}
 
-	if err := h.generateRefreshToken(c, ctx, authResp.UserId); err != nil {
-		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Failed to generate refresh token")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s login failed", role)})
-		return
-	}
+	h.setRefreshCookie(c, pair.RefreshToken)
 
 	logger.Info().Msg(fmt.Sprintf("%s login successful", role))
 	c.JSON(http.StatusOK, contracts.APIResponse{
-		Data: gin.H{"token": accessToken},
+		Data: gin.H{"token": pair.AccessToken},
 	})
 }
 
 func (h *RouteHandler) HandleRefresh(c *gin.Context) {
-	// Start tracer
 	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleRefresh")
 	defer span.End()
 
@@ -370,47 +342,63 @@ func (h *RouteHandler) HandleRefresh(c *gin.Context) {
 		return
 	}
 
-	userId, err := h.cfg.Cache.Get(ctx, "refresh_token:"+oldToken).Result()
-	if err == redis.Nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired. Please log in"})
-		return
-	} else if err != nil {
-		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Failed to verify refresh token")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
-		return
-	}
-
-	if err := h.cfg.Cache.Del(ctx, "refresh_token:"+oldToken).Err(); err != nil {
-		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Failed to delete existing refresh token")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
-		return
-	}
-
-	accessToken, err := middleware.GenerateAccessToken(userId, role, h.cfg.Env.JwtSecret)
+	claims, err := middleware.ValidateRefreshToken(oldToken, h.cfg.Env.JwtSecret)
 	if err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Failed to generate access token")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
+		logger.Warn().Err(err).Msg("Invalid refresh token")
+
+		switch err {
+		case jwt.ErrTokenInvalidId, jwt.ErrSignatureInvalid:
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired. Please log in"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
+		}
 		return
 	}
 
-	if err := h.generateRefreshToken(c, ctx, userId); err != nil {
+	if claims.Role != role {
+		logger.Warn().Msg("Refresh token role does not match X-User-Role header")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired. Please log in"})
+		return
+	}
+
+	blacklisted, err := middleware.IsRefreshTokenBlacklisted(h.cfg.Cache, ctx, claims.ID)
+	if err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Failed to generate refresh token")
+		logger.Error().Err(err).Msg("Failed to check refresh token blacklist")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
+		return
+	}
+	if blacklisted {
+		logger.Warn().Msg("Refresh token has already been used")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired. Please log in"})
+		return
+	}
+
+	remainingTTL := time.Until(claims.ExpiresAt.Time)
+	if err := middleware.BlacklistRefreshToken(h.cfg.Cache, ctx, claims.ID, remainingTTL); err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("Failed to blacklist old refresh token")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
 		return
 	}
 
-	logger.Info().Msg("Token refresh successful")
+	pair, err := middleware.GenerateTokenPair(claims.SubjectID, claims.Role, h.cfg.Env.JwtSecret)
+	if err != nil {
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Msg("Failed to generate token pair")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
+		return
+	}
+
+	h.setRefreshCookie(c, pair.RefreshToken)
+
 	c.JSON(http.StatusOK, contracts.APIResponse{
-		Data: gin.H{"token": accessToken},
+		Data: gin.H{"token": pair.AccessToken},
 	})
 }
 
 func (h *RouteHandler) HandleLogout(c *gin.Context) {
-	// Start tracer
 	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleLogout")
 	defer span.End()
 
@@ -437,11 +425,16 @@ func (h *RouteHandler) HandleLogout(c *gin.Context) {
 		return
 	}
 
-	if err := h.cfg.Cache.Del(ctx, "refresh_token:"+rfToken).Err(); err != nil {
+	claims, err := middleware.ValidateRefreshToken(rfToken, h.cfg.Env.JwtSecret)
+	if err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Failed to delete refresh token")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Logout error"})
-		return
+		logger.Warn().Err(err).Msg("Invalid refresh token")
+	} else {
+		remainingTTL := time.Until(claims.ExpiresAt.Time)
+		if err := middleware.BlacklistRefreshToken(h.cfg.Cache, ctx, claims.ID, remainingTTL); err != nil {
+			tracing.HandleError(span, err)
+			logger.Error().Err(err).Msg("Failed to blacklist refresh token")
+		}
 	}
 
 	c.JSON(http.StatusOK, contracts.APIResponse{
@@ -450,7 +443,6 @@ func (h *RouteHandler) HandleLogout(c *gin.Context) {
 }
 
 func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
-	// Start tracer
 	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleUserProfile")
 	defer span.End()
 
@@ -502,7 +494,6 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 				},
 			},
 		})
-		return
 	}
 
 	if userRole == types.RoleRider {
@@ -539,6 +530,5 @@ func (h *RouteHandler) HandleUserProfile(c *gin.Context) {
 				},
 			},
 		})
-		return
 	}
 }

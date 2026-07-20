@@ -169,7 +169,7 @@ flowchart TD
 ## Payment Processing
 
 - **Ride Fare**: Riders pay for completed trips via Paystack (with automatic Flutterwave fallback). The checkout URL is returned to the client for redirect.
-- **Driver Payouts**: Three scheduled cron jobs (initial attempt, with two retries to handle unsettled/failed transactions) process pending driver payouts.
+- **Driver Payouts**: Three scheduled cron jobs process pending driver payouts(initial attempt, with two retries to handle unsettled/failed transactions).
 - **Returns**: Drivers can have outstanding returns (when riders pay with cash). These can be paid back via the `/driver/returns/pay` endpoint.
 
-Happy Riding! :car:
+Happy riding! :car:
