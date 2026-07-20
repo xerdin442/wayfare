@@ -162,7 +162,7 @@ flowchart TD
     W --> X[Checkout URL → Redirect to Provider]
     X --> Y[Provider Webhook]
     Y -->|POST /payment/callback| Z{Payment Status}
-    Z -->|Failed| AA[Trip Status: cancelled]
+    Z -->|Failed| AA[Notify Rider: Payment Retry or Cash Payment]
     Z -->|Success| AB[Trip Status: completed]
 ```
 
