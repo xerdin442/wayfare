@@ -14,6 +14,13 @@ func (m *Middleware) CustomRequestLogger() gin.HandlerFunc {
 		path := c.Request.URL.Path
 		query := c.Request.URL.RawQuery
 
+		// Attach a request-scoped logger to the context
+		reqLogger := log.With().
+			Str("method", c.Request.Method).
+			Str("path", path).
+			Logger()
+		c.Request = c.Request.WithContext(reqLogger.WithContext(c.Request.Context()))
+
 		c.Next()
 
 		// Display log level based on HTTP status

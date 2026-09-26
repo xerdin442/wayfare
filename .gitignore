@@ -33,6 +33,9 @@ go.work.sum
 # wsl
 *.tar.gz
 
+# agents
+AGENTS.md
+
 # Editor/IDE
 # .idea/
 # .vscode/

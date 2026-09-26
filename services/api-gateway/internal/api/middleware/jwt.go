@@ -71,10 +71,16 @@ func generateJWT(userID string, role types.UserRole, secretKey string, expiry ti
 	return token.SignedString([]byte(secretKey))
 }
 
-func ValidateRefreshToken(tokenString string, secretKey string) (*AllClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &AllClaims{}, func(token *jwt.Token) (any, error) {
-		return []byte(secretKey), nil
-	})
+func parseToken(tokenString, secretKey, expectedType string) (*AllClaims, error) {
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&AllClaims{},
+		func(token *jwt.Token) (any, error) {
+			return []byte(secretKey), nil
+		},
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithExpirationRequired(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -84,27 +90,25 @@ func ValidateRefreshToken(tokenString string, secretKey string) (*AllClaims, err
 		return nil, jwt.ErrSignatureInvalid
 	}
 
-	if claims.TokenType != TokenTypeRefresh {
-		return nil, jwt.ErrTokenInvalidId
+	// Prevents a refresh token being used as an access token and vice versa
+	if claims.TokenType != expectedType {
+		return nil, jwt.ErrTokenInvalidClaims
 	}
 
 	return claims, nil
+}
+
+func ValidateRefreshToken(tokenString string, secretKey string) (*AllClaims, error) {
+	return parseToken(tokenString, secretKey, TokenTypeRefresh)
 }
 
 func refreshTokenBlacklistKey(jti string) string {
 	return "refresh_blacklist:" + jti
 }
 
-func IsRefreshTokenBlacklisted(cache *redis.Client, ctx context.Context, jti string) (bool, error) {
-	n, err := cache.Exists(ctx, refreshTokenBlacklistKey(jti)).Result()
-	if err != nil {
-		return false, err
-	}
-	return n > 0, nil
-}
-
-func BlacklistRefreshToken(cache *redis.Client, ctx context.Context, jti string, ttl time.Duration) error {
-	return cache.Set(ctx, refreshTokenBlacklistKey(jti), true, ttl).Err()
+func RevokeRefreshToken(cache *redis.Client, ctx context.Context, jti string, ttl time.Duration) (bool, error) {
+	ttl = max(ttl, time.Second)
+	return cache.SetNX(ctx, refreshTokenBlacklistKey(jti), true, ttl).Result()
 }
 
 func (m *Middleware) JwtGuard() gin.HandlerFunc {
@@ -115,20 +119,15 @@ func (m *Middleware) JwtGuard() gin.HandlerFunc {
 			return
 		}
 
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-
-		token, err := jwt.ParseWithClaims(tokenString, &AllClaims{}, func(token *jwt.Token) (any, error) {
-			return []byte(m.cfg.Env.JwtSecret), nil
-		})
-
-		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Session expired"})
+		tokenString, found := strings.CutPrefix(authHeader, "Bearer ")
+		if !found || tokenString == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header"})
 			return
 		}
 
-		claims, ok := token.Claims.(*AllClaims)
-		if !ok || claims.TokenType != TokenTypeAccess {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+		claims, err := parseToken(tokenString, m.cfg.Env.JwtSecret, TokenTypeAccess)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Session expired"})
 			return
 		}
 

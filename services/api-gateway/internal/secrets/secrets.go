@@ -3,6 +3,7 @@ package secrets
 import (
 	"os"
 	"strconv"
+	"strings"
 
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/rs/zerolog/log"
@@ -26,6 +27,7 @@ type Secrets struct {
 	ClickHouseUri          string
 	ClickHouseUsername     string
 	ClickHousePassword     string
+	TrustedProxies         []string
 }
 
 func Load() *Secrets {
@@ -47,7 +49,18 @@ func Load() *Secrets {
 		ClickHouseUri:          getStr("CLICKHOUSE_URI"),
 		ClickHouseUsername:     getStr("ROOT_USERNAME"),
 		ClickHousePassword:     getStr("ROOT_PASSWORD"),
+		TrustedProxies:         getList("TRUSTED_PROXIES"),
 	}
+}
+
+func getList(key string) []string {
+	var items []string
+	for item := range strings.SplitSeq(os.Getenv(key), ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			items = append(items, item)
+		}
+	}
+	return items
 }
 
 func getStr(key string) string {

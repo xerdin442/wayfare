@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/handlers"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/middleware"
 	"github.com/xerdin442/wayfare/shared/metrics"
@@ -16,6 +17,13 @@ func (app *application) routes() http.Handler {
 	r := gin.New()
 	m := middleware.New(app.config)
 	h := handlers.New(app.config)
+
+	if err := r.SetTrustedProxies(app.config.Env.TrustedProxies); err != nil {
+		log.Fatal().Err(err).Msg("Invalid TRUSTED_PROXIES value")
+	}
+
+	r.Use(m.CustomRequestLogger())
+	r.Use(gin.Recovery())
 
 	corsConfig := cors.DefaultConfig()
 	frontendUrl := app.config.Env.FrontendUrl
@@ -31,9 +39,7 @@ func (app *application) routes() http.Handler {
 	corsConfig.AddAllowHeaders("Authorization", "X-User-Role")
 	r.Use(cors.New(corsConfig))
 
-	r.Use(m.CustomRequestLogger())
 	r.Use(m.RateLimiters()...)
-	r.Use(gin.Recovery())
 
 	// Liveness check
 	r.GET("/livez", func(c *gin.Context) {

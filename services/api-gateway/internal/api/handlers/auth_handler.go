@@ -10,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/middleware"
 	"github.com/xerdin442/wayfare/shared/contracts"
@@ -23,22 +22,30 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (h *RouteHandler) setRefreshCookie(c *gin.Context, refreshToken string) {
+func (h *RouteHandler) writeRefreshCookie(c *gin.Context, value string, maxAge int) {
 	domain := "localhost"
 	if h.cfg.Env.Environment == "production" {
 		domain = fmt.Sprintf(".%s", h.cfg.Env.FrontendUrl)
 	}
 
+	c.SetSameSite(http.SameSiteStrictMode)
 	c.SetCookie(
 		"refresh_token",
-		refreshToken,
-		int(middleware.RefreshTokenExpiry.Seconds()),
-		"/api/v1/auth/refresh",
+		value,
+		maxAge,
+		"/api/v1/auth",
 		domain,
 		h.cfg.Env.Environment == "production",
 		true,
 	)
-	c.SetSameSite(http.SameSiteStrictMode)
+}
+
+func (h *RouteHandler) setRefreshCookie(c *gin.Context, refreshToken string) {
+	h.writeRefreshCookie(c, refreshToken, int(middleware.RefreshTokenExpiry.Seconds()))
+}
+
+func (h *RouteHandler) clearRefreshCookie(c *gin.Context) {
+	h.writeRefreshCookie(c, "", -1)
 }
 
 func (h *RouteHandler) HandleSignup(c *gin.Context) {
@@ -293,7 +300,7 @@ func (h *RouteHandler) HandleLogin(c *gin.Context) {
 		if ok {
 			switch st.Code() {
 			case codes.NotFound, codes.Unauthenticated:
-				c.JSON(http.StatusBadRequest, gin.H{"message": st.Message()})
+				c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid email or password"})
 			default:
 				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s login failed", role)})
 			}
@@ -346,13 +353,7 @@ func (h *RouteHandler) HandleRefresh(c *gin.Context) {
 	if err != nil {
 		tracing.HandleError(span, err)
 		logger.Warn().Err(err).Msg("Invalid refresh token")
-
-		switch err {
-		case jwt.ErrTokenInvalidId, jwt.ErrSignatureInvalid:
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired. Please log in"})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
-		}
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired. Please log in"})
 		return
 	}
 
@@ -362,24 +363,16 @@ func (h *RouteHandler) HandleRefresh(c *gin.Context) {
 		return
 	}
 
-	blacklisted, err := middleware.IsRefreshTokenBlacklisted(h.cfg.Cache, ctx, claims.ID)
+	revoked, err := middleware.RevokeRefreshToken(h.cfg.Cache, ctx, claims.ID, time.Until(claims.ExpiresAt.Time))
 	if err != nil {
 		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Failed to check refresh token blacklist")
+		logger.Error().Err(err).Msg("Failed to revoke old refresh token")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
 		return
 	}
-	if blacklisted {
+	if !revoked {
 		logger.Warn().Msg("Refresh token has already been used")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired. Please log in"})
-		return
-	}
-
-	remainingTTL := time.Until(claims.ExpiresAt.Time)
-	if err := middleware.BlacklistRefreshToken(h.cfg.Cache, ctx, claims.ID, remainingTTL); err != nil {
-		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Failed to blacklist old refresh token")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token refresh failed"})
 		return
 	}
 
@@ -430,12 +423,13 @@ func (h *RouteHandler) HandleLogout(c *gin.Context) {
 		tracing.HandleError(span, err)
 		logger.Warn().Err(err).Msg("Invalid refresh token")
 	} else {
-		remainingTTL := time.Until(claims.ExpiresAt.Time)
-		if err := middleware.BlacklistRefreshToken(h.cfg.Cache, ctx, claims.ID, remainingTTL); err != nil {
+		if _, err := middleware.RevokeRefreshToken(h.cfg.Cache, ctx, claims.ID, time.Until(claims.ExpiresAt.Time)); err != nil {
 			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Failed to blacklist refresh token")
+			logger.Error().Err(err).Msg("Failed to revoke refresh token")
 		}
 	}
+
+	h.clearRefreshCookie(c)
 
 	c.JSON(http.StatusOK, contracts.APIResponse{
 		Data: gin.H{"message": "Logged out!"},
