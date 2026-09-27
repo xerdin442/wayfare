@@ -14,8 +14,22 @@ func formatErrorMessage(fe validator.FieldError) string {
 		return fmt.Sprintf("%s is required", fe.Field())
 	case "email":
 		return fmt.Sprintf("%s must be a valid email address", fe.Field())
-	case "min":
-		return fmt.Sprintf("%s must be at least %s characters", fe.Field(), fe.Param())
+	case "min", "max":
+		bound := "at least"
+		if fe.Tag() == "max" {
+			bound = "at most"
+		}
+
+		// min/max count items on slices (e.g. file uploads) and characters on strings
+		unit := "characters"
+		if fe.Kind() == reflect.Slice {
+			unit = "items"
+		}
+		return fmt.Sprintf("%s must have %s %s %s", fe.Field(), bound, fe.Param(), unit)
+	case "len":
+		return fmt.Sprintf("%s must be exactly %s characters", fe.Field(), fe.Param())
+	case "numeric":
+		return fmt.Sprintf("%s must contain only digits", fe.Field())
 	default:
 		return fmt.Sprintf("%s is invalid", fe.Field())
 	}

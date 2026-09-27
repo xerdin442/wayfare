@@ -85,7 +85,7 @@ type DriverModel struct {
 	Phone                 string             `bson:"phone"`
 	Password              string             `bson:"password"`
 	ProfilePicture        string             `bson:"profile_picture"`
-	VerificationPhotos    []string           `bson:"verification_photos"`
+	VerificationPhotos    []string           `bson:"verification_photos"` // Cloudinary public IDs (authenticated delivery), not URLs
 	IsVerified            bool               `bson:"is_verified"`
 	CarPackage            types.CarPackage   `bson:"car_package"`
 	CarPlate              string             `bson:"car_plate"`

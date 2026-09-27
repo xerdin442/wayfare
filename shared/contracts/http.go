@@ -40,7 +40,7 @@ type OpenweatherApiResponse struct {
 
 type SignupDetails struct {
 	Email    string `form:"email" binding:"required,email"`
-	Password string `form:"password" binding:"required,min=8"`
+	Password string `form:"password" binding:"required,min=8,max=72"` // bcrypt rejects passwords over 72 bytes (the validator counts characters, so this covers ASCII)
 	Name     string `form:"name" binding:"required"`
 	Phone    string `form:"phone" binding:"required"`
 }
@@ -48,11 +48,11 @@ type SignupDetails struct {
 type SignupDriverRequest struct {
 	SignupDetails
 	ProfileImage       *multipart.FileHeader   `form:"profileImage" binding:"required"`
-	VerificationPhotos []*multipart.FileHeader `form:"verificationPhotos" binding:"required"`
+	VerificationPhotos []*multipart.FileHeader `form:"verificationPhotos" binding:"required,min=1,max=5"`
 	CarModel           string                  `form:"carModel" binding:"required"`
 	CarColor           string                  `form:"carColor" binding:"required"`
 	CarPlate           string                  `form:"carPlate" binding:"required"`
-	AccountNumber      string                  `form:"accountNumber" binding:"required"`
+	AccountNumber      string                  `form:"accountNumber" binding:"required,numeric,len=10"` // NUBAN
 	AccountName        string                  `form:"accountName" binding:"required"`
 	BankName           string                  `form:"bankName" binding:"required"`
 }
@@ -64,7 +64,7 @@ type SignupRiderRequest struct {
 
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
+	Password string `json:"password" binding:"required,min=8,max=72"`
 }
 
 type PreviewTripRequest struct {

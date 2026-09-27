@@ -397,3 +397,61 @@ func TestDriverSignup_CreateError(t *testing.T) {
 func TestDriverServiceInterface(t *testing.T) {
 	var _ pb.DriverServiceServer = (*DriverService)(nil)
 }
+
+func TestDriverCheckEmailAvailability(t *testing.T) {
+	cases := map[string]struct {
+		existing  *models.DriverModel
+		available bool
+	}{
+		"email free":  {existing: nil, available: true},
+		"email taken": {existing: validDriverModel(), available: false},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			svc := &DriverService{
+				repo: &driverRepoStub{
+					getByEmailFn: func(ctx context.Context, email string) (*models.DriverModel, error) {
+						return tc.existing, nil
+					},
+				},
+			}
+
+			resp, err := svc.CheckEmailAvailability(context.Background(), &pb.EmailAvailabilityRequest{Email: "driver@test.com"})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if resp.Available != tc.available {
+				t.Fatalf("expected available=%v, got %v", tc.available, resp.Available)
+			}
+		})
+	}
+}
+
+func TestDriverCheckEmailAvailability_RepoError(t *testing.T) {
+	svc := &DriverService{
+		repo: &driverRepoStub{
+			getByEmailFn: func(ctx context.Context, email string) (*models.DriverModel, error) {
+				return nil, context.DeadlineExceeded
+			},
+		},
+	}
+
+	_, err := svc.CheckEmailAvailability(context.Background(), &pb.EmailAvailabilityRequest{Email: "driver@test.com"})
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("expected Internal, got %v", err)
+	}
+}
+
+func TestDriverSignup_InvalidDriverID(t *testing.T) {
+	// The repo stub has no functions set, so reaching it would panic
+	svc := &DriverService{repo: &driverRepoStub{}}
+
+	_, err := svc.Signup(context.Background(), &pb.SignupDriverRequest{
+		DriverId: "not-an-object-id",
+		Email:    "newdriver@test.com",
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", err)
+	}
+}

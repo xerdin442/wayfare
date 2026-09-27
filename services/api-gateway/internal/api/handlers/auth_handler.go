@@ -1,9 +1,9 @@
 package handlers
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -18,6 +18,7 @@ import (
 	"github.com/xerdin442/wayfare/shared/tracing"
 	"github.com/xerdin442/wayfare/shared/types"
 	"github.com/xerdin442/wayfare/shared/util"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -48,6 +49,39 @@ func (h *RouteHandler) clearRefreshCookie(c *gin.Context) {
 	h.writeRefreshCookie(c, "", -1)
 }
 
+// maxSignupBodySize covers up to 6 images at the 5MB limit (profile + 5 verification photos) plus form fields
+const maxSignupBodySize = 32 << 20
+
+func bindErrorResponse(c *gin.Context, err error, req any) {
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"message": "Request body is too large"})
+		return
+	}
+
+	var ve validator.ValidationErrors
+	if errors.As(err, &ve) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Validation failed",
+			"errors":  util.FormatValidationErrors(err, req),
+		})
+		return
+	}
+
+	c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
+}
+
+func uploadErrorResponse(c *gin.Context, err error, failureMsg string) {
+	switch {
+	case errors.Is(err, util.ErrUnsupportedFileType):
+		c.JSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
+	case errors.Is(err, util.ErrFileTooLarge):
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"message": err.Error()})
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": failureMsg})
+	}
+}
+
 func (h *RouteHandler) HandleSignup(c *gin.Context) {
 	ctx, span := h.cfg.Tracer.Start(c.Request.Context(), "HandleSignup")
 	defer span.End()
@@ -64,20 +98,35 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 
 	var userId string
 
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSignupBodySize)
+
 	if role == types.RoleDriver {
 		var req contracts.SignupDriverRequest
 		if err := c.ShouldBind(&req); err != nil {
 			tracing.HandleError(span, err)
+			bindErrorResponse(c, err, &req)
+			return
+		}
 
-			var ve validator.ValidationErrors
-			if errors.As(err, &ve) {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"message": "Validation failed",
-					"errors":  util.FormatValidationErrors(err, &req),
-				})
+		for _, file := range append(req.VerificationPhotos, req.ProfileImage) {
+			if err := storage.ValidateImage(file); err != nil {
+				tracing.HandleError(span, err)
+				uploadErrorResponse(c, err, "Driver signup failed")
 				return
 			}
-			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
+		}
+
+		availability, err := h.cfg.Clients.Driver.CheckEmailAvailability(ctx, &pb.EmailAvailabilityRequest{
+			Email: req.Email,
+		})
+		if err != nil {
+			tracing.HandleError(span, err)
+			logger.Error().Err(err).Msg("Failed to check driver email availability")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
+			return
+		}
+		if !availability.Available {
+			c.JSON(http.StatusConflict, gin.H{"message": "Driver already exists with this email"})
 			return
 		}
 
@@ -91,7 +140,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			logger.Error().Err(err).Msg("Failed to create transfer recipient")
 
 			switch err {
-			case util.ErrAccountNameMismatch, util.ErrUnsupportedBank:
+			case util.ErrAccountNameMismatch, util.ErrUnsupportedBank, util.ErrAccountNotVerified:
 				c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			case util.ErrGatewayUnavailable, util.ErrApiRequestFailure:
 				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Driver signup is temporarily unavailable"})
@@ -102,38 +151,31 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			return
 		}
 
-		profileImage, err := storage.ProcessFileUpload(ctx, h.cfg.Uploader, req.ProfileImage, "/drivers/profile")
+		driverId := bson.NewObjectID().Hex()
+
+		profileImage, err := storage.ProcessFileUpload(ctx, h.cfg.Uploader, req.ProfileImage, fmt.Sprintf("/drivers/%s/profile", driverId))
 		if err != nil {
 			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Failed to parse profile image")
-
-			switch err {
-			case util.ErrUnsupportedFileType:
-				c.JSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
-			default:
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
-			}
+			logger.Error().Err(err).Msg("Failed to upload profile image")
+			uploadErrorResponse(c, err, "Driver signup failed")
 			return
 		}
 
+		// Verification documents use authenticated delivery, so the stored value is a public ID, not a URL
 		verificationPhotos := make([]string, 0, len(req.VerificationPhotos))
 		for _, photo := range req.VerificationPhotos {
-			url, err := storage.ProcessFileUpload(ctx, h.cfg.Uploader, photo, "/drivers/verification")
+			publicId, err := storage.ProcessPrivateFileUpload(ctx, h.cfg.Uploader, photo, fmt.Sprintf("/drivers/%s/verification", driverId))
 			if err != nil {
 				tracing.HandleError(span, err)
-				logger.Error().Err(err).Msg("Failed to parse verification photo")
-				switch err {
-				case util.ErrUnsupportedFileType:
-					c.JSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
-				default:
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Driver signup failed"})
-				}
+				logger.Error().Err(err).Msg("Failed to upload verification photo")
+				uploadErrorResponse(c, err, "Driver signup failed")
 				return
 			}
-			verificationPhotos = append(verificationPhotos, url)
+			verificationPhotos = append(verificationPhotos, publicId)
 		}
 
 		res, err := h.cfg.Clients.Driver.Signup(ctx, &pb.SignupDriverRequest{
+			DriverId:              driverId,
 			Name:                  req.Name,
 			Email:                 req.Email,
 			Phone:                 req.Phone,
@@ -171,16 +213,7 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 		var req contracts.SignupRiderRequest
 		if err := c.ShouldBind(&req); err != nil {
 			tracing.HandleError(span, err)
-
-			var ve validator.ValidationErrors
-			if errors.As(err, &ve) {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"message": "Validation failed",
-					"errors":  util.FormatValidationErrors(err, &req),
-				})
-				return
-			}
-			c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
+			bindErrorResponse(c, err, &req)
 			return
 		}
 
@@ -189,24 +222,26 @@ func (h *RouteHandler) HandleSignup(c *gin.Context) {
 			url, err := storage.ProcessFileUpload(ctx, h.cfg.Uploader, req.ProfileImage, "/riders/profile")
 			if err != nil {
 				tracing.HandleError(span, err)
-				logger.Error().Err(err).Msg("Failed to parse profile image")
-
-				switch err {
-				case util.ErrUnsupportedFileType:
-					c.JSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
-				default:
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "Rider signup failed"})
-				}
+				logger.Error().Err(err).Msg("Failed to upload profile image")
+				uploadErrorResponse(c, err, "Rider signup failed")
 				return
 			}
 			profileImage = url
 		} else {
-			profileImage = fmt.Sprintf("https://randomuser.me/api/portraits/lego/%d.jpg", rand.Intn(100))
+			avatarURL := "https://api.dicebear.com/9.x/notionists/png?seed=" + rand.Text()
+
+			url, err := storage.UploadFromURL(ctx, h.cfg.Uploader, avatarURL, "/riders/profile")
+			if err != nil {
+				logger.Warn().Err(err).Msg("Failed to store default avatar, using DiceBear link")
+				url = avatarURL // fall back to the DiceBear link if the copy fails
+			}
+			profileImage = url
 		}
 
 		res, err := h.cfg.Clients.Rider.Signup(ctx, &pb.SignupRiderRequest{
 			Name:         req.Name,
 			Email:        req.Email,
+			Phone:        req.Phone,
 			Password:     req.Password,
 			ProfileImage: profileImage,
 		})

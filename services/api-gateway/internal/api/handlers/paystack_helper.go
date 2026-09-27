@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -79,16 +80,19 @@ func (h *RouteHandler) createTransferRecipient(ctx context.Context, name string,
 			return "", err
 		}
 
-		// Cache the response for 30 days
-		if banksList.Status {
-			h.cfg.Cache.Set(ctx, cacheKey, banksListResp, 30*24*time.Hour)
+		if !banksList.Status {
+			log.Error().Str("message", banksList.Message).Msg("Paystack banks list request failed")
+			return "", util.ErrApiRequestFailure
 		}
+
+		// Cache the response for 30 days
+		h.cfg.Cache.Set(ctx, cacheKey, banksListResp, 30*24*time.Hour)
 	}
 
 findBankCode:
 	var bankCode string
 	for _, bank := range banksList.Data {
-		if bank.Name == details.BankName {
+		if strings.EqualFold(bank.Name, details.BankName) {
 			bankCode = bank.Code
 			break
 		}
@@ -99,12 +103,11 @@ findBankCode:
 	}
 
 	// Verify account details
-	acctVerifcationResp, err := h.sendApiRequest(
-		ctx,
-		"GET",
-		fmt.Sprintf("/bank/resolve?account_number=%s&bank_code=%s", details.AccountNumber, bankCode),
-		nil,
-	)
+	query := url.Values{
+		"account_number": {details.AccountNumber},
+		"bank_code":      {bankCode},
+	}
+	acctVerifcationResp, err := h.sendApiRequest(ctx, "GET", "/bank/resolve?"+query.Encode(), nil)
 	if err != nil {
 		return "", err
 	}
@@ -113,6 +116,11 @@ findBankCode:
 	if err := json.Unmarshal(acctVerifcationResp, &verificationInfo); err != nil {
 		log.Error().Err(err).Msg("Failed to unmarshal paystack account verification response")
 		return "", err
+	}
+
+	if !verificationInfo.Status {
+		log.Warn().Str("message", verificationInfo.Message).Msg("Paystack could not resolve bank account")
+		return "", util.ErrAccountNotVerified
 	}
 
 	if !strings.EqualFold(verificationInfo.Data.AccountName, details.AccountName) {
@@ -144,6 +152,10 @@ findBankCode:
 	if err := json.Unmarshal(trasnferRecipientResp, &trasnferRecipient); err != nil {
 		log.Error().Err(err).Msg("Failed to unmarshal paystack transfer recipient response")
 		return "", err
+	}
+
+	if !trasnferRecipient.Status || trasnferRecipient.Data.RecipientCode == "" {
+		return "", fmt.Errorf("paystack did not create a transfer recipient: %s", trasnferRecipient.Message)
 	}
 
 	return trasnferRecipient.Data.RecipientCode, nil

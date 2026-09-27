@@ -93,8 +93,17 @@ func (r *DriverRepository) CreateDriverAccount(ctx context.Context, details *pb.
 		return nil, err
 	}
 
+	driverID := bson.NewObjectID()
+	if details.DriverId != "" {
+		driverID, err = bson.ObjectIDFromHex(details.DriverId)
+		if err != nil {
+			log.Error().Err(err).Str("id", details.DriverId).Msg("Invalid driver ID")
+			return nil, err
+		}
+	}
+
 	driver := &models.DriverModel{
-		ID:                    bson.NewObjectID(),
+		ID:                    driverID,
 		Name:                  details.Name,
 		Email:                 details.Email,
 		Phone:                 details.Phone,
