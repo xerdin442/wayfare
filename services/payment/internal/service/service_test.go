@@ -104,6 +104,7 @@ func tripModel(rideFare int64) *models.TripModel {
 	return &models.TripModel{
 		ID:       bson.NewObjectID(),
 		UserID:   bson.NewObjectID(),
+		Status:   types.TripStatusAwaitingPayment,
 		RideFare: rideFare,
 		Region:   "Lagos",
 		Route: models.RouteDetails{
@@ -290,7 +291,7 @@ func TestPayInitiate_RideFare_ExistingPendingTxn(t *testing.T) {
 
 	resp, err := svc.InitiateCheckout(context.Background(), &pb.InitiateCheckoutRequest{
 		TripId:  trip.ID.Hex(),
-		UserId:  "user-1",
+		UserId:  trip.UserID.Hex(),
 		Email:   "user@test.com",
 		TxnType: string(types.TransactionRideFare),
 	})
@@ -330,7 +331,7 @@ func TestPayInitiate_RideFare_NewTxn(t *testing.T) {
 
 	resp, err := svc.InitiateCheckout(context.Background(), &pb.InitiateCheckoutRequest{
 		TripId:  trip.ID.Hex(),
-		UserId:  "user-1",
+		UserId:  trip.UserID.Hex(),
 		Email:   "user@test.com",
 		TxnType: string(types.TransactionRideFare),
 	})
@@ -359,6 +360,7 @@ func TestPayInitiate_RideFare_TxnFetchError(t *testing.T) {
 
 	_, err := svc.InitiateCheckout(context.Background(), &pb.InitiateCheckoutRequest{
 		TripId:  trip.ID.Hex(),
+		UserId:  trip.UserID.Hex(),
 		TxnType: string(types.TransactionRideFare),
 	})
 	if err == nil {
@@ -389,6 +391,7 @@ func TestPayInitiate_RideFare_TxnCreateError(t *testing.T) {
 
 	_, err := svc.InitiateCheckout(context.Background(), &pb.InitiateCheckoutRequest{
 		TripId:  trip.ID.Hex(),
+		UserId:  trip.UserID.Hex(),
 		TxnType: string(types.TransactionRideFare),
 	})
 	if err == nil {
@@ -487,7 +490,7 @@ func TestPayResolveProvider_DefaultPaystack(t *testing.T) {
 
 	resp, err := svc.InitiateCheckout(context.Background(), &pb.InitiateCheckoutRequest{
 		TripId:  trip.ID.Hex(),
-		UserId:  "user-1",
+		UserId:  trip.UserID.Hex(),
 		Email:   "user@test.com",
 		TxnType: string(types.TransactionRideFare),
 	})
@@ -526,7 +529,7 @@ func TestPayResolveProvider_CacheError_DefaultsPaystack(t *testing.T) {
 
 	resp, err := svc.InitiateCheckout(context.Background(), &pb.InitiateCheckoutRequest{
 		TripId:  trip.ID.Hex(),
-		UserId:  "user-1",
+		UserId:  trip.UserID.Hex(),
 		Email:   "user@test.com",
 		TxnType: string(types.TransactionRideFare),
 	})
@@ -557,7 +560,7 @@ func TestPayResolveProvider_Flutterwave(t *testing.T) {
 
 	resp, err := svc.InitiateCheckout(context.Background(), &pb.InitiateCheckoutRequest{
 		TripId:  trip.ID.Hex(),
-		UserId:  "user-1",
+		UserId:  trip.UserID.Hex(),
 		Email:   "user@test.com",
 		TxnType: string(types.TransactionRideFare),
 	})
@@ -606,7 +609,7 @@ func TestPayFallback_PaystackUnavailable_FallbackToFlutterwave(t *testing.T) {
 
 	resp, err := svc.InitiateCheckout(context.Background(), &pb.InitiateCheckoutRequest{
 		TripId:  trip.ID.Hex(),
-		UserId:  "user-1",
+		UserId:  trip.UserID.Hex(),
 		Email:   "user@test.com",
 		TxnType: string(types.TransactionRideFare),
 	})
@@ -658,7 +661,7 @@ func TestPayFallback_AllGatewaysDown(t *testing.T) {
 
 	_, err := svc.InitiateCheckout(context.Background(), &pb.InitiateCheckoutRequest{
 		TripId:  trip.ID.Hex(),
-		UserId:  "user-1",
+		UserId:  trip.UserID.Hex(),
 		Email:   "user@test.com",
 		TxnType: string(types.TransactionRideFare),
 	})
@@ -724,4 +727,79 @@ func TestPayBuildCheckoutPayloads(t *testing.T) {
 
 func TestPaymentServiceInterface(t *testing.T) {
 	var _ pb.PaymentServiceServer = (*PaymentService)(nil)
+}
+
+// =============================================================================
+// Checkout authorisation and state checks
+// =============================================================================
+
+func TestPayInitiate_RideFare_RejectsInvalidRequests(t *testing.T) {
+	notAwaitingPayment := tripModel(500000)
+	notAwaitingPayment.Status = types.TripStatusActive
+
+	cases := map[string]struct {
+		trip     *models.TripModel
+		userId   func(trip *models.TripModel) string
+		wantCode codes.Code
+	}{
+		"another rider's trip": {
+			trip:     tripModel(500000),
+			userId:   func(*models.TripModel) string { return bson.NewObjectID().Hex() },
+			wantCode: codes.NotFound,
+		},
+		"trip not awaiting payment": {
+			trip:     notAwaitingPayment,
+			userId:   func(trip *models.TripModel) string { return trip.UserID.Hex() },
+			wantCode: codes.FailedPrecondition,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			// Only the trip lookup is stubbed; any transaction call would panic
+			svc := buildPaymentService(&paymentRepoStub{
+				getTripByIDFn: func(ctx context.Context, tripId string) (*models.TripModel, error) {
+					return tc.trip, nil
+				},
+			}, cacheExistsCmd(0, nil), nil)
+
+			_, err := svc.InitiateCheckout(context.Background(), &pb.InitiateCheckoutRequest{
+				TripId:  tc.trip.ID.Hex(),
+				UserId:  tc.userId(tc.trip),
+				TxnType: string(types.TransactionRideFare),
+			})
+			if grpcCode(err) != tc.wantCode {
+				t.Fatalf("expected %v, got %v", tc.wantCode, grpcCode(err))
+			}
+		})
+	}
+}
+
+func TestPayInitiate_Returns_RejectsInvalidRequests(t *testing.T) {
+	cases := map[string]struct {
+		driver   *models.DriverModel
+		err      error
+		wantCode codes.Code
+	}{
+		"driver not found":       {err: util.ErrDocumentNotFound, wantCode: codes.NotFound},
+		"no outstanding returns": {driver: driverModel(0), wantCode: codes.FailedPrecondition},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			svc := buildPaymentService(&paymentRepoStub{
+				getDriverByIDFn: func(ctx context.Context, driverId string) (*models.DriverModel, error) {
+					return tc.driver, tc.err
+				},
+			}, cacheExistsCmd(0, nil), nil)
+
+			_, err := svc.InitiateCheckout(context.Background(), &pb.InitiateCheckoutRequest{
+				UserId:  bson.NewObjectID().Hex(),
+				TxnType: string(types.TransactionReturns),
+			})
+			if grpcCode(err) != tc.wantCode {
+				t.Fatalf("expected %v, got %v", tc.wantCode, grpcCode(err))
+			}
+		})
+	}
 }

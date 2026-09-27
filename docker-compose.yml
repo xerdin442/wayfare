@@ -102,6 +102,7 @@ services:
       - payment-service
     expose:
       - "8080"
+      - "2112"
     networks:
       - wayfare
 

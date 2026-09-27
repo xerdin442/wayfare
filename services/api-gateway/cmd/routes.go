@@ -9,8 +9,12 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/handlers"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/middleware"
-	"github.com/xerdin442/wayfare/shared/metrics"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+)
+
+const (
+	livenessPath        = "/livez"
+	paymentCallbackPath = "/api/v1/payment/callback"
 )
 
 func (app *application) routes() http.Handler {
@@ -39,10 +43,11 @@ func (app *application) routes() http.Handler {
 	corsConfig.AddAllowHeaders("Authorization", "X-User-Role")
 	r.Use(cors.New(corsConfig))
 
-	r.Use(m.RateLimiters()...)
+	// Webhooks are authenticated by signature, and health probes come from the platform
+	r.Use(m.RateLimiters(paymentCallbackPath, livenessPath)...)
 
 	// Liveness check
-	r.GET("/livez", func(c *gin.Context) {
+	r.GET(livenessPath, func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
 
@@ -54,9 +59,6 @@ func (app *application) routes() http.Handler {
 	}
 
 	v1 := r.Group("/api/v1")
-
-	// Metrics
-	v1.GET("/metrics", metrics.GetMetricsHandler())
 
 	v1.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "Hello from the API Gateway!")
@@ -89,7 +91,7 @@ func (app *application) routes() http.Handler {
 		trip.GET("/history", otelgin.Middleware("trip.history"), h.HandleTripHistory)
 	}
 
-	v1.POST("/payment/callback", otelgin.Middleware("payment.callback"), h.HandlePaymentCallback)
+	r.POST(paymentCallbackPath, otelgin.Middleware("payment.callback"), h.HandlePaymentCallback)
 
 	return r
 }

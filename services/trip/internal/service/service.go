@@ -245,10 +245,16 @@ func (s *TripService) GetTripDetails(ctx context.Context, req *pb.TripDetailsReq
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
+	var driverId string
+	if !trip.DriverID.IsZero() {
+		driverId = trip.DriverID.Hex()
+	}
+
 	return &pb.TripDetailsResponse{
 		RideFare: trip.RideFare,
 		UserId:   trip.UserID.Hex(),
 		Region:   trip.Region,
+		DriverId: driverId,
 	}, nil
 }
 

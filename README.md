@@ -86,12 +86,11 @@ All endpoints are prefixed with `/api/v1` except system and websocket endpoints.
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET    | `/livez` | None | Liveness check |
-| GET    | `/api/v1/metrics` | None | Prometheus metrics endpoint |
 
 ### Auth API
 
 | Method | Path | Auth | Description |
-|--------|------|------|-------------|
+| -------- | ------ | ------ | ------------- |
 | POST | `/auth/signup` | None | Sign up a rider or driver (role via `X-User-Role` header) |
 | POST | `/auth/login` | None | Sign in a rider or driver |
 | POST | `/auth/refresh` | None | Refresh access token |
@@ -106,7 +105,7 @@ All endpoints are prefixed with `/api/v1` except system and websocket endpoints.
 ### Trip API
 
 | Method | Path | Auth | Description |
-|--------|------|------|-------------|
+| -------- | ------ | ------ | ------------- |
 | POST | `/trip/preview` | JWT | Preview trip with fare estimates for available car packages |
 | POST | `/trip/start` | JWT | Start a trip and begin driver search |
 | POST | `/trip/:id/pay` | JWT | Pay for a completed trip |

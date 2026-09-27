@@ -141,7 +141,26 @@ func (h *RouteHandler) HandleTripChat(c *gin.Context) {
 
 	logger := log.Ctx(ctx)
 
+	userId := c.MustGet("user_id").(string)
 	tripId := c.Param("id")
+
+	trip, err := h.cfg.Clients.Trip.GetTripDetails(ctx, &pb.TripDetailsRequest{TripId: tripId})
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Trip not found"})
+			return
+		}
+
+		tracing.HandleError(span, err)
+		logger.Error().Err(err).Str("trip_id", tripId).Msg("Failed to fetch trip details")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while fetching trip chat history"})
+		return
+	}
+
+	if userId != trip.UserId && userId != trip.DriverId {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Trip not found"})
+		return
+	}
 
 	result, err := h.cfg.Cache.LRange(ctx, fmt.Sprintf("trip_chat_history:%s", tripId), 0, -1).Result()
 	if err != nil {

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	metricapi "go.opentelemetry.io/otel/metric"
@@ -44,14 +42,6 @@ func NewMetricExporter() (*prometheus.Exporter, error) {
 	return prometheus.New(
 		prometheus.WithNamespace("wayfare"),
 	)
-}
-
-func GetMetricsHandler() gin.HandlerFunc {
-	h := promhttp.Handler()
-
-	return func(c *gin.Context) {
-		h.ServeHTTP(c.Writer, c.Request)
-	}
 }
 
 func newMetricProvider(cfg *MetricConfig, exporter metric.Reader) (*metric.MeterProvider, error) {

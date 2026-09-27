@@ -70,6 +70,7 @@ type TripDetailsResponse struct {
 	RideFare      int64                  `protobuf:"varint,1,opt,name=ride_fare,json=rideFare,proto3" json:"ride_fare,omitempty"`
 	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Region        string                 `protobuf:"bytes,3,opt,name=region,proto3" json:"region,omitempty"`
+	DriverId      string                 `protobuf:"bytes,4,opt,name=driver_id,json=driverId,proto3" json:"driver_id,omitempty"` // Empty until a driver is assigned
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -121,6 +122,13 @@ func (x *TripDetailsResponse) GetUserId() string {
 func (x *TripDetailsResponse) GetRegion() string {
 	if x != nil {
 		return x.Region
+	}
+	return ""
+}
+
+func (x *TripDetailsResponse) GetDriverId() string {
+	if x != nil {
+		return x.DriverId
 	}
 	return ""
 }
@@ -1215,11 +1223,12 @@ const file_transport_proto_rawDesc = "" +
 	"\n" +
 	"\x0ftransport.proto\x12\awayfare\x1a\fschema.proto\"-\n" +
 	"\x12TripDetailsRequest\x12\x17\n" +
-	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"c\n" +
+	"\atrip_id\x18\x01 \x01(\tR\x06tripId\"\x80\x01\n" +
 	"\x13TripDetailsResponse\x12\x1b\n" +
 	"\tride_fare\x18\x01 \x01(\x03R\brideFare\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x16\n" +
-	"\x06region\x18\x03 \x01(\tR\x06region\"-\n" +
+	"\x06region\x18\x03 \x01(\tR\x06region\x12\x1b\n" +
+	"\tdriver_id\x18\x04 \x01(\tR\bdriverId\"-\n" +
 	"\x12TripHistoryRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\":\n" +
 	"\x13TripHistoryResponse\x12#\n" +

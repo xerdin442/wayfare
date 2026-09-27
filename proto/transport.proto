@@ -56,6 +56,7 @@ message TripDetailsResponse {
   int64  ride_fare = 1;
   string user_id   = 2;
   string region    = 3;
+  string driver_id = 4; // Empty until a driver is assigned
 }
 
 message TripHistoryRequest {

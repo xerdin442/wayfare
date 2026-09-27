@@ -744,3 +744,35 @@ func TestTripPreview_StoreRideFaresError(t *testing.T) {
 func TestTripServiceInterface(t *testing.T) {
 	var _ pb.TripServiceServer = (*TripService)(nil)
 }
+
+func TestTripGetDetails_DriverID(t *testing.T) {
+	unassigned := makeCompletedTrip()
+	assigned := makeCompletedTrip()
+	assigned.DriverID = bson.NewObjectID()
+
+	cases := map[string]struct {
+		trip *models.TripModel
+		want string
+	}{
+		"driver assigned":    {trip: assigned, want: assigned.DriverID.Hex()},
+		"no driver assigned": {trip: unassigned, want: ""},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			svc := buildTripService(&tripRepoStub{
+				getTripByIDFn: func(ctx context.Context, tripId string) (*models.TripModel, error) {
+					return tc.trip, nil
+				},
+			}, nil, nil)
+
+			resp, err := svc.GetTripDetails(context.Background(), &pb.TripDetailsRequest{TripId: tc.trip.ID.Hex()})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if resp.DriverId != tc.want {
+				t.Fatalf("expected driver id %q, got %q", tc.want, resp.DriverId)
+			}
+		})
+	}
+}

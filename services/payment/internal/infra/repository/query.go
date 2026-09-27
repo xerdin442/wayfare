@@ -272,7 +272,7 @@ func (r *PaymentRepository) GetTripByID(ctx context.Context, tripId string) (*mo
 	tripIdHex, err := bson.ObjectIDFromHex(tripId)
 	if err != nil {
 		log.Error().Err(err).Str("id", tripId).Msg("Invalid trip ID")
-		return nil, err
+		return nil, util.ErrDocumentNotFound
 	}
 
 	var trip models.TripModel

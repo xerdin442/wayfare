@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha512"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -38,11 +40,21 @@ func (h *RouteHandler) HandleInitiateCheckout(c *gin.Context) {
 	logger := log.Ctx(ctx)
 
 	userId := c.MustGet("user_id").(string)
+	userRole := c.MustGet("user_role").(types.UserRole)
 	tripId := c.Param("id")
 
 	txnType := types.TransactionReturns
+	requiredRole := types.RoleDriver
+	lockTarget := "returns"
 	if tripId != "" {
 		txnType = types.TransactionRideFare
+		requiredRole = types.RoleRider
+		lockTarget = tripId
+	}
+
+	if userRole != requiredRole {
+		c.JSON(http.StatusForbidden, gin.H{"message": fmt.Sprintf("Only %ss can make this payment", requiredRole)})
+		return
 	}
 
 	var req contracts.InitiateCheckoutRequest
@@ -61,30 +73,36 @@ func (h *RouteHandler) HandleInitiateCheckout(c *gin.Context) {
 		return
 	}
 
-	idempotencyKey := fmt.Sprintf("lock:payment:%s", userId)
+	if txnType == types.TransactionRideFare && req.TripRating == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Validation failed",
+			"errors":  gin.H{"tripRating": "tripRating is required"},
+		})
+		return
+	}
 
-	// Check if request is still being processed
-	n, err := h.cfg.Cache.Exists(ctx, idempotencyKey).Result()
+	// Rating, comment and tip only apply to ride fares
+	if txnType == types.TransactionReturns {
+		req.TripRating, req.RiderComment, req.DriverTip = 0, "", 0
+	}
+
+	idempotencyKey := fmt.Sprintf("lock:payment:%s:%s", userId, lockTarget)
+	acquired, err := h.cfg.Cache.SetNX(ctx, idempotencyKey, "locked", 2*time.Minute).Result()
 	if err != nil {
-		tracing.HandleError(span, err)
-		logger.Error().Err(err).Msg("Error fetching idempotency lock from cache")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while processing payment"})
-		return
-	}
-
-	if n > 0 {
-		tracing.HandleError(span, fmt.Errorf("payment request is already being processed"))
-		c.JSON(http.StatusConflict, gin.H{"message": "Payment request is already being processed"})
-		return
-	}
-
-	// Set idempotency lock in cache
-	if err := h.cfg.Cache.Set(ctx, idempotencyKey, "locked", 2*time.Minute).Err(); err != nil {
 		tracing.HandleError(span, err)
 		logger.Error().Err(err).Msg("Error setting idempotency lock")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while processing payment"})
 		return
 	}
+	if !acquired {
+		c.JSON(http.StatusConflict, gin.H{"message": "Payment request is already being processed"})
+		return
+	}
+	defer func() {
+		if err := h.cfg.Cache.Del(context.WithoutCancel(ctx), idempotencyKey).Err(); err != nil {
+			logger.Error().Err(err).Msg("Error removing idempotency lock")
+		}
+	}()
 
 	// Generate checkout link
 	checkoutResponse, err := h.cfg.Clients.Payment.InitiateCheckout(ctx, &pb.InitiateCheckoutRequest{
@@ -100,17 +118,13 @@ func (h *RouteHandler) HandleInitiateCheckout(c *gin.Context) {
 		tracing.HandleError(span, err)
 		logger.Error().Err(err).Str("trip_id", tripId).Msg("Failed to generate checkout url")
 
-		// Remove idempotency lock if payment request fails
-		if err := h.cfg.Cache.Del(ctx, idempotencyKey).Err(); err != nil {
-			tracing.HandleError(span, err)
-			logger.Error().Err(err).Msg("Error removing idempotency lock")
-		}
-
 		st, ok := status.FromError(err)
 		if ok {
 			switch st.Code() {
 			case codes.NotFound:
 				c.JSON(http.StatusNotFound, gin.H{"message": st.Message()})
+			case codes.FailedPrecondition:
+				c.JSON(http.StatusConflict, gin.H{"message": st.Message()})
 			case codes.Unavailable:
 				c.JSON(http.StatusServiceUnavailable, gin.H{"error": st.Message()})
 			default:
@@ -153,11 +167,11 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 
 	// Verify webhook signature
 	if paystackSignature != "" {
-		h := hmac.New(sha512.New, []byte(h.cfg.Env.PaystackSecretKey))
-		h.Write(rawBody)
-		hash := hex.EncodeToString(h.Sum(nil))
+		mac := hmac.New(sha512.New, []byte(h.cfg.Env.PaystackSecretKey))
+		mac.Write(rawBody)
+		expectedSignature := hex.EncodeToString(mac.Sum(nil))
 
-		if hash != paystackSignature {
+		if !hmac.Equal([]byte(expectedSignature), []byte(paystackSignature)) {
 			tracing.HandleError(span, ErrInvalidWebhookSignature)
 			logger.Error().Msg("Invalid paystack signature")
 			c.Status(http.StatusBadRequest)
@@ -165,7 +179,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 		}
 
 		var req *contracts.PaystackWebhookPayload
-		if err := c.ShouldBindJSON(&req); err != nil {
+		if err := json.Unmarshal(rawBody, &req); err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Error parsing paystack webhook payload")
 			c.Status(http.StatusBadRequest)
@@ -182,7 +196,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 		queuePayload.Provider = types.ProviderPaystack
 		queuePayload.PaystackWebhook = req
 	} else if flutterwaveSignature != "" {
-		if h.cfg.Env.FlutterwaveVerifHash != flutterwaveSignature {
+		if subtle.ConstantTimeCompare([]byte(h.cfg.Env.FlutterwaveVerifHash), []byte(flutterwaveSignature)) != 1 {
 			tracing.HandleError(span, ErrInvalidWebhookSignature)
 			logger.Error().Msg("Invalid flutterwave signature")
 			c.Status(http.StatusBadRequest)
@@ -190,7 +204,7 @@ func (h *RouteHandler) HandlePaymentCallback(c *gin.Context) {
 		}
 
 		var req *contracts.FlutterwaveWebhookPayload
-		if err := c.ShouldBindJSON(&req); err != nil {
+		if err := json.Unmarshal(rawBody, &req); err != nil {
 			tracing.HandleError(span, err)
 			logger.Error().Err(err).Msg("Error parsing flutterwave webhook payload")
 			c.Status(http.StatusBadRequest)

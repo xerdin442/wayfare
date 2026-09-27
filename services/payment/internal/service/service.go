@@ -300,6 +300,13 @@ func (s *PaymentService) InitiateCheckout(ctx context.Context, req *pb.InitiateC
 			return nil, status.Error(codes.Internal, "internal server error")
 		}
 
+		if trip.UserID.Hex() != req.UserId {
+			return nil, status.Error(codes.NotFound, "invalid trip id")
+		}
+		if trip.Status != types.TripStatusAwaitingPayment {
+			return nil, status.Error(codes.FailedPrecondition, "this trip is not awaiting payment")
+		}
+
 		// Check for unfinished checkout session for ride fare
 		existingTxn, err := s.repo.GetTransactionByFilterID(ctx, trip.ID.Hex())
 		if err != nil {
@@ -326,7 +333,14 @@ func (s *PaymentService) InitiateCheckout(ctx context.Context, req *pb.InitiateC
 	} else {
 		driver, err := s.repo.GetDriverByID(ctx, req.UserId)
 		if err != nil {
+			if err == util.ErrDocumentNotFound {
+				return nil, status.Error(codes.NotFound, "driver account not found")
+			}
 			return nil, status.Error(codes.Internal, "internal server error")
+		}
+
+		if driver.OutstandingReturns <= 0 {
+			return nil, status.Error(codes.FailedPrecondition, "you have no outstanding returns to pay")
 		}
 
 		// Check for unfinished checkout session for driver returns

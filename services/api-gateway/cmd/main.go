@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/xerdin442/wayfare/services/api-gateway/internal/api/base"
@@ -122,6 +124,13 @@ func main() {
 	g.Go(func() error {
 		log.Info().Msg("Starting analytics event worker...")
 		return w2.Start()
+	})
+
+	g.Go(func() error {
+		log.Info().Msg("Starting metrics server...")
+
+		http.Handle("/metrics", promhttp.Handler())
+		return http.ListenAndServe(":2112", nil)
 	})
 
 	g.Go(func() error {
